@@ -198,7 +198,6 @@ CREATE TABLE penalidade (
     CONSTRAINT ck_penalidade_periodo CHECK (data_fim IS NULL OR data_fim >= data_inicio),
     CONSTRAINT ck_penalidade_usuarios_distintos CHECK (id_admin_aplicador <> id_usuario)
 );
-,
 CREATE INDEX idx_evento_organizador ON evento (id_organizador);
 CREATE INDEX idx_evento_categoria ON evento (id_categoria);
 CREATE INDEX idx_evento_endereco ON evento (id_endereco);
