@@ -1,0 +1,36 @@
+PREFIX chegae: <http://chegae.dev/ontology#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+INSERT DATA {
+    chegae:Usuario a <http://www.w3.org/2000/01/rdf-schema#Class> .
+    chegae:Evento a <http://www.w3.org/2000/01/rdf-schema#Class> .
+    chegae:Categoria a <http://www.w3.org/2000/01/rdf-schema#Class> .
+
+    <http://chegae.dev/user/a2222222-2222-4222-8222-222222222222> a chegae:Usuario ; foaf:name "João (Embaixador)" .
+    <http://chegae.dev/user/a3333333-3333-4333-8333-333333333333> a chegae:Usuario ; foaf:name "Maria (Embaixadora)" .
+    <http://chegae.dev/user/a4444444-4444-4444-8444-444444444444> a chegae:Usuario ; foaf:name "Pedro (Participante)" .
+    <http://chegae.dev/user/a5555555-5555-4555-8555-555555555555> a chegae:Usuario ; foaf:name "Ana (Participante)" .
+    <http://chegae.dev/user/a6666666-6666-4666-8666-666666666666> a chegae:Usuario ; foaf:name "Carlos (Participante)" .
+
+    <http://chegae.dev/evento/b1111111-1111-4111-8111-111111111111> a chegae:Evento ; chegae:titulo "Futebol de Domingo" .
+    <http://chegae.dev/evento/b2222222-2222-4222-8222-222222222222> a chegae:Evento ; chegae:titulo "Patinação no Ibira" .
+    <http://chegae.dev/evento/b4444444-4444-4444-8444-444444444444> a chegae:Evento ; chegae:titulo "RPG na Praça" .
+
+    <http://chegae.dev/user/a2222222-2222-4222-8222-222222222222> chegae:participouDe <http://chegae.dev/evento/b1111111-1111-4111-8111-111111111111> .
+    <http://chegae.dev/user/a3333333-3333-4333-8333-333333333333> chegae:participouDe <http://chegae.dev/evento/b1111111-1111-4111-8111-111111111111> .
+    <http://chegae.dev/user/a4444444-4444-4444-8444-444444444444> chegae:participouDe <http://chegae.dev/evento/b1111111-1111-4111-8111-111111111111> .
+    <http://chegae.dev/user/a5555555-5555-4555-8555-555555555555> chegae:participouDe <http://chegae.dev/evento/b1111111-1111-4111-8111-111111111111> .
+
+    <http://chegae.dev/user/a2222222-2222-4222-8222-222222222222> chegae:participouDe <http://chegae.dev/evento/b4444444-4444-4444-8444-444444444444> .
+    <http://chegae.dev/user/a4444444-4444-4444-8444-444444444444> chegae:participouDe <http://chegae.dev/evento/b4444444-4444-4444-8444-444444444444> .
+
+    <http://chegae.dev/user/a2222222-2222-4222-8222-222222222222> chegae:conhece <http://chegae.dev/user/a3333333-3333-4333-8333-333333333333> .
+    <http://chegae.dev/user/a3333333-3333-4333-8333-333333333333> chegae:conhece <http://chegae.dev/user/a2222222-2222-4222-8222-222222222222> .
+    <http://chegae.dev/user/a2222222-2222-4222-8222-222222222222> chegae:conhece <http://chegae.dev/user/a4444444-4444-4444-8444-444444444444> .
+    <http://chegae.dev/user/a4444444-4444-4444-8444-444444444444> chegae:conhece <http://chegae.dev/user/a2222222-2222-4222-8222-222222222222> .
+    <http://chegae.dev/user/a3333333-3333-4333-8333-333333333333> chegae:conhece <http://chegae.dev/user/a4444444-4444-4444-8444-444444444444> .
+    <http://chegae.dev/user/a4444444-4444-4444-8444-444444444444> chegae:conhece <http://chegae.dev/user/a3333333-3333-4333-8333-333333333333> .
+    <http://chegae.dev/user/a5555555-5555-4555-8555-555555555555> chegae:conhece <http://chegae.dev/user/a2222222-2222-4222-8222-222222222222> .
+    <http://chegae.dev/user/a5555555-5555-4555-8555-555555555555> chegae:conhece <http://chegae.dev/user/a3333333-3333-4333-8333-333333333333> .
+    <http://chegae.dev/user/a5555555-5555-4555-8555-555555555555> chegae:conhece <http://chegae.dev/user/a4444444-4444-4444-8444-444444444444> .
+}

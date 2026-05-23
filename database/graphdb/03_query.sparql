@@ -1,0 +1,19 @@
+PREFIX chegae: <http://chegae.dev/ontology#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+# DESCUBRA A BOLHA:
+# "Quais pessoas estão conectadas através dos mesmos eventos que o João organizou ou participou?"
+SELECT ?nomeDaPessoa ?eventoEmComum
+WHERE {
+    # Pegamos o ID do João (a222)
+    BIND(<http://chegae.dev/user/a2222222-2222-4222-8222-222222222222> AS ?joao)
+    
+    # Verificamos quem o João conhece
+    ?joao chegae:conhece ?amigo .
+    ?amigo foaf:name ?nomeDaPessoa .
+    
+    # E de qual evento em comum surgiu essa amizade
+    ?amigo chegae:participouDe ?evento .
+    ?joao chegae:participouDe ?evento .
+    ?evento chegae:titulo ?eventoEmComum .
+}
