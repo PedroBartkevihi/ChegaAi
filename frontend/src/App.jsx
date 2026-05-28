@@ -54,7 +54,7 @@ const seedEvents = [
     waitlist: ["Mateus", "Helena"],
     comments: [{ author: "Paula", text: "Meu cachorro é pequeno e fica bem com outros cães.", time: "12:12" }],
     reports: 0,
-    description: "Rolê tranquilo para socializar pets. Guia obrigatória e água para os cães.",
+    description: "Rolé tranquilo para socializar pets. Guia obrigatória e água para os cães.",
   },
   {
     id: "evt-patins-1",
@@ -151,12 +151,12 @@ export default function App() {
     formEvent.preventDefault();
 
     if (currentUser.honor < 2) {
-      showNotice("Sua honra está abaixo de 2.0. Pelo RN004, você pode participar, mas não criar novos rolês.");
+      showNotice("Sua honra está abaixo de 2.0. Pelo RN004, você pode participar, mas não criar novos rolés.");
       return;
     }
 
     if (currentUser.pendingEvaluations.length > 0) {
-      showNotice("Você possui avaliações pendentes. Pelo RN007, conclua as avaliações antes de criar ou entrar em novos rolês.");
+      showNotice("Você possui avaliações pendentes. Pelo RN007, conclua as avaliações antes de criar ou entrar em novos rolés.");
       return;
     }
 
@@ -175,7 +175,7 @@ export default function App() {
       organizer: { id: currentUser.id, name: currentUser.name, honor: currentUser.honor },
       confirmed: [currentUser.name],
       waitlist: [],
-      comments: [{ author: currentUser.name, text: "Rolê publicado. Confirmem presença por aqui.", time: getTime() }],
+      comments: [{ author: currentUser.name, text: "Rolé publicado. Confirmem presença por aqui.", time: getTime() }],
       reports: 0,
       description: form.get("description").trim(),
     };
@@ -189,7 +189,7 @@ export default function App() {
 
   function toggleEnrollment(eventId) {
     if (currentUser.pendingEvaluations.length > 0) {
-      showNotice("Você possui avaliações pendentes. Pelo RN007, conclua essas avaliações antes de entrar em outro rolê.");
+      showNotice("Você possui avaliações pendentes. Pelo RN007, conclua essas avaliações antes de entrar em outro rolé.");
       return;
     }
 
@@ -288,11 +288,11 @@ export default function App() {
         <header className="topbar">
           <div>
             <p className="eyebrow">SPA responsiva - protótipo B4</p>
-            <h1>Encontre companhia confiável para rolês presenciais.</h1>
+            <h1>Encontre companhia confiável para rolés presenciais.</h1>
           </div>
           <button className="primary-action" type="button" onClick={() => setView("create")}>
             <Plus size={18} />
-            Criar rolê
+            Criar rolé
           </button>
         </header>
 
@@ -357,7 +357,7 @@ function Sidebar({ view, filters, setView, updateFilter }) {
       <nav className="nav-tabs" aria-label="Navegação principal">
         {[
           ["feed", "Feed"],
-          ["create", "Criar rolê"],
+          ["create", "Criar rolé"],
           ["profile", "Meu perfil"],
           ["moderation", "Moderação"],
         ].map(([key, label]) => (
@@ -369,7 +369,7 @@ function Sidebar({ view, filters, setView, updateFilter }) {
 
       <section className="filters" aria-label="Filtros de eventos">
         <label>
-          Buscar rolê
+          Buscar rolé
           <span className="input-with-icon">
             <Search size={16} />
             <input value={filters.search} type="search" placeholder="futebol, pets, patins..." onChange={(event) => updateFilter("search", event.target.value)} />
@@ -435,7 +435,7 @@ function FeedView({ events, metrics, filters, enrollments, resetFilters, openEve
 
       <div className="section-heading">
         <div>
-          <h2>Rolês disponíveis</h2>
+          <h2>Rolés disponíveis</h2>
           <span>{buildFilterSummary(filters)}</span>
         </div>
         <button className="secondary-action" type="button" onClick={resetFilters}>
@@ -450,7 +450,7 @@ function FeedView({ events, metrics, filters, enrollments, resetFilters, openEve
             <EventCard key={event.id} event={event} enrollment={enrollments[event.id]} openEvent={openEvent} toggleEnrollment={toggleEnrollment} />
           ))
         ) : (
-          <div className="empty-state">Nenhum rolê encontrado com os filtros atuais.</div>
+          <div className="empty-state">Nenhum rolé encontrado com os filtros atuais.</div>
         )}
       </div>
     </section>
@@ -524,7 +524,7 @@ function CreateView({ categoryOptions, capacityLimit, onSubmit }) {
       <form className="event-form" onSubmit={onSubmit}>
         <div className="form-heading">
           <span className="status-pill">UC03 - Gerenciar eventos</span>
-          <h2>Novo rolê</h2>
+          <h2>Novo rolé</h2>
           <p>Como embaixador, você pode criar eventos com até {capacityLimit} vagas.</p>
         </div>
 
@@ -541,12 +541,12 @@ function CreateView({ categoryOptions, capacityLimit, onSubmit }) {
 
         <label>
           Descrição
-          <textarea name="description" required maxLength="260" rows="4" placeholder="Descreva o ponto de encontro, ritmo do rolê e combinados de segurança." />
+          <textarea name="description" required maxLength="260" rows="4" placeholder="Descreva o ponto de encontro, ritmo do rolé e combinados de segurança." />
         </label>
 
         <div className="form-actions">
           <button className="secondary-action" type="reset">Limpar</button>
-          <button className="primary-action" type="submit"><Plus size={18} />Publicar rolê</button>
+          <button className="primary-action" type="submit"><Plus size={18} />Publicar rolé</button>
         </div>
       </form>
     </section>
@@ -578,7 +578,7 @@ function ProfileView({ events, enrollments }) {
             {currentUser.pendingEvaluations.length ? (
               currentUser.pendingEvaluations.map((item) => <StackItem key={item} title={item} body="Avaliação obrigatória antes de nova inscrição." />)
             ) : (
-              <StackItem title="Nada pendente" body="Você pode criar eventos e se inscrever em novos rolês." />
+              <StackItem title="Nada pendente" body="Você pode criar eventos e se inscrever em novos rolés." />
             )}
           </div>
         </article>
@@ -590,7 +590,7 @@ function ProfileView({ events, enrollments }) {
             {myEnrollments.length ? (
               myEnrollments.map(({ event, status }) => <StackItem key={event.id} title={event.title} body={`${status} - ${formatDate(event.date)} às ${event.time}`} />)
             ) : (
-              <StackItem title="Sem inscrições" body="Quando você participar de um rolê, ele aparecerá aqui." />
+              <StackItem title="Sem inscrições" body="Quando você participar de um rolé, ele aparecerá aqui." />
             )}
           </div>
         </article>
@@ -685,7 +685,7 @@ function EventModal({ event, enrollment, close, toggleEnrollment, addComment, re
           </div>
 
           <section className="comments-box">
-            <h3>Comentários do rolê</h3>
+            <h3>Comentários do rolé</h3>
             {event.comments.length ? (
               event.comments.map((item, index) => (
                 <article className="comment-item" key={`${item.author}-${item.time}-${index}`}>
@@ -706,7 +706,7 @@ function EventModal({ event, enrollment, close, toggleEnrollment, addComment, re
                 <button className="secondary-action" type="submit">Publicar comentário</button>
               </form>
             ) : (
-              <div className="empty-state">Entre no rolê ou na fila de espera para comentar, conforme RN006.</div>
+              <div className="empty-state">Entre no rolé ou na fila de espera para comentar, conforme RN006.</div>
             )}
           </section>
         </div>
@@ -755,7 +755,7 @@ function buildFilterSummary(filters) {
   if (filters.distance !== "todos") parts.push(`até ${filters.distance} km`);
   if (filters.honor !== "0") parts.push(`honra ${filters.honor}+`);
   if (filters.search) parts.push(`busca "${filters.search}"`);
-  return parts.length ? parts.join(" · ") : "Todos os rolês";
+  return parts.length ? parts.join(" · ") : "Todos os rolés";
 }
 
 function isAmbassador(honor) {
