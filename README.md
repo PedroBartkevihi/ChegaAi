@@ -2,7 +2,7 @@
 
 O **ChegAê** é uma plataforma que conecta pessoas para a realização de atividades e rolés presenciais com foco em segurança, controle de reputação e organização inteligente de vagas. 
 
-Este repositório está organizado como um **Monorepo**, facilitando o desenvolvimento integrado do Front-end (React) e do Back-end (Spring Boot), além de centralizar as definições de infraestrutura (Docker, PostgreSQL, GraphDB) e banco de dados.
+Este repositório está organizado como um **Monorepo**, facilitando o desenvolvimento integrado do Front-end (React) e do Back-end (Spring Boot), além de centralizar as definições de infraestrutura (Docker, PostgreSQL, GraphDB).
 
 ---
 
@@ -98,18 +98,8 @@ O sistema possui uma gama de usuários simulando diferentes perfis e níveis de 
 | :--- | :--- | :--- | :--- |
 | **`pedro@chegae.dev`** | Embaixador | **4.9** | Acesso total. Pode criar rolés de destaque com limite de até **50 participantes**. |
 | **`caio@chegae.dev`** | Embaixador | **4.9** | Acesso total. Pode criar rolés de destaque com limite de até **50 participantes**. |
-| **`ivan@chegae.dev`** | Participante | **3.4** | Conta padrão. Pode criar rolés de até **20 participantes** e se inscrever em rolés. |
+| **`marcos@chegae.dev`** | Embaixador | **5.0** | Acesso total. Pode criar rolés de destaque com limite de até **50 participantes**. |
 | **`baixa@chegae.dev`** | Participante | **2.5** | **Reputação Baixa**. Bloqueado para inscrição de novos eventos devido à reputação abaixo do limite de 3.0. |
 | **`moderador@chegae.dev`**| Administrador | **5.0** | Acesso ao **Painel de Moderação** para aprovar, arquivar ou suspender rolés denunciados. |
 
 ---
-
-## 🔒 Regras de Negócio Integradas (MVP)
-
-- **Lista de Espera Inteligente**: Quando um rolé atinge sua lotação máxima de participantes confirmados, os novos inscritos entram automaticamente em uma lista de espera com ordenação por ordem de chegada (fila ordenada cronologicamente). Se alguém confirmado cancelar sua presença, o primeiro da lista de espera é promovido a confirmado de forma automatizada.
-- **Bloqueio por Reputação**:
-  - Usuários com **Reputação < 3.0** ficam bloqueados para se inscrever em qualquer novo evento.
-  - Usuários com **Reputação < 2.0** ficam impedidos de criar novos eventos.
-- **Limites de Capacidade**:
-  - Usuários normais (Participantes) podem criar eventos de no máximo **20 pessoas**.
-  - Usuários com destaque (Embaixadores) podem criar eventos de até **50 pessoas**.

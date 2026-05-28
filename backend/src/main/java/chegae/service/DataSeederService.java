@@ -79,11 +79,7 @@ public class DataSeederService implements CommandLineRunner {
 
         // Marcos - embaixador organizador
         Participante marcos = salvarParticipante("Marcos Lima", "marcos@chegae.dev",
-            "45678901234", "1997-05-10", BigDecimal.valueOf(4.95));
-
-        // Ivan - participante comum (honra média)
-        Participante ivan = salvarParticipante("Ivan Ribeiro", "ivan@chegae.dev",
-            "56789012345", "2001-09-18", BigDecimal.valueOf(3.40));
+            "45678901234", "1997-05-10", BigDecimal.valueOf(5.0));
 
         // Participantes extras para inscrições nos eventos
         Participante lia = salvarParticipante("Lia Costa", "lia@chegae.dev",
@@ -139,7 +135,6 @@ public class DataSeederService implements CommandLineRunner {
         inscrever(caio, evtPets, StatusInscricao.CONFIRMADA);
         // Fila de espera
         inscrever(marcos, evtPets, StatusInscricao.SOLICITADA);
-        inscrever(ivan, evtPets, StatusInscricao.SOLICITADA);
 
         comentar(paula, evtPets, "Meu cachorro é pequeno e fica bem com outros cães.");
 
@@ -157,8 +152,8 @@ public class DataSeederService implements CommandLineRunner {
 
         comentar(lia, evtPatinacao, "Posso ir mesmo sabendo frear só um pouco?");
 
-        // Evento 4: Café e jogo de tabuleiro (Ivan organizador) - TRAVADO
-        Evento evtLazer = salvarEvento(ivan, catLazer, endTijuca,
+        // Evento 4: Café e jogo de tabuleiro (Marcos organizador) - TRAVADO
+        Evento evtLazer = salvarEvento(marcos, catLazer, endTijuca,
             "Café e jogo de tabuleiro",
             "Encontro em local público. Evento temporariamente travado por análise de moderação.",
             "2026-06-05", "15:00", 6);
@@ -166,7 +161,7 @@ public class DataSeederService implements CommandLineRunner {
         evtLazer.setTravado(true);
         eventoRepository.save(evtLazer);
 
-        inscrever(ivan, evtLazer, StatusInscricao.CONFIRMADA);
+        inscrever(marcos, evtLazer, StatusInscricao.CONFIRMADA);
         inscrever(bia, evtLazer, StatusInscricao.CONFIRMADA);
         inscrever(rafael, evtLazer, StatusInscricao.CONFIRMADA);
         inscrever(paula, evtLazer, StatusInscricao.CONFIRMADA);

@@ -452,7 +452,7 @@ function LoginScreen({ onLogin, loading }) {
             <strong>Contas demo:</strong><br />
             pedro@chegae.dev (Embaixador, reputação 4.9)<br />
             caio@chegae.dev (Embaixador, reputação 4.9)<br />
-            ivan@chegae.dev (Participante, reputação 3.4)<br />
+            marcos@chegae.dev (Embaixador, reputação 5.0)<br />
             baixa@chegae.dev (Reputação baixa, 2.5)<br />
             moderador@chegae.dev (Administrador)
           </div>
