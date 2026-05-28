@@ -805,3 +805,23 @@ h3 {
     flex-direction: column;
   }
 }
+
+/* === Login Screen === */
+.login-card {
+  width: min(420px, calc(100vw - 48px));
+  padding: 32px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.login-card .brand {
+  justify-content: center;
+}
+
+.login-card .primary-action {
+  width: 100%;
+  min-height: 48px;
+  font-size: 1rem;
+}
