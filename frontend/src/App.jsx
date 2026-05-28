@@ -1,108 +1,63 @@
-import { CalendarDays, Flag, MapPin, Plus, Search, Star, UsersRound, X } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+import { CalendarDays, Flag, LogIn, MapPin, Plus, Search, Star, UsersRound, X } from "lucide-react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 
-const STORAGE_KEY = "chegaae.events.v2";
-const ENROLLMENT_KEY = "chegaae.enrollments.v2";
-const REPORT_KEY = "chegaae.reports.v2";
+// ============================================================================
+// API Helper
+// ============================================================================
+
+const API_BASE = "/api";
+
+async function api(path, options = {}) {
+  const userId = localStorage.getItem("chegaae.userId");
+  const headers = {
+    "Content-Type": "application/json",
+    ...(userId && { "X-User-Id": userId }),
+    ...options.headers,
+  };
+
+  const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: response.statusText }));
+    throw new Error(error.message || `Erro ${response.status}`);
+  }
+
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
+}
+
+// ============================================================================
+// Error Message Cleaner
+// ============================================================================
+
+function cleanErrorMessage(msg) {
+  if (!msg) return "Ocorreu um erro inesperado. Tente novamente.";
+  let clean = msg;
+  
+  // Remove technical prefixes and suffixes (e.g. RN001, UC03)
+  clean = clean.replace(/RN\d+/gi, "").replace(/UC\d+/gi, "");
+  
+  if (clean.includes("honra") || clean.includes("Honra") || clean.includes("reputacao") || clean.includes("Reputação")) {
+    if (clean.toLowerCase().includes("abaixo") || clean.toLowerCase().includes("insuficiente") || clean.toLowerCase().includes("limite")) {
+      return "Ação Não Permitida. Sua reputação atual na plataforma está abaixo do limite mínimo necessário para realizar esta ação.";
+    }
+  }
+  if (clean.includes("vagas") || clean.includes("capacidade") || clean.includes("lotado")) {
+    return "Limite de vagas atingido. O evento está lotado no momento.";
+  }
+  
+  clean = clean.replace(/^[\s\-\:\⚠️\❌]+/, "").trim();
+  if (clean) {
+    clean = clean.charAt(0).toUpperCase() + clean.slice(1);
+  }
+  return clean;
+}
+
+// ============================================================================
+// Constants
+// ============================================================================
 
 const categories = ["Futebol", "Pets", "Patinação", "Passeio", "Esporte", "Cultura", "Lazer"];
-
-const currentUser = {
-  id: "user-pedro",
-  name: "Pedro",
-  fullName: "Pedro Farias",
-  honor: 4.9,
-  pendingEvaluations: [],
-  isModerator: true,
-};
-
-const seedEvents = [
-  {
-    id: "evt-fut-1",
-    title: "Futebol no Aterro",
-    category: "Futebol",
-    date: "2026-05-02",
-    time: "09:00",
-    cep: "22250-040",
-    place: "Aterro do Flamengo, Rio de Janeiro",
-    distance: 6,
-    capacity: 20,
-    status: "ABERTO",
-    organizer: { id: "user-caio", name: "Caio", honor: 4.9 },
-    confirmed: ["Caio", "Marcos", "Lia", "Nina", "Rafael", "Bia", "Davi", "João", "Iris", "Ana", "Theo", "Luiza"],
-    waitlist: [],
-    comments: [
-      { author: "Marcos", text: "Vou levar duas bolas e coletes.", time: "08:20" },
-      { author: "Lia", text: "O ponto de encontro é perto da quadra principal?", time: "09:05" },
-    ],
-    reports: 0,
-    description: "Pelada leve com times mistos. Chegar 15 minutos antes para dividir equipes e combinar regras.",
-  },
-  {
-    id: "evt-pets-1",
-    title: "Passeio com cães na praça",
-    category: "Pets",
-    date: "2026-05-03",
-    time: "16:30",
-    cep: "22290-240",
-    place: "Praça Nelson Mandela, Botafogo",
-    distance: 3,
-    capacity: 8,
-    status: "ABERTO",
-    organizer: { id: "user-nina", name: "Nina", honor: 4.7 },
-    confirmed: ["Nina", "Paula", "Bruno", "Lara", "Gabi", "Ruan", "Sofia", "Léo"],
-    waitlist: ["Mateus", "Helena"],
-    comments: [{ author: "Paula", text: "Meu cachorro é pequeno e fica bem com outros cães.", time: "12:12" }],
-    reports: 0,
-    description: "Rolé tranquilo para socializar pets. Guia obrigatória e água para os cães.",
-  },
-  {
-    id: "evt-patins-1",
-    title: "Patinação iniciante na orla",
-    category: "Patinação",
-    date: "2026-05-04",
-    time: "18:00",
-    cep: "22010-000",
-    place: "Copacabana, Rio de Janeiro",
-    distance: 11,
-    capacity: 50,
-    status: "ABERTO",
-    organizer: { id: "user-marcos", name: "Marcos", honor: 4.95 },
-    confirmed: ["Marcos", "Breno", "Clara", "Vitor", "Duda", "Malu", "Enzo", "Tainá", "Júlia", "Igor", "Ceci", "Rita", "Noah"],
-    waitlist: [],
-    comments: [{ author: "Clara", text: "Posso ir mesmo sabendo frear só um pouco?", time: "15:44" }],
-    reports: 0,
-    description: "Treino básico para quem quer ganhar confiança. Embaixador organizando, capacete recomendado.",
-  },
-  {
-    id: "evt-lazer-1",
-    title: "Café e jogo de tabuleiro",
-    category: "Lazer",
-    date: "2026-05-05",
-    time: "15:00",
-    cep: "20550-013",
-    place: "Tijuca, Rio de Janeiro",
-    distance: 18,
-    capacity: 6,
-    status: "TRAVADO",
-    organizer: { id: "user-ivan", name: "Ivan", honor: 3.4 },
-    confirmed: ["Ivan", "Mia", "Tom", "Rafa"],
-    waitlist: [],
-    comments: [],
-    reports: 2,
-    description: "Encontro em local público. Evento temporariamente travado por análise de moderação.",
-  },
-];
-
-const seedReports = [
-  {
-    id: "rep-1",
-    target: "Café e jogo de tabuleiro",
-    author: "Mia",
-    reason: "Local precisa ser confirmado antes de liberar novas inscrições.",
-    status: "PENDENTE",
-  },
-];
 
 const initialFilters = {
   search: "",
@@ -111,17 +66,70 @@ const initialFilters = {
   honor: "0",
 };
 
+// ============================================================================
+// Main App
+// ============================================================================
+
 export default function App() {
-  const [events, setEvents] = useStoredState(STORAGE_KEY, seedEvents);
-  const [enrollments, setEnrollments] = useStoredState(ENROLLMENT_KEY, {});
-  const [reports, setReports] = useStoredState(REPORT_KEY, seedReports);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [events, setEvents] = useState([]);
+  const [enrollments, setEnrollments] = useState({});
+  const [reports, setReports] = useState([]);
   const [view, setView] = useState("feed");
   const [filters, setFilters] = useState(initialFilters);
   const [selectedEventId, setSelectedEventId] = useState(null);
-  const [notice, setNotice] = useState("");
+  const [alert, setAlert] = useState(null); // { type: 'success' | 'error' | 'warning' | 'info', message: string }
+  const [loading, setLoading] = useState(false);
 
-  const capacityLimit = isAmbassador(currentUser.honor) ? 50 : 20;
+  const capacityLimit = currentUser && isAmbassador(currentUser.honor) ? 50 : 20;
   const selectedEvent = events.find((event) => event.id === selectedEventId);
+
+  // === Carregar eventos do backend ===
+  const loadEvents = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await api("/eventos");
+      setEvents(data);
+
+      // Recalcular enrollments baseado nos eventos carregados
+      if (currentUser) {
+        const newEnrollments = {};
+        data.forEach((event) => {
+          if (event.confirmed.includes(currentUser.name)) {
+            newEnrollments[event.id] = "CONFIRMADO";
+          } else if (event.waitlist.includes(currentUser.name)) {
+            newEnrollments[event.id] = "FILA";
+          }
+        });
+        setEnrollments(newEnrollments);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar eventos:", err);
+      showNotice("Não foi possível carregar os eventos. Verifique sua conexão ou se o servidor está ativo.", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser]);
+
+  // Carregar eventos quando o usuário logar
+  useEffect(() => {
+    if (currentUser) {
+      loadEvents();
+    }
+  }, [currentUser, loadEvents]);
+
+  // Tentar restaurar sessão do localStorage
+  useEffect(() => {
+    const savedUser = localStorage.getItem("chegaae.user");
+    if (savedUser) {
+      try {
+        setCurrentUser(JSON.parse(savedUser));
+      } catch {
+        localStorage.removeItem("chegaae.user");
+        localStorage.removeItem("chegaae.userId");
+      }
+    }
+  }, []);
 
   const filteredEvents = useMemo(() => {
     return events
@@ -147,98 +155,113 @@ export default function App() {
     setFilters((current) => ({ ...current, [name]: value }));
   }
 
-  function createEvent(formEvent) {
+  // === Login via API ===
+  async function handleLogin(email) {
+    try {
+      setLoading(true);
+      const user = await api("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      });
+      setCurrentUser(user);
+      localStorage.setItem("chegaae.user", JSON.stringify(user));
+      localStorage.setItem("chegaae.userId", user.id);
+      showNotice(`Bem-vindo(a), ${user.name}!`, "success");
+    } catch (err) {
+      showNotice("Erro no login: " + err.message, "error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleLogout() {
+    setCurrentUser(null);
+    setEvents([]);
+    setEnrollments({});
+    localStorage.removeItem("chegaae.user");
+    localStorage.removeItem("chegaae.userId");
+    setView("feed");
+  }
+
+  // === Criar evento via API ===
+  async function createEvent(formEvent) {
     formEvent.preventDefault();
 
     if (currentUser.honor < 2) {
-      showNotice("Sua honra está abaixo de 2.0. Pelo RN004, você pode participar, mas não criar novos rolés.");
-      return;
-    }
-
-    if (currentUser.pendingEvaluations.length > 0) {
-      showNotice("Você possui avaliações pendentes. Pelo RN007, conclua as avaliações antes de criar ou entrar em novos rolés.");
+      showNotice("Ação Não Permitida. Sua reputação atual está abaixo do limite mínimo necessário para criar novos rolés.", "error");
       return;
     }
 
     const form = new FormData(formEvent.currentTarget);
-    const event = {
-      id: createId(),
+    const dto = {
       title: form.get("title").trim(),
       category: form.get("category"),
       date: form.get("date"),
       time: form.get("time"),
-      cep: form.get("cep").trim(),
+      cep: form.get("cep")?.trim() || "",
       place: form.get("place").trim(),
-      distance: Number(form.get("distance")),
       capacity: Math.min(Number(form.get("capacity")), capacityLimit),
-      status: "ABERTO",
-      organizer: { id: currentUser.id, name: currentUser.name, honor: currentUser.honor },
-      confirmed: [currentUser.name],
-      waitlist: [],
-      comments: [{ author: currentUser.name, text: "Rolé publicado. Confirmem presença por aqui.", time: getTime() }],
-      reports: 0,
+      distance: Number(form.get("distance")),
       description: form.get("description").trim(),
     };
 
-    setEvents((current) => [event, ...current]);
-    setEnrollments((current) => ({ ...current, [event.id]: "CONFIRMADO" }));
-    formEvent.currentTarget.reset();
-    setView("feed");
-    setSelectedEventId(event.id);
-  }
-
-  function toggleEnrollment(eventId) {
-    if (currentUser.pendingEvaluations.length > 0) {
-      showNotice("Você possui avaliações pendentes. Pelo RN007, conclua essas avaliações antes de entrar em outro rolé.");
-      return;
+    try {
+      setLoading(true);
+      const criado = await api("/eventos", {
+        method: "POST",
+        body: JSON.stringify(dto),
+      });
+      // Recarregar todos os eventos para ter dados consistentes
+      await loadEvents();
+      formEvent.currentTarget.reset();
+      setView("feed");
+      setSelectedEventId(criado.id);
+      showNotice("Rolé criado com sucesso!", "success");
+    } catch (err) {
+      showNotice("Não foi possível criar o evento: " + err.message, "error");
+    } finally {
+      setLoading(false);
     }
-
-    const event = events.find((item) => item.id === eventId);
-    if (!event || event.status !== "ABERTO") return;
-
-    const enrollment = enrollments[eventId];
-
-    setEvents((currentEvents) =>
-      currentEvents.map((item) => {
-        if (item.id !== eventId) return item;
-        const confirmed = item.confirmed.filter((name) => name !== currentUser.name);
-        const waitlist = item.waitlist.filter((name) => name !== currentUser.name);
-
-        if (enrollment) {
-          const promoted = confirmed.length < item.capacity ? waitlist.shift() : null;
-          return { ...item, confirmed: promoted ? [...confirmed, promoted] : confirmed, waitlist };
-        }
-
-        if (item.confirmed.length < item.capacity) {
-          return { ...item, confirmed: [...item.confirmed, currentUser.name] };
-        }
-
-        return { ...item, waitlist: [...item.waitlist, currentUser.name] };
-      })
-    );
-
-    setEnrollments((current) => {
-      const next = { ...current };
-      if (enrollment) {
-        delete next[eventId];
-      } else {
-        next[eventId] = event.confirmed.length < event.capacity ? "CONFIRMADO" : "FILA";
-      }
-      return next;
-    });
   }
 
-  function addComment(eventId, text) {
+  // === Toggle inscrição via API ===
+  async function toggleEnrollment(eventId) {
+    try {
+      setLoading(true);
+      const result = await api(`/eventos/${eventId}/inscricao`, {
+        method: "POST",
+      });
+
+      showNotice(result.message, "success");
+
+      // Recarregar eventos para atualizar listas de confirmados/fila
+      await loadEvents();
+    } catch (err) {
+      showNotice("Não foi possível realizar a inscrição: " + err.message, "error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // === Adicionar comentário via API ===
+  async function addComment(eventId, text) {
     if (!text.trim()) return;
-    setEvents((current) =>
-      current.map((event) =>
-        event.id === eventId
-          ? { ...event, comments: [...event.comments, { author: currentUser.name, text: text.trim(), time: getTime() }] }
-          : event
-      )
-    );
+    try {
+      const eventoAtualizado = await api(`/eventos/${eventId}/comentarios`, {
+        method: "POST",
+        body: JSON.stringify({ text: text.trim() }),
+      });
+
+      // Atualizar evento localmente com dados do servidor
+      setEvents((current) =>
+        current.map((event) => (event.id === eventId ? eventoAtualizado : event))
+      );
+    } catch (err) {
+      showNotice("Não foi possível publicar o comentário: " + err.message, "error");
+    }
   }
 
+  // === Denúncia (local por enquanto) ===
   function reportEvent(eventId) {
     const event = events.find((item) => item.id === eventId);
     if (!event) return;
@@ -253,13 +276,7 @@ export default function App() {
       },
       ...current,
     ]);
-    setEvents((current) =>
-      current.map((item) =>
-        item.id === eventId
-          ? { ...item, reports: item.reports + 1, status: item.reports + 1 >= 2 ? "TRAVADO" : item.status }
-          : item
-      )
-    );
+    showNotice("Denúncia enviada à moderação para análise.", "success");
   }
 
   function resolveReport(reportId, shouldLockEvent) {
@@ -269,25 +286,40 @@ export default function App() {
     setReports((current) =>
       current.map((item) => (item.id === reportId ? { ...item, status: shouldLockEvent ? "PROCEDENTE" : "IMPROCEDENTE" } : item))
     );
-
-    if (shouldLockEvent) {
-      setEvents((current) => current.map((event) => (event.title === report.target ? { ...event, status: "TRAVADO" } : event)));
-    }
   }
 
-  function showNotice(message) {
-    setNotice(message);
-    window.setTimeout(() => setNotice(""), 4600);
+  function showNotice(message, type = "info") {
+    const cleanMsg = type === "error" ? cleanErrorMessage(message) : message;
+    setAlert({ message: cleanMsg, type });
+  }
+
+  useEffect(() => {
+    if (alert) {
+      const timer = setTimeout(() => setAlert(null), 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [alert]);
+
+  // === Tela de login ===
+  if (!currentUser) {
+    return <LoginScreen onLogin={handleLogin} loading={loading} />;
   }
 
   return (
     <main className="app-shell">
-      <Sidebar view={view} filters={filters} setView={setView} updateFilter={updateFilter} />
+      <Sidebar
+        view={view}
+        filters={filters}
+        setView={setView}
+        updateFilter={updateFilter}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+      />
 
       <section className="content">
         <header className="topbar">
           <div>
-            <p className="eyebrow">SPA responsiva - protótipo B4</p>
+            <p className="eyebrow">Conexões reais e seguras</p>
             <h1>Encontre companhia confiável para rolés presenciais.</h1>
           </div>
           <button className="primary-action" type="button" onClick={() => setView("create")}>
@@ -296,7 +328,59 @@ export default function App() {
           </button>
         </header>
 
-        {notice && <div className="notice">{notice}</div>}
+        {alert && (
+          <div
+            className={`notice alert-${alert.type}`}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              padding: "16px",
+              borderRadius: "8px",
+              marginBottom: "18px",
+              maxWidth: "1200px",
+              margin: "0 auto 18px",
+              fontWeight: "500",
+              border: alert.type === "error" 
+                ? "1px solid rgba(181, 68, 56, 0.3)" 
+                : alert.type === "success" 
+                  ? "1px solid rgba(23, 129, 94, 0.3)" 
+                  : "1px solid rgba(217, 146, 32, 0.3)",
+              background: alert.type === "error" 
+                ? "#fdf2f2" 
+                : alert.type === "success" 
+                  ? "#f3faf7" 
+                  : "#fff6e4",
+              color: alert.type === "error" 
+                ? "#9b1c1c" 
+                : alert.type === "success" 
+                  ? "#03543f" 
+                  : "#704912"
+            }}
+          >
+            <span style={{ fontSize: "1.2rem" }}>
+              {alert.type === "error" ? "⚠️" : alert.type === "success" ? "✅" : "ℹ️"}
+            </span>
+            <div style={{ flex: 1 }}>{alert.message}</div>
+            <button
+              onClick={() => setAlert(null)}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "inherit",
+                fontWeight: "bold",
+                fontSize: "1.2rem",
+                padding: "0 4px",
+                display: "inline-flex",
+                alignItems: "center"
+              }}
+            >
+              &times;
+            </button>
+          </div>
+        )}
+        {loading && <div className="notice" style={{ background: "var(--blue)", color: "white", border: "1px solid var(--blue-dark)" }}>Carregando...</div>}
 
         {view === "feed" && (
           <FeedView
@@ -311,7 +395,7 @@ export default function App() {
         )}
 
         {view === "create" && <CreateView categoryOptions={categories} capacityLimit={capacityLimit} onSubmit={createEvent} />}
-        {view === "profile" && <ProfileView events={events} enrollments={enrollments} />}
+        {view === "profile" && <ProfileView events={events} enrollments={enrollments} currentUser={currentUser} />}
         {view === "moderation" && <ModerationView reports={reports} resolveReport={resolveReport} />}
       </section>
 
@@ -329,7 +413,65 @@ export default function App() {
   );
 }
 
-function Sidebar({ view, filters, setView, updateFilter }) {
+// ============================================================================
+// Login Screen
+// ============================================================================
+
+function LoginScreen({ onLogin, loading }) {
+  const [email, setEmail] = useState("pedro@chegae.dev");
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (email.trim()) onLogin(email.trim());
+  }
+
+  return (
+    <main className="app-shell" style={{ justifyContent: "center", alignItems: "center" }}>
+      <section className="login-card">
+        <div className="brand" style={{ marginBottom: "1.5rem" }}>
+          <span className="brand-mark" aria-hidden="true">Cê</span>
+          <div>
+            <strong>ChegaAê</strong>
+            <small>Companhia para sair de casa</small>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <label>
+            E-mail
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="seu@email.com"
+              required
+            />
+          </label>
+
+          <div style={{ fontSize: "0.8rem", opacity: 0.7, lineHeight: 1.4 }}>
+            <strong>Contas demo:</strong><br />
+            pedro@chegae.dev (Embaixador, reputação 4.9)<br />
+            caio@chegae.dev (Embaixador, reputação 4.9)<br />
+            ivan@chegae.dev (Participante, reputação 3.4)<br />
+            baixa@chegae.dev (Reputação baixa, 2.5)<br />
+            moderador@chegae.dev (Administrador)
+          </div>
+
+          <button className="primary-action" type="submit" disabled={loading}>
+            <LogIn size={18} />
+            {loading ? "Entrando..." : "Entrar"}
+          </button>
+        </form>
+      </section>
+    </main>
+  );
+}
+
+// ============================================================================
+// Sidebar
+// ============================================================================
+
+function Sidebar({ view, filters, setView, updateFilter, currentUser, onLogout }) {
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -342,14 +484,14 @@ function Sidebar({ view, filters, setView, updateFilter }) {
 
       <section className="profile-summary" aria-label="Resumo do perfil">
         <div>
-          <span className="avatar" aria-hidden="true">P</span>
+          <span className="avatar" aria-hidden="true">{currentUser.name[0]}</span>
           <div>
             <strong>{currentUser.name}</strong>
             <small>{isAmbassador(currentUser.honor) ? "Embaixador" : "Participante"}</small>
           </div>
         </div>
         <div className="honor-meter">
-          <span>Honra</span>
+          <span>Reputação</span>
           <strong>{currentUser.honor.toFixed(1)}</strong>
         </div>
       </section>
@@ -365,6 +507,9 @@ function Sidebar({ view, filters, setView, updateFilter }) {
             {label}
           </button>
         ))}
+        <button className="nav-tab" type="button" onClick={onLogout} style={{ marginTop: "auto", opacity: 0.7 }}>
+          Sair
+        </button>
       </nav>
 
       <section className="filters" aria-label="Filtros de eventos">
@@ -409,14 +554,18 @@ function SelectFilter({ label, value, onChange, children }) {
   );
 }
 
+// ============================================================================
+// Feed View
+// ============================================================================
+
 function FeedView({ events, metrics, filters, enrollments, resetFilters, openEvent, toggleEnrollment }) {
   return (
     <section className="view" aria-label="Feed de eventos">
       <div className="mission-panel">
         <div>
-          <span className="status-pill">Sistema ChegaAê</span>
-          <h2>Eventos, fila, honra e moderação no mesmo fluxo.</h2>
-          <p>O feed prioriza organizadores bem avaliados, controla vagas com fila FIFO e mantém comentários dentro da página do evento.</p>
+          <span className="status-pill">Sobre o ChegAê</span>
+          <h2>Conectando pessoas para atividades presenciais com segurança.</h2>
+          <p>Nossa plataforma prioriza organizadores bem avaliados, gerencia participantes por lista de espera e centraliza os combinados do grupo.</p>
         </div>
         <div className="map-sketch" aria-hidden="true">
           <span className="route" />
@@ -429,7 +578,7 @@ function FeedView({ events, metrics, filters, enrollments, resetFilters, openEve
 
       <div className="metric-row">
         <Metric icon={<CalendarDays size={18} />} label="Eventos ativos" value={metrics.active} />
-        <Metric icon={<UsersRound size={18} />} label="Fila de espera" value={metrics.waitlist} />
+        <Metric icon={<UsersRound size={18} />} label="Na lista de espera" value={metrics.waitlist} />
         <Metric icon={<Star size={18} />} label="Embaixadores" value={metrics.ambassadors} />
       </div>
 
@@ -466,6 +615,10 @@ function Metric({ icon, label, value }) {
   );
 }
 
+// ============================================================================
+// Event Card
+// ============================================================================
+
 function EventCard({ event, enrollment, openEvent, toggleEnrollment }) {
   const seats = Math.max(event.capacity - event.confirmed.length, 0);
   const percent = Math.min((event.confirmed.length / event.capacity) * 100, 100);
@@ -484,8 +637,26 @@ function EventCard({ event, enrollment, openEvent, toggleEnrollment }) {
 
       <div className="event-meta">
         <span>{formatDate(event.date)} às {event.time}</span>
-        <span>{event.place} - {event.distance} km</span>
-        <span>{event.confirmed.length}/{event.capacity} confirmados - {seats} vaga(s)</span>
+        <span>{event.place}{event.distance > 0 ? ` - ${event.distance} km` : ""}</span>
+        {event.confirmed.length >= event.capacity ? (
+          <div style={{ marginTop: "6px" }}>
+            <span style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              color: "var(--amber)",
+              background: "rgba(217, 146, 32, 0.1)",
+              padding: "4px 10px",
+              borderRadius: "6px",
+              fontSize: "0.82rem",
+              fontWeight: "600"
+            }}>
+              <UsersRound size={14} /> Lista de espera ativa: {event.waitlist.length} {event.waitlist.length === 1 ? "pessoa" : "pessoas"} na fila
+            </span>
+          </div>
+        ) : (
+          <span>{event.confirmed.length}/{event.capacity} confirmados · {seats} vaga(s) restante(s)</span>
+        )}
       </div>
 
       <div className="progress-track" aria-hidden="true">
@@ -496,7 +667,7 @@ function EventCard({ event, enrollment, openEvent, toggleEnrollment }) {
 
       <div className="organizer-line">
         <span>Organizador: <strong>{event.organizer.name}</strong></span>
-        <span>{event.organizer.honor.toFixed(1)} honra{featured ? " · Embaixador" : ""}</span>
+        <span>Reputação {event.organizer.honor.toFixed(1)}{featured ? " · Embaixador" : ""}</span>
       </div>
 
       <div className="card-actions">
@@ -510,22 +681,26 @@ function EventCard({ event, enrollment, openEvent, toggleEnrollment }) {
 }
 
 function EnrollmentBadge({ event, enrollment }) {
-  if (event.status === "TRAVADO") return <span className="enrollment-badge locked">Travado</span>;
+  if (event.status === "TRAVADO") return <span className="enrollment-badge locked">Suspenso</span>;
   if (event.status === "CANCELADO") return <span className="enrollment-badge locked">Cancelado</span>;
   if (enrollment === "CONFIRMADO") return <span className="enrollment-badge confirmed">Confirmado</span>;
-  if (enrollment === "FILA") return <span className="enrollment-badge waiting">Fila</span>;
-  if (event.confirmed.length >= event.capacity) return <span className="enrollment-badge waiting">Fila aberta</span>;
-  return <span className="enrollment-badge confirmed">Aberto</span>;
+  if (enrollment === "FILA") return <span className="enrollment-badge waiting">Lista de Espera</span>;
+  if (event.confirmed.length >= event.capacity) return <span className="enrollment-badge waiting">Esgotado</span>;
+  return <span className="enrollment-badge confirmed">Vagas Abertas</span>;
 }
+
+// ============================================================================
+// Create View
+// ============================================================================
 
 function CreateView({ categoryOptions, capacityLimit, onSubmit }) {
   return (
     <section className="view" aria-label="Criar evento">
       <form className="event-form" onSubmit={onSubmit}>
         <div className="form-heading">
-          <span className="status-pill">UC03 - Gerenciar eventos</span>
+          <span className="status-pill">Criar Evento</span>
           <h2>Novo rolé</h2>
-          <p>Como embaixador, você pode criar eventos com até {capacityLimit} vagas.</p>
+          <p>Defina os detalhes do seu novo evento com limite de até {capacityLimit} participantes.</p>
         </div>
 
         <div className="form-grid">
@@ -553,7 +728,11 @@ function CreateView({ categoryOptions, capacityLimit, onSubmit }) {
   );
 }
 
-function ProfileView({ events, enrollments }) {
+// ============================================================================
+// Profile View
+// ============================================================================
+
+function ProfileView({ events, enrollments, currentUser }) {
   const myEnrollments = Object.entries(enrollments)
     .map(([eventId, status]) => ({ event: events.find((item) => item.id === eventId), status }))
     .filter((item) => item.event);
@@ -562,30 +741,21 @@ function ProfileView({ events, enrollments }) {
     <section className="view" aria-label="Perfil e honra">
       <div className="profile-grid">
         <article className="profile-panel">
-          <span className="status-pill">UC10 - Perfil / Honra</span>
+          <span className="status-pill">Sua Reputação</span>
           <h2>{currentUser.fullName}</h2>
           <div className="big-honor">
             <strong>{currentUser.honor.toFixed(1)}</strong>
-            <span>honra média</span>
+            <span>reputação média</span>
           </div>
-          <p>Tag Embaixador ativa. Eventos criados por você ganham destaque e podem ter limite ampliado de vagas.</p>
-        </article>
-
-        <article className="profile-panel">
-          <span className="status-pill">RN007</span>
-          <h2>Avaliações pendentes</h2>
-          <div className="pending-list">
-            {currentUser.pendingEvaluations.length ? (
-              currentUser.pendingEvaluations.map((item) => <StackItem key={item} title={item} body="Avaliação obrigatória antes de nova inscrição." />)
-            ) : (
-              <StackItem title="Nada pendente" body="Você pode criar eventos e se inscrever em novos rolés." />
-            )}
-          </div>
+          <p>{isAmbassador(currentUser.honor) 
+            ? "Tag Embaixador ativa. Eventos criados por você ganham destaque e podem ter limite ampliado de vagas."
+            : "Participante ativo. Aumente sua reputação para se tornar Embaixador."
+          }</p>
         </article>
 
         <article className="profile-panel">
           <span className="status-pill">Minhas inscrições</span>
-          <h2>Confirmados e fila</h2>
+          <h2>Confirmados e lista de espera</h2>
           <div className="pending-list">
             {myEnrollments.length ? (
               myEnrollments.map(({ event, status }) => <StackItem key={event.id} title={event.title} body={`${status} - ${formatDate(event.date)} às ${event.time}`} />)
@@ -599,6 +769,10 @@ function ProfileView({ events, enrollments }) {
   );
 }
 
+// ============================================================================
+// Moderation View
+// ============================================================================
+
 function ModerationView({ reports, resolveReport }) {
   const pendingReports = reports.filter((report) => report.status === "PENDENTE");
 
@@ -606,7 +780,7 @@ function ModerationView({ reports, resolveReport }) {
     <section className="view" aria-label="Painel de moderação">
       <div className="section-heading">
         <div>
-          <span className="status-pill">UC13 - Painel do moderador</span>
+          <span className="status-pill">Controle de Moderação</span>
           <h2>Denúncias e travas</h2>
         </div>
       </div>
@@ -642,6 +816,10 @@ function ModerationView({ reports, resolveReport }) {
   );
 }
 
+// ============================================================================
+// Event Modal
+// ============================================================================
+
 function EventModal({ event, enrollment, close, toggleEnrollment, addComment, reportEvent }) {
   const [comment, setComment] = useState("");
   const canComment = enrollment === "CONFIRMADO" || enrollment === "FILA";
@@ -666,12 +844,12 @@ function EventModal({ event, enrollment, close, toggleEnrollment, addComment, re
           <div className="dialog-stats">
             <div><strong>{formatDate(event.date)}</strong><span>{event.time}</span></div>
             <div><strong>{event.confirmed.length}/{event.capacity}</strong><span>confirmados</span></div>
-            <div><strong>{event.waitlist.length}</strong><span>na fila FIFO</span></div>
+            <div><strong>{event.waitlist.length}</strong><span>na lista de espera</span></div>
           </div>
 
           <div className="organizer-line">
             <span><MapPin size={15} /> {event.place} - CEP {event.cep || "não informado"}</span>
-            <span>Honra {event.organizer.honor.toFixed(1)}</span>
+            <span>Reputação {event.organizer.honor.toFixed(1)}</span>
           </div>
 
           <div className="card-actions">
@@ -706,7 +884,7 @@ function EventModal({ event, enrollment, close, toggleEnrollment, addComment, re
                 <button className="secondary-action" type="submit">Publicar comentário</button>
               </form>
             ) : (
-              <div className="empty-state">Entre no rolé ou na fila de espera para comentar, conforme RN006.</div>
+              <div className="empty-state">Apenas participantes confirmados ou na lista de espera podem comentar.</div>
             )}
           </section>
         </div>
@@ -714,6 +892,10 @@ function EventModal({ event, enrollment, close, toggleEnrollment, addComment, re
     </div>
   );
 }
+
+// ============================================================================
+// Shared Components
+// ============================================================================
 
 function StackItem({ title, body }) {
   return (
@@ -724,29 +906,16 @@ function StackItem({ title, body }) {
   );
 }
 
-function useStoredState(key, fallback) {
-  const [value, setValue] = useState(() => {
-    try {
-      const stored = localStorage.getItem(key);
-      return stored ? JSON.parse(stored) : fallback;
-    } catch {
-      return fallback;
-    }
-  });
-
-  useEffect(() => {
-    localStorage.setItem(key, JSON.stringify(value));
-  }, [key, value]);
-
-  return [value, setValue];
-}
+// ============================================================================
+// Utility Functions
+// ============================================================================
 
 function getEnrollmentActionLabel(event, enrollment) {
-  if (event.status === "TRAVADO") return "Travado";
+  if (event.status === "TRAVADO") return "Suspenso";
   if (event.status === "CANCELADO") return "Cancelado";
   if (enrollment === "CONFIRMADO") return "Cancelar presença";
-  if (enrollment === "FILA") return "Sair da fila";
-  return event.confirmed.length >= event.capacity ? "Entrar na fila" : "Participar";
+  if (enrollment === "FILA") return "Sair da lista de espera";
+  return event.confirmed.length >= event.capacity ? "Entrar na lista de espera" : "Quero participar";
 }
 
 function buildFilterSummary(filters) {
@@ -765,13 +934,6 @@ function isAmbassador(honor) {
 function createId() {
   if (crypto.randomUUID) return crypto.randomUUID();
   return `id-${Date.now()}-${Math.round(Math.random() * 10000)}`;
-}
-
-function getTime() {
-  return new Intl.DateTimeFormat("pt-BR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date());
 }
 
 function formatDate(date) {

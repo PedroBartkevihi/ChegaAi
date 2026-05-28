@@ -1,61 +1,115 @@
-﻿# ChegaAê
+# 📍 ChegAê — Conexões Reais e Seguras
 
-Projeto organizado em formato de monorepo para separar claramente front-end, back-end, banco de dados, infraestrutura, documentação, configurações e scripts auxiliares.
+O **ChegAê** é uma plataforma que conecta pessoas para a realização de atividades e rolés presenciais com foco em segurança, controle de reputação e organização inteligente de vagas. 
 
-## Estrutura
+Este repositório está organizado como um **Monorepo**, facilitando o desenvolvimento integrado do Front-end (React) e do Back-end (Spring Boot), além de centralizar as definições de infraestrutura (Docker, PostgreSQL, GraphDB) e banco de dados.
+
+---
+
+## 📂 Estrutura do Repositório
 
 ```text
-frontend/                  Aplicação React + Vite.
-backend/                   Espaço reservado para futura API e regras de negócio.
-database/postgres/         Migrations SQL do PostgreSQL.
-database/graphdb/          Scripts SPARQL do GraphDB.
-infra/                     Docker Compose e arquivos de infraestrutura local.
-docs/                      Documentação técnica e material preservado do projeto.
-config/                    Templates e configurações compartilhadas do projeto.
-scripts/                   Scripts auxiliares de automação.
+├── frontend/                  # Aplicação Single Page Application (SPA) em React + Vite.
+├── backend/                   # API RESTful construída em Java com Spring Boot.
+├── database/
+│   ├── postgres/migrations/   # Scripts SQL de DDL e DML para o PostgreSQL.
+│   └── graphdb/               # Consultas SPARQL e scripts RDF para o GraphDB.
+├── infra/                     # Docker Compose e configurações de infraestrutura local.
+├── docs/                      # Documentação técnica e histórico do projeto.
+├── config/                    # Configurações compartilhadas de ambiente.
+└── codigo-txt.md              # Documento consolidado contendo todo o código-fonte atualizado.
 ```
 
-## Front-end
+---
 
-```powershell
-cd .\frontend
-npm install
-npm run dev
+## 🚀 Requisitos e Tecnologias
+
+### Tecnologias Utilizadas
+- **Front-end**: React 19, Vite, Lucide Icons, Vanilla CSS com design responsivo e moderno.
+- **Back-end**: Java 17, Spring Boot 3, Spring Data JPA, Spring Security (CORS liberado para o frontend).
+- **Bancos de Dados**:
+  - **PostgreSQL** (Persistência relacional de usuários, eventos, comentários, inscrições).
+  - **GraphDB** (Mapeamento semântico e sistema de recomendações de rolés).
+- **Infraestrutura**: Docker & Docker Compose.
+
+---
+
+## 🛠️ Como Iniciar o Projeto Localmente
+
+Siga o passo a passo abaixo para ligar todos os serviços do ChegAê na sua máquina local:
+
+### Passo 1: Subir o Banco de Dados (PostgreSQL)
+Certifique-se de ter o Docker e Docker Compose instalados. Execute os comandos abaixo para iniciar o container do PostgreSQL:
+
+```bash
+# Caso precise de permissões de administrador (Linux):
+sudo docker compose -f infra/docker-compose.yml up -d postgres
+
+# Para checar o status e ver se está ativo:
+sudo docker compose -f infra/docker-compose.yml ps
 ```
+*O PostgreSQL estará disponível na porta padrão **5432**.*
 
-Para gerar build de produção:
+---
 
-```powershell
-cd .\frontend
-npm run build
-```
+### Passo 2: Configurar e Rodar o Back-end (Spring Boot)
+1. Navegue até a pasta do backend:
+   ```bash
+   cd backend
+   ```
+2. Compile e inicialize o servidor com o Maven Wrapper:
+   ```bash
+   ./mvnw spring-boot:run
+   ```
+   *(ou apenas `mvn spring-boot:run` se possuir o Maven instalado globalmente).*
 
-## Banco e infraestrutura local
+3. **Carga Inicial Automática (Seed)**: 
+   Ao iniciar, o serviço `DataSeederService` do backend irá popular o banco de dados automaticamente caso ele esteja vazio, inserindo categorias, localizações, rolés demonstrativos e vários usuários para testes.
 
-```powershell
-cd C:\ChegaÊ
-docker compose -f .\infra\docker-compose.yml up -d
-docker compose -f .\infra\docker-compose.yml ps
-```
+*O servidor do backend estará ativo em **`http://localhost:8080`**.*
 
-Migrations PostgreSQL:
+---
 
-- `database/postgres/migrations/V1__esquema_inicial.sql`
-- `database/postgres/migrations/V2__carga_inicial.sql`
+### Passo 3: Rodar o Front-end (React)
+1. Abra um novo terminal e navegue para a pasta do frontend:
+   ```bash
+   cd frontend
+   ```
+2. Instale as dependências necessárias:
+   ```bash
+   npm install
+   ```
+3. Inicie o servidor de desenvolvimento:
+   ```bash
+   npm run dev
+   ```
+4. Acesse a aplicação no seu navegador:
+   **`http://localhost:5173`**
 
-Scripts GraphDB:
+*Nota: O frontend está configurado com um proxy transparente no Vite. Todas as requisições para `/api` são redirecionadas automaticamente para `http://localhost:8080`.*
 
-- `database/graphdb/01_carga_inicial.sparql`
-- `database/graphdb/02_mapeamento_labels.sparql`
-- `database/graphdb/03_query.sparql`
+---
 
-## Documentação
+## 👥 Contas Demonstrativas para Testes
 
-- `docs/overview-original.md`: README anterior da raiz, preservado como histórico.
-- `docs/database.md`: detalhes do PostgreSQL, GraphDB e migrations.
+O sistema possui uma gama de usuários simulando diferentes perfis e níveis de reputação. Faça o login utilizando os e-mails abaixo na tela inicial:
 
-## Observações de organização
+| E-mail | Tipo de Conta | Nível de Reputação | Comportamento Esperado |
+| :--- | :--- | :--- | :--- |
+| **`pedro@chegae.dev`** | Embaixador | **4.9** | Acesso total. Pode criar rolés de destaque com limite de até **50 participantes**. |
+| **`caio@chegae.dev`** | Embaixador | **4.9** | Acesso total. Pode criar rolés de destaque com limite de até **50 participantes**. |
+| **`ivan@chegae.dev`** | Participante | **3.4** | Conta padrão. Pode criar rolés de até **20 participantes** e se inscrever em rolés. |
+| **`baixa@chegae.dev`** | Participante | **2.5** | **Reputação Baixa**. Bloqueado para inscrição de novos eventos devido à reputação abaixo do limite de 3.0. |
+| **`moderador@chegae.dev`**| Administrador | **5.0** | Acesso ao **Painel de Moderação** para aprovar, arquivar ou suspender rolés denunciados. |
 
-- `node_modules/`, `dist/` e logs locais continuam ignorados pelo Git.
-- O repositório Git aninhado que existia em `pi2/.git` foi removido.
-- A pasta legada `pi2/` foi removida somente depois que ficou vazia.
+---
+
+## 🔒 Regras de Negócio Integradas (MVP)
+
+- **Lista de Espera Inteligente**: Quando um rolé atinge sua lotação máxima de participantes confirmados, os novos inscritos entram automaticamente em uma lista de espera com ordenação por ordem de chegada (fila ordenada cronologicamente). Se alguém confirmado cancelar sua presença, o primeiro da lista de espera é promovido a confirmado de forma automatizada.
+- **Bloqueio por Reputação**:
+  - Usuários com **Reputação < 3.0** ficam bloqueados para se inscrever em qualquer novo evento.
+  - Usuários com **Reputação < 2.0** ficam impedidos de criar novos eventos.
+- **Limites de Capacidade**:
+  - Usuários normais (Participantes) podem criar eventos de no máximo **20 pessoas**.
+  - Usuários com destaque (Embaixadores) podem criar eventos de até **50 pessoas**.
