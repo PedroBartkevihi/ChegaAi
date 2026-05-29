@@ -97,7 +97,7 @@ O sistema possui uma gama de usuários simulando diferentes perfis e níveis de 
 | E-mail | Tipo de Conta | Nível de Reputação | Comportamento Esperado |
 | :--- | :--- | :--- | :--- |
 | **`pedro@chegae.dev`** | Embaixador | **4.9** | Acesso total. Pode criar rolés de destaque com limite de até **50 participantes**. |
-| **`caio@chegae.dev`** | Embaixador | **4.9** | Acesso total. Pode criar rolés de destaque com limite de até **50 participantes**. |
+| **`caio@chegae.dev`** | Embaixador | **5.0** | Acesso total. Pode criar rolés de destaque com limite de até **50 participantes**. |
 | **`marcos@chegae.dev`** | Embaixador | **5.0** | Acesso total. Pode criar rolés de destaque com limite de até **50 participantes**. |
 | **`baixa@chegae.dev`** | Participante | **2.5** | **Reputação Baixa**. Bloqueado para inscrição de novos eventos devido à reputação abaixo do limite de 3.0. |
 | **`moderador@chegae.dev`**| Administrador | **5.0** | Acesso ao **Painel de Moderação** para aprovar, arquivar ou suspender rolés denunciados. |
