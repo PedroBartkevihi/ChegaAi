@@ -4,12 +4,12 @@ package chegae.domain.enums;
  * Status possíveis de uma conta de usuário na plataforma.
  *
  * <p>Mapeado pela constraint {@code ck_usuario_status} do DDL:
- * {@code CHECK (status_usuario IN ('ATIVO', 'SUSPENSO', 'INATIVO'))}</p>
+ * {@code CHECK (status_usuario IN ('ATIVO', 'SUSPENSO', 'BANIDO'))}</p>
  *
  * <ul>
  *   <li>{@code ATIVO}    – conta regular com acesso completo</li>
  *   <li>{@code SUSPENSO} – conta com acesso temporariamente bloqueado (RN005, RN009)</li>
- *   <li>{@code INATIVO}  – conta desativada ou banida definitivamente (RN005)</li>
+ *   <li>{@code BANIDO}   – conta banida definitivamente (RN005)</li>
  * </ul>
  */
 public enum StatusUsuario {
@@ -25,9 +25,9 @@ public enum StatusUsuario {
 	SUSPENSO,
 
 	/**
-	 * Conta inativa ou banida definitivamente.
+	 * Conta banida definitivamente.
 	 * Aplicada manualmente pelo moderador (UC05) ou automaticamente
 	 * após acúmulo de penalidades graves.
 	 */
-	INATIVO
+	BANIDO
 }

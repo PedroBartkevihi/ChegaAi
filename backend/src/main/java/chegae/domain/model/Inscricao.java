@@ -109,7 +109,7 @@ public class Inscricao {
     /**
      * Status atual da inscrição.
      * Constraint: {@code varchar(20) NOT NULL,
-     * CHECK (status_inscricao IN ('SOLICITADA','CONFIRMADA','CANCELADA'))}
+     * CHECK (status_inscricao IN ('SOLICITADA','CONFIRMADA','CANCELADA','AUSENTE'))}
      *
      * @see StatusInscricao
      */
@@ -187,6 +187,26 @@ public class Inscricao {
      * A dedução de 0.5 na honra (RN008) é processada pelo serviço de avaliação.
      */
     public void registrarAusencia() {
+        this.compareceu = Boolean.FALSE;
+    }
+
+    /**
+     * Marca a inscrição como AUSENTE (RN008).
+     * Transição: CONFIRMADA → AUSENTE.
+     *
+     * <p>Chamado pelo serviço ao concluir um evento quando o participante
+     * confirmado não compareceu ({@code compareceu == false}).</p>
+     *
+     * @throws IllegalStateException se a inscrição não estiver CONFIRMADA
+     */
+    public void marcarAusente() {
+        if (statusInscricao != StatusInscricao.CONFIRMADA) {
+            throw new IllegalStateException(
+                "Somente inscrições CONFIRMADA podem ser marcadas como AUSENTE. Status atual: "
+                + statusInscricao
+            );
+        }
+        this.statusInscricao = StatusInscricao.AUSENTE;
         this.compareceu = Boolean.FALSE;
     }
 

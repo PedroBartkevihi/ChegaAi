@@ -80,6 +80,19 @@ public class EventoController {
     }
 
     /**
+     * POST /api/eventos/{id}/concluir
+     * Conclui o evento e aplica RN008 (dedução de honra por ausência).
+     * Somente o organizador pode concluir o evento.
+     */
+    @PostMapping("/{id}/concluir")
+    public ResponseEntity<EventoResponseDTO> concluirEvento(
+            @PathVariable UUID id,
+            @RequestHeader("X-User-Id") UUID usuarioId) {
+        EventoResponseDTO concluido = eventoService.concluirEvento(id, usuarioId);
+        return ResponseEntity.ok(concluido);
+    }
+
+    /**
      * POST /api/eventos/{id}/comentarios
      * Adiciona um comentário ao evento. Requer header X-User-Id.
      */

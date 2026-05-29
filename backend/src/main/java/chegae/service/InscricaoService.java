@@ -6,6 +6,7 @@ import chegae.domain.enums.StatusInscricao;
 import chegae.domain.model.Evento;
 import chegae.domain.model.Inscricao;
 import chegae.domain.model.Usuario;
+import chegae.repository.AvaliacaoRepository;
 import chegae.repository.EventoRepository;
 import chegae.repository.InscricaoRepository;
 import chegae.repository.UsuarioRepository;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
@@ -38,6 +40,7 @@ public class InscricaoService {
     private final InscricaoRepository inscricaoRepository;
     private final EventoRepository eventoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final AvaliacaoRepository avaliacaoRepository;
 
     @Value("${chegae.regras.honra-minima-inscricao:3.0}")
     private double honraMinimaInscricao;
@@ -95,6 +98,9 @@ public class InscricaoService {
      */
     private InscricaoResponseDTO realizarNovaInscricao(Evento evento, Usuario usuario,
                                                         Inscricao inscricaoReaproveitada) {
+        // RN007: verificar avaliações pendentes de eventos anteriores
+        verificarAvaliacoesPendentes(usuario);
+
         // RN004: verificar honra mínima para inscrição
         if (usuario.getHonraMedia().compareTo(BigDecimal.valueOf(honraMinimaInscricao)) < 0) {
             throw new IllegalStateException(
@@ -167,5 +173,45 @@ public class InscricaoService {
             "CANCELADO",
             "Inscrição cancelada com sucesso."
         );
+    }
+
+    // -----------------------------------------------------------------------
+    // RN007 — Verificação de avaliações pendentes
+    // -----------------------------------------------------------------------
+
+    /**
+     * Verifica se o usuário possui avaliações pendentes de eventos concluídos (RN007).
+     *
+     * <p>Um usuário tem avaliações pendentes se participou (compareceu) de um evento
+     * já concluído e ainda não avaliou todos os outros participantes confirmados
+     * desse evento.</p>
+     *
+     * @param usuario usuário a verificar
+     * @throws IllegalStateException se houver avaliações pendentes
+     */
+    private void verificarAvaliacoesPendentes(Usuario usuario) {
+        List<Inscricao> inscricoesComparecidas = inscricaoRepository
+            .findCompareceuEmEventosConcluidos(usuario.getId());
+
+        for (Inscricao inscricao : inscricoesComparecidas) {
+            UUID eventoId = inscricao.getEvento().getId();
+
+            // Contar outros participantes confirmados no evento (excluindo o próprio usuário)
+            long outrosConfirmados = inscricaoRepository
+                .findByEventoIdAndStatusInscricao(eventoId, StatusInscricao.CONFIRMADA)
+                .stream()
+                .filter(i -> !i.getUsuario().getId().equals(usuario.getId()))
+                .count();
+
+            // Contar avaliações já feitas pelo usuário nesse evento
+            long avaliacoesFeitas = avaliacaoRepository
+                .contarAvaliacoesFeitas(usuario.getId(), eventoId);
+
+            if (avaliacoesFeitas < outrosConfirmados) {
+                throw new IllegalStateException(
+                    "Você possui avaliações pendentes de eventos anteriores. " +
+                    "Avalie os participantes para se inscrever em novos eventos.");
+            }
+        }
     }
 }

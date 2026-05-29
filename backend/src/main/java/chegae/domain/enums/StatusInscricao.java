@@ -4,7 +4,7 @@ package chegae.domain.enums;
  * Status da inscrição de um usuário em um evento.
  *
  * <p>Mapeado pela constraint {@code ck_inscricao_status} do DDL:
- * {@code CHECK (status_inscricao IN ('SOLICITADA', 'CONFIRMADA', 'CANCELADA'))}</p>
+ * {@code CHECK (status_inscricao IN ('SOLICITADA', 'CONFIRMADA', 'CANCELADA', 'AUSENTE'))}</p>
  *
  * <p>Transições de estado:</p>
  * <pre>
@@ -12,6 +12,7 @@ package chegae.domain.enums;
  *  SOLICITADA ──(sem vaga)──────────► FILA DE ESPERA (flag interna; status permanece SOLICITADA)
  *  CONFIRMADA ──(cancelamento)──────► CANCELADA  (verifica RN009)
  *  SOLICITADA ──(cancelamento)──────► CANCELADA
+ *  CONFIRMADA ──(não compareceu)────► AUSENTE    (RN008 — dedução de honra)
  * </pre>
  *
  * <p><b>Nota FILA DE ESPERA:</b> a fila FIFO é representada pelo conjunto de
@@ -43,5 +44,13 @@ public enum StatusInscricao {
      * Se o usuário era CONFIRMADO e não compareceu sem cancelar,
      * será tratado como ausência não justificada (RN008).
      */
-    CANCELADA
+    CANCELADA,
+
+    /**
+     * Ausência não justificada após conclusão do evento (RN008).
+     * Transição: CONFIRMADA → AUSENTE (quando compareceu == false
+     * após o organizador concluir o evento).
+     * Implica dedução de 0.5 na honraMedia do usuário.
+     */
+    AUSENTE
 }

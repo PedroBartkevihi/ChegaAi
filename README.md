@@ -17,7 +17,7 @@ Este repositório está organizado como um **Monorepo**, facilitando o desenvolv
 ├── infra/                     # Docker Compose e configurações de infraestrutura local.
 ├── docs/                      # Documentação técnica e histórico do projeto.
 ├── config/                    # Configurações compartilhadas de ambiente.
-└── codigo-txt.md              # Documento consolidado contendo todo o código-fonte atualizado.
+|
 ```
 
 ---
