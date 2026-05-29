@@ -54,4 +54,17 @@ public interface InscricaoRepository extends JpaRepository<Inscricao, UUID> {
            "WHERE i.usuario.id = :usuarioId " +
            "AND i.statusInscricao <> 'CANCELADA'")
     List<Inscricao> findActiveByUsuarioId(@Param("usuarioId") UUID usuarioId);
+
+    /**
+     * Busca inscrições CONFIRMADA com compareceu=true em eventos CONCLUIDO
+     * para um dado usuário. Usada para verificação de avaliações pendentes (RN007).
+     */
+    @Query("SELECT i FROM Inscricao i " +
+           "JOIN FETCH i.evento e " +
+           "JOIN FETCH e.organizador " +
+           "WHERE i.usuario.id = :usuarioId " +
+           "AND i.statusInscricao = 'CONFIRMADA' " +
+           "AND i.compareceu = true " +
+           "AND e.statusEvento = 'CONCLUIDO'")
+    List<Inscricao> findCompareceuEmEventosConcluidos(@Param("usuarioId") UUID usuarioId);
 }

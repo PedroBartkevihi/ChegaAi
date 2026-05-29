@@ -14,7 +14,7 @@ package chegae.domain.enums;
  *       definido em {@code dataFim} (status do usuário: {@code SUSPENSO}).</li>
  *   <li>{@code BANIMENTO}   – infração grave ou reincidência; pode ser
  *       permanente (dataFim = null) ou temporária de 7 dias (RN005 automático).
- *       Status do usuário: {@code INATIVO}.</li>
+ *       Status do usuário: {@code BANIDO}.</li>
  * </ul>
  */
 public enum TipoPenalidade {
@@ -32,7 +32,7 @@ public enum TipoPenalidade {
     /**
      * Banimento da plataforma.
      * Pode ser permanente (dataFim = null) ou de 7 dias (RN005 automático).
-     * Define status do usuário como {@code INATIVO}.
+     * Define status do usuário como {@code BANIDO}.
      */
     BANIMENTO
 }

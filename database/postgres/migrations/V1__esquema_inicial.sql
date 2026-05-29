@@ -19,7 +19,7 @@ CREATE TABLE usuario (
     CONSTRAINT ck_usuario_honra_media CHECK (honra_media BETWEEN 0 AND 5),
     CONSTRAINT ck_usuario_qtd_denuncias CHECK (qtd_denuncias_validadas >= 0),
 
-    CONSTRAINT ck_usuario_status CHECK (status_usuario IN ('ATIVO', 'SUSPENSO', 'INATIVO')),
+    CONSTRAINT ck_usuario_status CHECK (status_usuario IN ('ATIVO', 'SUSPENSO', 'BANIDO')),
     CONSTRAINT ck_usuario_papel CHECK (papel_sistema IN ('ADMINISTRADOR', 'EMBAIXADOR', 'PARTICIPANTE'))
 );
 
@@ -95,7 +95,7 @@ CREATE TABLE inscricao (
         ON DELETE CASCADE,
 
     CONSTRAINT uk_inscricao_usuario_evento UNIQUE (id_usuario, id_evento),
-    CONSTRAINT ck_inscricao_status CHECK (status_inscricao IN ('SOLICITADA', 'CONFIRMADA', 'CANCELADA'))
+    CONSTRAINT ck_inscricao_status CHECK (status_inscricao IN ('SOLICITADA', 'CONFIRMADA', 'CANCELADA', 'AUSENTE'))
 );
 
 CREATE TABLE avaliacao (
