@@ -23,6 +23,9 @@ services:
     restart: unless-stopped
     ports:
       - "7200:7200"
+    volumes:
+      - chegae_graphdb:/opt/graphdb/home
 
 volumes:
   chegae_pgdata:
+  chegae_graphdb:

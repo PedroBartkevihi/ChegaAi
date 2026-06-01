@@ -4,6 +4,7 @@
 node_modules/
 dist/
 .vite/
+.tools/
 .env
 .env.*
 npm-debug.log*

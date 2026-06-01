@@ -1,9 +1,11 @@
 INSERT INTO categoria (id_categoria, nome, descricao, ativa) VALUES
     ('11111111-1111-1111-1111-111111111111', 'Música', 'Shows, festivais e apresentações ao vivo.', true),
-    ('22222222-2222-2222-2222-222222222222', 'Tecnologia', 'Meetups, palestras e workshops.', true);
+    ('22222222-2222-2222-2222-222222222222', 'Tecnologia', 'Meetups, palestras e workshops.', true)
+ON CONFLICT DO NOTHING;
 
 INSERT INTO endereco (id_endereco, cep, logradouro, bairro, cidade, estado, numero, complemento) VALUES
-    ('33333333-3333-3333-3333-333333333333', '01001000', 'Praça da Sé', 'Sé', 'São Paulo', 'SP', '100', 'Próximo ao metrô');
+    ('33333333-3333-3333-3333-333333333333', '01001000', 'Praça da Sé', 'Sé', 'São Paulo', 'SP', '100', 'Próximo ao metrô')
+ON CONFLICT DO NOTHING;
 
 INSERT INTO usuario (
     id_usuario,
@@ -52,7 +54,8 @@ INSERT INTO usuario (
         'ATIVO',
         'PARTICIPANTE',
         0
-    );
+    )
+ON CONFLICT DO NOTHING;
 
 INSERT INTO evento (
     id_evento,
@@ -74,7 +77,8 @@ INSERT INTO evento (
     '2026-05-10 19:00:00-03',
     50,
     'ATIVO'
-);
+)
+ON CONFLICT DO NOTHING;
 
 INSERT INTO inscricao (
     id_inscricao,
@@ -90,7 +94,8 @@ INSERT INTO inscricao (
     '2026-04-30 12:00:00-03',
     'SOLICITADA',
     false
-);
+)
+ON CONFLICT DO NOTHING;
 
 INSERT INTO comentario (
     id_comentario,
@@ -104,7 +109,8 @@ INSERT INTO comentario (
     '77777777-7777-7777-7777-777777777777',
     'Inscrição realizada! Ansioso para o evento.',
     '2026-04-30 12:05:00-03'
-);
+)
+ON CONFLICT DO NOTHING;
 
 UPDATE evento
 SET status_evento = 'CONCLUIDO'
@@ -131,4 +137,5 @@ INSERT INTO avaliacao (
     5,
     'Evento excelente, conteúdo muito bem organizado.',
     '2026-05-10 22:30:00-03'
-);
+)
+ON CONFLICT DO NOTHING;

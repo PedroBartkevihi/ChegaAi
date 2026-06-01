@@ -45,6 +45,7 @@ docker compose -f .\infra\docker-compose.yml ps
 - Diretório: [../database/postgres/migrations/](../database/postgres/migrations/)
 - Esquema (V1): [../database/postgres/migrations/V1__esquema_inicial.sql](../database/postgres/migrations/V1__esquema_inicial.sql)
 - Carga inicial (V2): [../database/postgres/migrations/V2__carga_inicial.sql](../database/postgres/migrations/V2__carga_inicial.sql)
+- O backend usa Flyway por padrão. Rodando a API a partir de `backend/`, o caminho configurado é `filesystem:../database/postgres/migrations`.
 
 ## GraphDB
 
@@ -53,6 +54,8 @@ Scripts SPARQL:
 - [../database/graphdb/01_carga_inicial.sparql](../database/graphdb/01_carga_inicial.sparql)
 - [../database/graphdb/02_mapeamento_labels.sparql](../database/graphdb/02_mapeamento_labels.sparql)
 - [../database/graphdb/03_query.sparql](../database/graphdb/03_query.sparql)
+
+O Docker Compose sobe o GraphDB, mas a criação do repositório `chegae` e a importação dos scripts SPARQL ainda devem ser feitas no Workbench do GraphDB, salvo se uma automação de provisionamento for adicionada depois.
 
 ## Regras de negócio na aplicação (fora do banco)
 
