@@ -4,6 +4,7 @@ import chegae.controller.dto.*;
 import chegae.service.ComentarioService;
 import chegae.service.EventoService;
 import chegae.service.InscricaoService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -60,10 +61,18 @@ public class EventoController {
      */
     @PostMapping
     public ResponseEntity<EventoResponseDTO> criarEvento(
-            @RequestBody EventoRequestDTO dto,
+            @Valid @RequestBody EventoRequestDTO dto,
             @RequestHeader("X-User-Id") UUID usuarioId) {
         EventoResponseDTO criado = eventoService.criarEvento(dto, usuarioId);
         return ResponseEntity.status(HttpStatus.CREATED).body(criado);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> excluirEvento(
+            @PathVariable UUID id,
+            @RequestHeader("X-User-Id") UUID usuarioId) {
+        eventoService.excluirEvento(id, usuarioId);
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -99,7 +108,7 @@ public class EventoController {
     @PostMapping("/{id}/comentarios")
     public ResponseEntity<EventoResponseDTO> adicionarComentario(
             @PathVariable UUID id,
-            @RequestBody ComentarioRequestDTO dto,
+            @Valid @RequestBody ComentarioRequestDTO dto,
             @RequestHeader("X-User-Id") UUID usuarioId) {
         comentarioService.adicionarComentario(id, usuarioId, dto.text());
         // Retorna o evento atualizado para o frontend

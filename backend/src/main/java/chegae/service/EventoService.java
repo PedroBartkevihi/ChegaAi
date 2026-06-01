@@ -2,10 +2,12 @@ package chegae.service;
 
 import chegae.controller.dto.EventoRequestDTO;
 import chegae.controller.dto.EventoResponseDTO;
+import chegae.domain.enums.PapelSistema;
 import chegae.domain.enums.StatusEvento;
 import chegae.domain.enums.StatusInscricao;
 import chegae.domain.model.*;
 import chegae.repository.*;
+import chegae.service.external.ViaCEPService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -142,6 +144,24 @@ public class EventoService {
         return toResponseDTO(evento);
     }
 
+    @Transactional
+    public void excluirEvento(UUID eventoId, UUID usuarioId) {
+        Evento evento = eventoRepository.findByIdWithRelations(eventoId)
+            .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + eventoId));
+
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+            .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + usuarioId));
+
+        boolean organizador = evento.getOrganizador().getId().equals(usuarioId);
+        boolean moderador = usuario.getPapelSistema() == PapelSistema.ADMINISTRADOR;
+
+        if (!organizador && !moderador) {
+            throw new IllegalStateException("Apenas o organizador ou um moderador pode excluir este rolé.");
+        }
+
+        eventoRepository.delete(evento);
+    }
+
     // -----------------------------------------------------------------------
     // RN008 — Conclusão de evento e tratamento de ausências
     // -----------------------------------------------------------------------
@@ -221,11 +241,12 @@ public class EventoService {
         Usuario usuario = usuarioRepository.findById(usuarioId)
             .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + usuarioId));
 
-        Optional<BigDecimal> media = avaliacaoRepository.calcularMediaNotas(usuarioId);
+        Optional<Double> media = avaliacaoRepository.calcularMediaNotas(usuarioId);
 
         if (media.isPresent() && media.get() != null) {
             // Escala para 2 casas decimais (compatível com numeric(3,2))
-            BigDecimal novaHonra = media.get().setScale(2, java.math.RoundingMode.HALF_UP);
+            BigDecimal novaHonra = BigDecimal.valueOf(media.get())
+                .setScale(2, java.math.RoundingMode.HALF_UP);
             usuario.setHonraMedia(novaHonra);
             usuarioRepository.save(usuario);
             log.info("RN002: Honra recalculada para usuário '{}': {}", usuario.getNome(), novaHonra);

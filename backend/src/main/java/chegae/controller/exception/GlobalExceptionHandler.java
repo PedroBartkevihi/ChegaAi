@@ -1,7 +1,9 @@
 package chegae.controller.exception;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -15,6 +17,7 @@ import java.util.NoSuchElementException;
  * Retorna respostas JSON padronizadas para erros comuns.
  */
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(NoSuchElementException.class)
@@ -32,9 +35,19 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
+        String message = ex.getBindingResult().getFieldErrors().stream()
+            .findFirst()
+            .map(error -> "Campo '" + error.getField() + "': " + error.getDefaultMessage())
+            .orElse("Requisição inválida.");
+
+        return buildResponse(HttpStatus.BAD_REQUEST, message);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex) {
-        ex.printStackTrace();
+        log.error("Erro inesperado ao processar requisição", ex);
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR,
             "Erro interno do servidor: " + ex.getMessage());
     }

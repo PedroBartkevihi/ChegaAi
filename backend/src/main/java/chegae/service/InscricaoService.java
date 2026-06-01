@@ -159,7 +159,10 @@ public class InscricaoService {
         // RN001: Se era confirmado, promover o primeiro da fila
         if (eraConfirmado) {
             Optional<Inscricao> primeiroFila = inscricaoRepository
-                .findFirstInFila(evento.getId());
+                .findFirstByEvento_IdAndStatusInscricaoOrderByDataHoraSolicitacaoAsc(
+                    evento.getId(),
+                    StatusInscricao.SOLICITADA
+                );
 
             if (primeiroFila.isPresent()) {
                 Inscricao promovido = primeiroFila.get();

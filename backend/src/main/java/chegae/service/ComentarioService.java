@@ -1,10 +1,13 @@
 package chegae.service;
 
+import chegae.domain.enums.StatusInscricao;
 import chegae.domain.model.Comentario;
 import chegae.domain.model.Evento;
+import chegae.domain.model.Inscricao;
 import chegae.domain.model.Usuario;
 import chegae.repository.ComentarioRepository;
 import chegae.repository.EventoRepository;
+import chegae.repository.InscricaoRepository;
 import chegae.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,6 +25,7 @@ public class ComentarioService {
 
     private final ComentarioRepository comentarioRepository;
     private final EventoRepository eventoRepository;
+    private final InscricaoRepository inscricaoRepository;
     private final UsuarioRepository usuarioRepository;
 
     /**
@@ -43,6 +47,16 @@ public class ComentarioService {
 
         Usuario autor = usuarioRepository.findById(usuarioId)
             .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + usuarioId));
+
+        Inscricao inscricao = inscricaoRepository.findByUsuarioIdAndEventoId(usuarioId, eventoId)
+            .orElseThrow(() -> new IllegalStateException(
+                "Apenas participantes confirmados ou na lista de espera podem comentar."));
+
+        if (inscricao.getStatusInscricao() != StatusInscricao.CONFIRMADA
+                && inscricao.getStatusInscricao() != StatusInscricao.SOLICITADA) {
+            throw new IllegalStateException(
+                "Apenas participantes confirmados ou na lista de espera podem comentar.");
+        }
 
         Comentario comentario = new Comentario();
         comentario.setAutor(autor);

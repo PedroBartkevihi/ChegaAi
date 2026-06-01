@@ -37,12 +37,10 @@ public interface InscricaoRepository extends JpaRepository<Inscricao, UUID> {
      * ordenada pela data de solicitação ascendente.
      * Usada na promoção automática quando alguém cancela.
      */
-    @Query("SELECT i FROM Inscricao i " +
-           "WHERE i.evento.id = :eventoId " +
-           "AND i.statusInscricao = 'SOLICITADA' " +
-           "ORDER BY i.dataHoraSolicitacao ASC " +
-           "LIMIT 1")
-    Optional<Inscricao> findFirstInFila(@Param("eventoId") UUID eventoId);
+    Optional<Inscricao> findFirstByEvento_IdAndStatusInscricaoOrderByDataHoraSolicitacaoAsc(
+        UUID eventoId,
+        StatusInscricao status
+    );
 
     /**
      * Lista todas as inscrições de um usuário (para o perfil).
