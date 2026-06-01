@@ -1,11 +1,25 @@
-import { CalendarDays, Flag, LogIn, MapPin, Plus, Search, Star, UsersRound, X } from "lucide-react";
+import {
+  AlertTriangle,
+  CalendarDays,
+  CheckCircle2,
+  Flag,
+  Info,
+  LogIn,
+  MapPin,
+  Plus,
+  Search,
+  Star,
+  Trash2,
+  UsersRound,
+  X,
+} from "lucide-react";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 
 // ============================================================================
 // API Helper
 // ============================================================================
 
-const API_BASE = "/api";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
 
 async function api(path, options = {}) {
   const userId = localStorage.getItem("chegaae.userId");
@@ -186,13 +200,14 @@ export default function App() {
   // === Criar evento via API ===
   async function createEvent(formEvent) {
     formEvent.preventDefault();
+    const formElement = formEvent.currentTarget;
 
     if (currentUser.honor < 2) {
       showNotice("Ação Não Permitida. Sua reputação atual está abaixo do limite mínimo necessário para criar novos rolés.", "error");
       return;
     }
 
-    const form = new FormData(formEvent.currentTarget);
+    const form = new FormData(formElement);
     const dto = {
       title: form.get("title").trim(),
       category: form.get("category"),
@@ -213,7 +228,7 @@ export default function App() {
       });
       // Recarregar todos os eventos para ter dados consistentes
       await loadEvents();
-      formEvent.currentTarget.reset();
+      formElement.reset();
       setView("feed");
       setSelectedEventId(criado.id);
       showNotice("Rolé criado com sucesso!", "success");
@@ -261,6 +276,37 @@ export default function App() {
     }
   }
 
+  async function deleteEvent(eventId) {
+    const event = events.find((item) => item.id === eventId);
+    if (!event) return;
+
+    const canDelete = currentUser.isModerator || event.organizer.id === currentUser.id;
+    if (!canDelete) {
+      showNotice("Apenas o organizador ou um moderador pode excluir este rolé.", "error");
+      return;
+    }
+
+    const confirmed = window.confirm(`Excluir o rolé "${event.title}"? Essa ação não pode ser desfeita.`);
+    if (!confirmed) return;
+
+    try {
+      setLoading(true);
+      await api(`/eventos/${eventId}`, { method: "DELETE" });
+      setEvents((current) => current.filter((item) => item.id !== eventId));
+      setEnrollments((current) => {
+        const next = { ...current };
+        delete next[eventId];
+        return next;
+      });
+      setSelectedEventId(null);
+      showNotice("Rolé excluído com sucesso.", "success");
+    } catch (err) {
+      showNotice("Não foi possível excluir o evento: " + err.message, "error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   // === Denúncia (local por enquanto) ===
   function reportEvent(eventId) {
     const event = events.find((item) => item.id === eventId);
@@ -300,6 +346,12 @@ export default function App() {
     }
   }, [alert]);
 
+  useEffect(() => {
+    if (currentUser && !currentUser.isModerator && view === "moderation") {
+      setView("feed");
+    }
+  }, [currentUser, view]);
+
   // === Tela de login ===
   if (!currentUser) {
     return <LoginScreen onLogin={handleLogin} loading={loading} />;
@@ -328,59 +380,8 @@ export default function App() {
           </button>
         </header>
 
-        {alert && (
-          <div
-            className={`notice alert-${alert.type}`}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              padding: "16px",
-              borderRadius: "8px",
-              marginBottom: "18px",
-              maxWidth: "1200px",
-              margin: "0 auto 18px",
-              fontWeight: "500",
-              border: alert.type === "error" 
-                ? "1px solid rgba(181, 68, 56, 0.3)" 
-                : alert.type === "success" 
-                  ? "1px solid rgba(23, 129, 94, 0.3)" 
-                  : "1px solid rgba(217, 146, 32, 0.3)",
-              background: alert.type === "error" 
-                ? "#fdf2f2" 
-                : alert.type === "success" 
-                  ? "#f3faf7" 
-                  : "#fff6e4",
-              color: alert.type === "error" 
-                ? "#9b1c1c" 
-                : alert.type === "success" 
-                  ? "#03543f" 
-                  : "#704912"
-            }}
-          >
-            <span style={{ fontSize: "1.2rem" }}>
-              {alert.type === "error" ? "⚠️" : alert.type === "success" ? "✅" : "ℹ️"}
-            </span>
-            <div style={{ flex: 1 }}>{alert.message}</div>
-            <button
-              onClick={() => setAlert(null)}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: "inherit",
-                fontWeight: "bold",
-                fontSize: "1.2rem",
-                padding: "0 4px",
-                display: "inline-flex",
-                alignItems: "center"
-              }}
-            >
-              &times;
-            </button>
-          </div>
-        )}
-        {loading && <div className="notice" style={{ background: "var(--blue)", color: "white", border: "1px solid var(--blue-dark)" }}>Carregando...</div>}
+        {alert && <Notice alert={alert} onClose={() => setAlert(null)} />}
+        {loading && <div className="notice loading-notice">Carregando...</div>}
 
         {view === "feed" && (
           <FeedView
@@ -388,15 +389,17 @@ export default function App() {
             metrics={metrics}
             filters={filters}
             enrollments={enrollments}
+            currentUser={currentUser}
             resetFilters={() => setFilters(initialFilters)}
             openEvent={setSelectedEventId}
             toggleEnrollment={toggleEnrollment}
+            deleteEvent={deleteEvent}
           />
         )}
 
         {view === "create" && <CreateView categoryOptions={categories} capacityLimit={capacityLimit} onSubmit={createEvent} />}
         {view === "profile" && <ProfileView events={events} enrollments={enrollments} currentUser={currentUser} />}
-        {view === "moderation" && <ModerationView reports={reports} resolveReport={resolveReport} />}
+        {view === "moderation" && currentUser.isModerator && <ModerationView reports={reports} resolveReport={resolveReport} />}
       </section>
 
       {selectedEvent && (
@@ -406,7 +409,9 @@ export default function App() {
           close={() => setSelectedEventId(null)}
           toggleEnrollment={toggleEnrollment}
           addComment={addComment}
+          deleteEvent={deleteEvent}
           reportEvent={reportEvent}
+          currentUser={currentUser}
         />
       )}
     </main>
@@ -416,6 +421,24 @@ export default function App() {
 // ============================================================================
 // Login Screen
 // ============================================================================
+
+function Notice({ alert, onClose }) {
+  const Icon = alert.type === "error"
+    ? AlertTriangle
+    : alert.type === "success"
+      ? CheckCircle2
+      : Info;
+
+  return (
+    <div className={`notice alert-${alert.type}`} role="status" aria-live="polite">
+      <Icon size={20} />
+      <div>{alert.message}</div>
+      <button className="notice-close" type="button" aria-label="Fechar alerta" onClick={onClose}>
+        <X size={18} />
+      </button>
+    </div>
+  );
+}
 
 function LoginScreen({ onLogin, loading }) {
   const [email, setEmail] = useState("pedro@chegae.dev");
@@ -431,7 +454,7 @@ function LoginScreen({ onLogin, loading }) {
         <div className="brand" style={{ marginBottom: "1.5rem" }}>
           <span className="brand-mark" aria-hidden="true">Cê</span>
           <div>
-            <strong>ChegaAê</strong>
+            <strong>ChegAê</strong>
             <small>Companhia para sair de casa</small>
           </div>
         </div>
@@ -477,7 +500,7 @@ function Sidebar({ view, filters, setView, updateFilter, currentUser, onLogout }
       <div className="brand">
         <span className="brand-mark" aria-hidden="true">Cê</span>
         <div>
-          <strong>ChegaAê</strong>
+          <strong>ChegAê</strong>
           <small>Companhia para sair de casa</small>
         </div>
       </div>
@@ -501,7 +524,7 @@ function Sidebar({ view, filters, setView, updateFilter, currentUser, onLogout }
           ["feed", "Feed"],
           ["create", "Criar rolé"],
           ["profile", "Meu perfil"],
-          ["moderation", "Moderação"],
+          ...(currentUser.isModerator ? [["moderation", "Moderação"]] : []),
         ].map(([key, label]) => (
           <button className={`nav-tab ${view === key ? "active" : ""}`} key={key} type="button" onClick={() => setView(key)}>
             {label}
@@ -558,7 +581,7 @@ function SelectFilter({ label, value, onChange, children }) {
 // Feed View
 // ============================================================================
 
-function FeedView({ events, metrics, filters, enrollments, resetFilters, openEvent, toggleEnrollment }) {
+function FeedView({ events, metrics, filters, enrollments, currentUser, resetFilters, openEvent, toggleEnrollment, deleteEvent }) {
   return (
     <section className="view" aria-label="Feed de eventos">
       <div className="mission-panel">
@@ -596,7 +619,15 @@ function FeedView({ events, metrics, filters, enrollments, resetFilters, openEve
       <div className="event-grid">
         {events.length ? (
           events.map((event) => (
-            <EventCard key={event.id} event={event} enrollment={enrollments[event.id]} openEvent={openEvent} toggleEnrollment={toggleEnrollment} />
+            <EventCard
+              key={event.id}
+              event={event}
+              enrollment={enrollments[event.id]}
+              currentUser={currentUser}
+              openEvent={openEvent}
+              toggleEnrollment={toggleEnrollment}
+              deleteEvent={deleteEvent}
+            />
           ))
         ) : (
           <div className="empty-state">Nenhum rolé encontrado com os filtros atuais.</div>
@@ -619,11 +650,12 @@ function Metric({ icon, label, value }) {
 // Event Card
 // ============================================================================
 
-function EventCard({ event, enrollment, openEvent, toggleEnrollment }) {
+function EventCard({ event, enrollment, currentUser, openEvent, toggleEnrollment, deleteEvent }) {
   const seats = Math.max(event.capacity - event.confirmed.length, 0);
   const percent = Math.min((event.confirmed.length / event.capacity) * 100, 100);
   const featured = isAmbassador(event.organizer.honor);
   const locked = event.status !== "ABERTO";
+  const canManage = currentUser?.isModerator || event.organizer.id === currentUser?.id;
 
   return (
     <article className={`event-card ${featured ? "featured" : ""}`}>
@@ -675,6 +707,12 @@ function EventCard({ event, enrollment, openEvent, toggleEnrollment }) {
         <button className={locked ? "secondary-action" : "primary-action"} type="button" disabled={locked} onClick={() => toggleEnrollment(event.id)}>
           {getEnrollmentActionLabel(event, enrollment)}
         </button>
+        {canManage && (
+          <button className="danger-action" type="button" onClick={() => deleteEvent(event.id)}>
+            <Trash2 size={16} />
+            Excluir
+          </button>
+        )}
       </div>
     </article>
   );
@@ -820,9 +858,10 @@ function ModerationView({ reports, resolveReport }) {
 // Event Modal
 // ============================================================================
 
-function EventModal({ event, enrollment, close, toggleEnrollment, addComment, reportEvent }) {
+function EventModal({ event, enrollment, close, toggleEnrollment, addComment, deleteEvent, reportEvent, currentUser }) {
   const [comment, setComment] = useState("");
   const canComment = enrollment === "CONFIRMADO" || enrollment === "FILA";
+  const canManage = currentUser?.isModerator || event.organizer.id === currentUser?.id;
 
   function submitComment(formEvent) {
     formEvent.preventDefault();
@@ -860,6 +899,12 @@ function EventModal({ event, enrollment, close, toggleEnrollment, addComment, re
               <Flag size={16} />
               Denunciar
             </button>
+            {canManage && (
+              <button className="danger-action" type="button" onClick={() => deleteEvent(event.id)}>
+                <Trash2 size={16} />
+                Excluir
+              </button>
+            )}
           </div>
 
           <section className="comments-box">
@@ -928,7 +973,7 @@ function buildFilterSummary(filters) {
 }
 
 function isAmbassador(honor) {
-  return honor > 4.8;
+  return honor >= 4.8;
 }
 
 function createId() {
