@@ -110,3 +110,13 @@ cd C:\ChegaÊ
 docker compose -f .\infra\docker-compose.yml down -v
 docker compose -f .\infra\docker-compose.yml up -d
 ```
+
+## Fase E - Medicoes de SLA
+
+A 1ª medicao dos testes de carga esta documentada em [docs/sla/README.md](docs/sla/README.md).
+
+Artefatos principais:
+
+- Relatorio em Markdown: [docs/sla/README.md](docs/sla/README.md)
+- PDF gerado: [docs/sla/medicoes-sla-testes-carga.pdf](docs/sla/medicoes-sla-testes-carga.pdf)
+- Scripts k6: [tests/load](tests/load)
