@@ -262,14 +262,29 @@ export default function App() {
   async function addComment(eventId, text) {
     if (!text.trim()) return;
     try {
-      const eventoAtualizado = await api(`/eventos/${eventId}/comentarios`, {
+      const novoComentario = await api(`/eventos/${eventId}/comentarios`, {
         method: "POST",
         body: JSON.stringify({ text: text.trim() }),
       });
 
-      // Atualizar evento localmente com dados do servidor
+      // Atualizar evento localmente adicionando o comentário recém-criado
+      // O backend agora retorna apenas o ComentarioResponseDTO (id, author, text, time)
       setEvents((current) =>
-        current.map((event) => (event.id === eventId ? eventoAtualizado : event))
+        current.map((event) =>
+          event.id === eventId
+            ? {
+                ...event,
+                comments: [
+                  ...event.comments,
+                  {
+                    author: novoComentario.author,
+                    text: novoComentario.text,
+                    time: novoComentario.time,
+                  },
+                ],
+              }
+            : event
+        )
       );
     } catch (err) {
       showNotice("Não foi possível publicar o comentário: " + err.message, "error");

@@ -14,6 +14,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -52,6 +55,7 @@ public class EventoService {
 
     /**
      * Lista todos os eventos convertidos para o formato do frontend.
+     * Mantido para compatibilidade com o frontend que espera um array completo.
      */
     @Transactional(readOnly = true)
     public List<EventoResponseDTO> listarTodos() {
@@ -59,6 +63,26 @@ public class EventoService {
         return eventos.stream()
             .map(this::toResponseDTO)
             .collect(Collectors.toList());
+    }
+
+    /**
+     * Lista eventos de forma paginada, eliminando o carregamento de toda a base
+     * em memória. Usa JOIN FETCH no Repository para resolver N+1 em uma única query.
+     *
+     * <p>Ganhos de performance:</p>
+     * <ul>
+     *   <li>Reduz o volume de dados trafegados entre DB → JVM → HTTP</li>
+     *   <li>Diminui pressão no Garbage Collector (menos objetos instanciados)</li>
+     *   <li>Libera conexões HikariCP mais rapidamente</li>
+     * </ul>
+     *
+     * @param pageable configuração de página (page, size)
+     * @return página de DTOs com metadados de paginação
+     */
+    @Transactional(readOnly = true)
+    public Page<EventoResponseDTO> listarTodosPaginado(Pageable pageable) {
+        Page<Evento> pagina = eventoRepository.findAllWithRelations(pageable);
+        return pagina.map(this::toResponseDTO);
     }
 
     /**
