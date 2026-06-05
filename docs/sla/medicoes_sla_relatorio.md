@@ -2,7 +2,7 @@
 
 **Disciplina:** Projeto Integrador 2  
 **Data da Entrega 2:** 04/06/2026  
-**Equipe:** Marcos Lacaille  
+**Equipe:** Marcos Lacaille, Caio Contursi e Pedro Farias
 **Avaliador:** Prof. Fabricio Pereira
 
 ---
