@@ -1,13 +1,6 @@
 package chegae.controller.dto;
-
 import java.util.List;
 import java.util.UUID;
-
-/**
- * DTO de resposta de evento, formatado para compatibilidade direta com o frontend React.
- * Os nomes dos campos são em inglês para que o JSON retornado seja consumido
- * diretamente pelo App.jsx sem necessidade de mapeamento.
- */
 public record EventoResponseDTO(
     UUID id,
     String title,
@@ -31,7 +24,6 @@ public record EventoResponseDTO(
         String name,
         double honor
     ) {}
-
     public record CommentDTO(
         String author,
         String text,

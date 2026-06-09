@@ -2,19 +2,9 @@ import http from "k6/http";
 import { check, group, sleep } from "k6";
 import { Rate, Trend } from "k6/metrics";
 import { makeSummary } from "./lib/report.js";
-
-// ============================================================
-// Configuração
-// ============================================================
-
 const BASE_URL = __ENV.BASE_URL || "http://localhost:8080/api";
 const LOAD_PROFILE = __ENV.LOAD_PROFILE || "academic";
 const REPORT_DIR = __ENV.REPORT_DIR || "docs/sla/reports";
-
-// ============================================================
-// Estágios de carga
-// ============================================================
-
 const STAGES = {
   smoke: [
     { duration: "5s", target: 1 },
@@ -28,28 +18,9 @@ const STAGES = {
     { duration: "15s", target: 0 },
   ],
 };
-
 const selectedStages = STAGES[LOAD_PROFILE] || STAGES.academic;
-
-// ============================================================
-// Métricas customizadas
-// ============================================================
-
-/** Taxa de erro do serviço S1 (feed de eventos). */
 const feedErrors = new Rate("eventos_feed_errors");
-
-/** Latência isolada do GET /eventos (exclui setup). */
 const feedLatency = new Trend("eventos_feed_latency", true);
-
-// ============================================================
-// Options — k6
-//
-// Para ativar o dashboard web em tempo real (latência vs. vazão):
-//   K6_WEB_DASHBOARD=true k6 run tests/load/eventos-feed.js
-//
-// O dashboard abre automaticamente em http://localhost:5665
-// ============================================================
-
 export const options = {
   scenarios: {
     eventos_feed: {
@@ -67,38 +38,23 @@ export const options = {
   },
   summaryTrendStats: ["avg", "min", "med", "p(90)", "p(95)", "max", "count"],
 };
-
-// ============================================================
-// Setup
-// ============================================================
-
 export function setup() {
   const response = http.get(`${BASE_URL}/eventos`, {
     tags: { phase: "setup", service: "eventos-feed" },
   });
-
   check(response, {
     "setup listou eventos": (res) => res.status === 200,
   });
-
   return {
     baseUrl: BASE_URL,
   };
 }
-
-// ============================================================
-// Iteração principal — GET /eventos
-// ============================================================
-
 export default function () {
   group("GET /eventos", () => {
     const response = http.get(`${BASE_URL}/eventos`, {
       tags: { service: "eventos-feed", endpoint: "GET /eventos" },
     });
-
-    // Registrar latência isolada do S1
     feedLatency.add(response.timings.duration);
-
     const ok = check(response, {
       "status 200": (res) => res.status === 200,
       "resposta em JSON": (res) => res.headers["Content-Type"] && res.headers["Content-Type"].includes("application/json"),
@@ -110,17 +66,10 @@ export default function () {
         }
       },
     });
-
     feedErrors.add(!ok);
   });
-
   sleep(Math.random() * 0.8 + 0.2);
 }
-
-// ============================================================
-// Relatório final
-// ============================================================
-
 export function handleSummary(data) {
   return makeSummary("SLA - Listagem de eventos", data, {
     service: "Listagem de eventos",

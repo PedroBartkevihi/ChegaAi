@@ -1,15 +1,9 @@
 package chegae.controller.dto;
-
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-
-/**
- * DTO para criação de um novo evento.
- * Campos nomeados em inglês para compatibilidade com o frontend.
- */
 public record EventoRequestDTO(
     @NotBlank @Size(max = 150)
     String title,
