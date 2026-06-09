@@ -17,7 +17,8 @@ INSERT INTO usuario (
     honra_media,
     status_usuario,
     papel_sistema,
-    qtd_denuncias_validadas
+    qtd_denuncias_validadas,
+    criado_em
 ) VALUES
     (
         '44444444-4444-4444-4444-444444444444',
@@ -29,7 +30,8 @@ INSERT INTO usuario (
         0,
         'ATIVO',
         'ADMINISTRADOR',
-        0
+        0,
+        now()
     ),
     (
         '55555555-5555-5555-5555-555555555555',
@@ -41,7 +43,8 @@ INSERT INTO usuario (
         0,
         'ATIVO',
         'EMBAIXADOR',
-        0
+        0,
+        now()
     ),
     (
         '66666666-6666-6666-6666-666666666666',
@@ -53,7 +56,8 @@ INSERT INTO usuario (
         0,
         'ATIVO',
         'PARTICIPANTE',
-        0
+        0,
+        now()
     )
 ON CONFLICT DO NOTHING;
 
@@ -66,7 +70,9 @@ INSERT INTO evento (
     descricao,
     data_hora_realizacao,
     limite_participantes,
-    status_evento
+    status_evento,
+    criado_em,
+    travado
 ) VALUES (
     '77777777-7777-7777-7777-777777777777',
     '55555555-5555-5555-5555-555555555555',
@@ -76,7 +82,9 @@ INSERT INTO evento (
     'Encontro para discutir arquitetura, escalabilidade e boas práticas.',
     '2026-05-10 19:00:00-03',
     50,
-    'ATIVO'
+    'ATIVO',
+    now(),
+    false
 )
 ON CONFLICT DO NOTHING;
 

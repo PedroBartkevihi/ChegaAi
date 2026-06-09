@@ -1,13 +1,21 @@
 import http from "k6/http";
 import { check, group, sleep } from "k6";
-import { Rate } from "k6/metrics";
+import { Rate, Trend } from "k6/metrics";
 import { makeSummary } from "./lib/report.js";
+
+// ============================================================
+// Configuração
+// ============================================================
 
 const BASE_URL = __ENV.BASE_URL || "http://localhost:8080/api";
 const LOAD_PROFILE = __ENV.LOAD_PROFILE || "academic";
 const REPORT_DIR = __ENV.REPORT_DIR || "docs/sla/reports";
 const USER_EMAIL = __ENV.K6_USER_EMAIL || "pedro@chegae.dev";
 const EVENT_ID = __ENV.K6_EVENT_ID || "";
+
+// ============================================================
+// Estágios de carga
+// ============================================================
 
 const STAGES = {
   smoke: [
@@ -24,7 +32,25 @@ const STAGES = {
 };
 
 const selectedStages = STAGES[LOAD_PROFILE] || STAGES.academic;
+
+// ============================================================
+// Métricas customizadas
+// ============================================================
+
+/** Taxa de erro do serviço S2 (comentários). */
 const commentErrors = new Rate("comentarios_write_errors");
+
+/** Latência isolada do POST /comentarios (exclui setup/login). */
+const commentLatency = new Trend("comentarios_write_latency", true);
+
+// ============================================================
+// Options — k6
+//
+// Para ativar o dashboard web em tempo real (latência vs. vazão):
+//   K6_WEB_DASHBOARD=true k6 run tests/load/comentarios-write.js
+//
+// O dashboard abre automaticamente em http://localhost:5665
+// ============================================================
 
 export const options = {
   scenarios: {
@@ -39,9 +65,14 @@ export const options = {
     http_req_failed: ["rate<0.05"],
     http_req_duration: ["avg<1200", "p(95)<3000"],
     comentarios_write_errors: ["rate<0.05"],
+    comentarios_write_latency: ["avg<1000", "p(95)<2500"],
   },
-  summaryTrendStats: ["avg", "min", "med", "p(90)", "p(95)", "max"],
+  summaryTrendStats: ["avg", "min", "med", "p(90)", "p(95)", "max", "count"],
 };
+
+// ============================================================
+// Setup — login + descoberta de evento
+// ============================================================
 
 function login() {
   const response = http.post(
@@ -108,6 +139,10 @@ export function setup() {
   };
 }
 
+// ============================================================
+// Iteração principal — POST /eventos/{id}/comentarios
+// ============================================================
+
 export default function (data) {
   group("POST /eventos/{id}/comentarios", () => {
     const body = {
@@ -126,17 +161,32 @@ export default function (data) {
       },
     );
 
+    // Registrar latência isolada do S2
+    commentLatency.add(response.timings.duration);
+
     const ok = check(response, {
-      "status 200": (res) => res.status === 200,
-      "resposta em JSON": (res) => res.headers["Content-Type"]?.includes("application/json"),
-      "comentario aparece no retorno": (res) => res.body.includes(body.text),
+      // FIX: o backend retorna 201 Created, não 200 OK
+      "status 201": (res) => res.status === 201,
+      "resposta em JSON": (res) => res.headers["Content-Type"] && res.headers["Content-Type"].includes("application/json"),
+      "comentario aparece no retorno": (res) => {
+        try {
+          const parsed = JSON.parse(res.body);
+          return parsed.text && parsed.text.includes("k6-test");
+        } catch (e) {
+          return false;
+        }
+      },
     });
 
     commentErrors.add(!ok);
   });
 
-  sleep(Math.random() * 1.2 + 0.5);
+  sleep(Math.random() * 1.0 + 0.3);
 }
+
+// ============================================================
+// Relatório final
+// ============================================================
 
 export function handleSummary(data) {
   return makeSummary("SLA - Escrita de comentarios", data, {

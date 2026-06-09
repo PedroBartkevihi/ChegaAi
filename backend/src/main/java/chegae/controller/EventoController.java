@@ -18,6 +18,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
+
 /**
  * Controller REST para gerenciamento de eventos.
  *
@@ -38,6 +39,9 @@ import java.util.UUID;
 @RequestMapping("/eventos")
 @RequiredArgsConstructor
 public class EventoController {
+
+    /** Formatter reutilizado em todas as requests — evita instanciação por chamada. */
+    private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
     private final EventoService eventoService;
     private final InscricaoService inscricaoService;
@@ -141,13 +145,12 @@ public class EventoController {
             @RequestHeader("X-User-Id") UUID usuarioId) {
         Comentario comentario = comentarioService.adicionarComentario(id, usuarioId, dto.text());
 
-        DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
         ComentarioResponseDTO response = new ComentarioResponseDTO(
             comentario.getId(),
             comentario.getAutor().getNome().split(" ")[0],
             comentario.getTexto(),
             comentario.getDataHoraComentario() != null
-                ? comentario.getDataHoraComentario().format(timeFmt)
+                ? comentario.getDataHoraComentario().format(TIME_FMT)
                 : "00:00"
         );
 

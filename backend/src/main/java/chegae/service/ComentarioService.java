@@ -31,6 +31,12 @@ public class ComentarioService {
     /**
      * Adiciona um comentário a um evento.
      *
+     * <p><b>Otimização V2:</b> Usa {@code getReferenceById()} em vez de
+     * {@code findById()} para o Evento. O Hibernate retorna um proxy JPA
+     * sem executar SELECT — o INSERT usa diretamente o UUID como FK.
+     * Isso elimina uma query pesada (Evento + proxies de coleções LAZY)
+     * e libera a conexão HikariCP mais rápido sob concorrência.</p>
+     *
      * @param eventoId  ID do evento
      * @param usuarioId ID do autor do comentário
      * @param texto     Texto do comentário
@@ -42,8 +48,13 @@ public class ComentarioService {
             throw new IllegalArgumentException("O texto do comentário não pode ser vazio.");
         }
 
-        Evento evento = eventoRepository.findById(eventoId)
-            .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + eventoId));
+        // Validação de existência leve: SELECT 1 (sem carregar a entidade inteira)
+        if (!eventoRepository.existsById(eventoId)) {
+            throw new NoSuchElementException("Evento não encontrado: " + eventoId);
+        }
+
+        // Proxy JPA: não executa SELECT, apenas referencia o ID para o INSERT
+        Evento evento = eventoRepository.getReferenceById(eventoId);
 
         Usuario autor = usuarioRepository.findById(usuarioId)
             .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + usuarioId));
