@@ -5,25 +5,21 @@ function metricValue(data, metricName, valueName) {
   }
   return metric.values[valueName];
 }
-
 function formatNumber(value, digits = 2) {
   if (value === null || value === undefined || Number.isNaN(value)) {
     return "n/a";
   }
   return Number(value).toFixed(digits);
 }
-
 function formatRate(value) {
   if (value === null || value === undefined || Number.isNaN(value)) {
     return "n/a";
   }
   return `${(Number(value) * 100).toFixed(2)}%`;
 }
-
 function row(label, value) {
   return `<tr><th>${label}</th><td>${value}</td></tr>`;
 }
-
 function metricRows(data) {
   const avg = metricValue(data, "http_req_duration", "avg");
   const p90 = metricValue(data, "http_req_duration", "p(90)");
@@ -34,7 +30,6 @@ function metricRows(data) {
   const failedRate = metricValue(data, "http_req_failed", "rate");
   const failedCount = metricValue(data, "http_req_failed", "passes");
   const vusMax = metricValue(data, "vus_max", "max");
-
   return [
     row("Latencia media", `${formatNumber(avg)} ms`),
     row("p90", `${formatNumber(p90)} ms`),
@@ -47,7 +42,6 @@ function metricRows(data) {
     row("Requisicoes com erro", formatNumber(failedCount, 0)),
   ].join("\n");
 }
-
 function thresholds(data) {
   return Object.entries(data.metrics)
     .filter(([, metric]) => metric.thresholds)
@@ -59,24 +53,20 @@ function thresholds(data) {
       })),
     );
 }
-
 function thresholdRows(data) {
   const items = thresholds(data);
   if (!items.length) {
     return "<tr><td colspan=\"3\">Nenhum threshold configurado.</td></tr>";
   }
-
   return items
     .map((item) => `<tr><td>${item.name}</td><td>${item.rule}</td><td>${item.ok ? "OK" : "FALHOU"}</td></tr>`)
     .join("\n");
 }
-
 export function buildHtmlReport(title, data, details) {
   const generatedAt = new Date().toISOString();
   const stages = details.stages
     .map((stage) => `<li>${stage.duration}: alvo de ${stage.target} VUs</li>`)
     .join("\n");
-
   return `<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -156,7 +146,6 @@ export function buildHtmlReport(title, data, details) {
     <span class="badge">k6 load test</span>
     <h1>${title}</h1>
     <p>Relatorio gerado em <code>${generatedAt}</code>. Use o JSON associado para auditoria completa das metricas brutas.</p>
-
     <section class="grid">
       <article class="card">
         <h2>Servico</h2>
@@ -169,17 +158,14 @@ export function buildHtmlReport(title, data, details) {
         <p>Perfil de carga: <code>${details.profile}</code></p>
       </article>
     </section>
-
     <section class="card">
       <h2>Estagios de carga</h2>
       <ul>${stages}</ul>
     </section>
-
     <h2>Metricas principais</h2>
     <table>
       <tbody>${metricRows(data)}</tbody>
     </table>
-
     <h2 style="margin-top: 24px;">Thresholds</h2>
     <table>
       <thead><tr><th>Metrica</th><th>Regra</th><th>Resultado</th></tr></thead>
@@ -189,13 +175,11 @@ export function buildHtmlReport(title, data, details) {
 </body>
 </html>`;
 }
-
 export function buildTextSummary(title, data, details) {
   const avg = metricValue(data, "http_req_duration", "avg");
   const p95 = metricValue(data, "http_req_duration", "p(95)");
   const reqRate = metricValue(data, "http_reqs", "rate");
   const failedRate = metricValue(data, "http_req_failed", "rate");
-
   return [
     "",
     `=== ${title} ===`,
@@ -209,11 +193,9 @@ export function buildTextSummary(title, data, details) {
     "",
   ].join("\n");
 }
-
 export function makeSummary(title, data, details) {
   const html = buildHtmlReport(title, data, details);
   const json = JSON.stringify(data, null, 2);
-
   return {
     stdout: buildTextSummary(title, data, details),
     [details.htmlReport]: html,

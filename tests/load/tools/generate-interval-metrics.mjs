@@ -1,9 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-
 const DEFAULT_OUTPUT = "docs/sla/reports/interval-metrics.md";
 const INTERVALS_SECONDS = [1, 5, 10, 30, 60];
-
 const services = [
   {
     name: "Listagem de eventos",
@@ -18,7 +16,6 @@ const services = [
     source: "docs/sla/reports/comentarios-write-timeseries.jsonl",
   },
 ];
-
 function parseK6Jsonl(path) {
   const points = {
     durations: [],
@@ -26,7 +23,6 @@ function parseK6Jsonl(path) {
     failures: [],
     vus: [],
   };
-
   const lines = readFileSync(path, "utf8").split(/\r?\n/).filter(Boolean);
   for (const line of lines) {
     let record;
@@ -35,29 +31,23 @@ function parseK6Jsonl(path) {
     } catch {
       continue;
     }
-
     if (record.type !== "Point") {
       continue;
     }
-
     const metric = record.metric || record.data?.metric;
     const value = Number(record.data?.value);
     const time = new Date(record.data?.time).getTime();
     const tags = record.data?.tags || {};
-
     if (!Number.isFinite(value) || !Number.isFinite(time)) {
       continue;
     }
-
     if (metric === "vus") {
       points.vus.push({ time, value });
       continue;
     }
-
     if (tags.phase === "setup") {
       continue;
     }
-
     if (metric === "http_req_duration") {
       points.durations.push({ time, value });
     } else if (metric === "http_reqs") {
@@ -66,11 +56,9 @@ function parseK6Jsonl(path) {
       points.failures.push({ time, value });
     }
   }
-
   points.vus.sort((a, b) => a.time - b.time);
   return points;
 }
-
 function percentile(values, p) {
   if (!values.length) {
     return 0;
@@ -79,19 +67,16 @@ function percentile(values, p) {
   const index = Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1);
   return sorted[index];
 }
-
 function average(values) {
   if (!values.length) {
     return 0;
   }
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
-
 function nearestVu(points, time) {
   if (!points.length) {
     return 0;
   }
-
   let current = points[0].value;
   for (const point of points) {
     if (point.time > time) {
@@ -101,14 +86,12 @@ function nearestVu(points, time) {
   }
   return current;
 }
-
 function analyzeInterval(points, intervalSeconds) {
   const allRequestTimes = [...points.durations, ...points.requests].map((point) => point.time);
   const start = Math.min(...allRequestTimes);
   const end = Math.max(...allRequestTimes);
   const intervalMs = intervalSeconds * 1000;
   const buckets = new Map();
-
   function ensureBucket(index) {
     if (!buckets.has(index)) {
       buckets.set(index, {
@@ -120,19 +103,15 @@ function analyzeInterval(points, intervalSeconds) {
     }
     return buckets.get(index);
   }
-
   for (const point of points.durations) {
     ensureBucket(Math.floor((point.time - start) / intervalMs)).durations.push(point.value);
   }
-
   for (const point of points.requests) {
     ensureBucket(Math.floor((point.time - start) / intervalMs)).requests += point.value;
   }
-
   for (const point of points.failures) {
     ensureBucket(Math.floor((point.time - start) / intervalMs)).failures += point.value;
   }
-
   const bucketCount = Math.max(1, Math.ceil((end - start + 1) / intervalMs));
   for (let index = 0; index < bucketCount; index += 1) {
     const bucket = ensureBucket(index);
@@ -142,7 +121,6 @@ function analyzeInterval(points, intervalSeconds) {
       bucket.vuSamples.push(nearestVu(points.vus, time));
     }
   }
-
   const activeBuckets = [...buckets.values()].filter((bucket) => bucket.requests > 0);
   const reqRates = activeBuckets.map((bucket) => bucket.requests / intervalSeconds);
   const latencyAvgs = activeBuckets
@@ -156,7 +134,6 @@ function analyzeInterval(points, intervalSeconds) {
   const errorRates = activeBuckets.map((bucket) => (
     bucket.requests ? bucket.failures / bucket.requests : 0
   ));
-
   return {
     intervalLabel: intervalSeconds === 60 ? "1min" : `${intervalSeconds}s`,
     windows: activeBuckets.length,
@@ -169,19 +146,15 @@ function analyzeInterval(points, intervalSeconds) {
     errorRateAvg: average(errorRates),
   };
 }
-
 function formatNumber(value, digits = 2) {
   return Number(value).toFixed(digits).replace(".", ",");
 }
-
 function formatRate(value) {
   return `${formatNumber(value * 100)}%`;
 }
-
 function serviceSection(service) {
   const points = parseK6Jsonl(service.source);
   const rows = INTERVALS_SECONDS.map((seconds) => analyzeInterval(points, seconds));
-
   const table = rows.map((row) => [
     row.intervalLabel,
     row.windows,
@@ -193,33 +166,25 @@ function serviceSection(service) {
     formatNumber(row.vusMax, 0),
     formatRate(row.errorRateAvg),
   ].join(" | "));
-
   return `## ${service.name}
-
 - Tipo de operacao: ${service.operation}.
 - Endpoint: \`${service.endpoint}\`.
 - Serie temporal analisada: \`${service.source}\`.
-
 | Granularidade | Janelas com requisicoes | Latencia media das janelas | p95 medio das janelas | Vazao media | Maior vazao em uma janela | Concorrencia media | Concorrencia maxima | Taxa de erro media |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 ${table.map((line) => `| ${line} |`).join("\n")}
 `;
 }
-
 function buildReport() {
   const generatedAt = new Date().toISOString();
   return `# Metricas por intervalo - Testes de Carga
-
 Arquivo gerado a partir das series temporais JSONL do k6 em \`docs/sla/reports/\`.
-
 - Gerado em: \`${generatedAt}\`.
 - Granularidades exigidas: 1s, 5s, 10s, 30s e 1min.
 - Observacao: chamadas de setup foram removidas do calculo de requisicoes, latencia e erros.
-
 ${services.map(serviceSection).join("\n")}
 `;
 }
-
 const outputPath = process.argv[2] || DEFAULT_OUTPUT;
 mkdirSync(dirname(outputPath), { recursive: true });
 writeFileSync(outputPath, buildReport(), "utf8");
