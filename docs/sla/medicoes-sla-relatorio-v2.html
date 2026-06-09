@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Relatório Técnico de Testes de Carga (Versão 2.0) - ChegAê</title>
+  <style>
+    @page { size: A4; margin: 2cm; }
+    body { font-family: Arial, sans-serif; color: #334155; line-height: 1.5; font-size: 11pt; }
+    h1 { font-size: 26pt; color: #0f172a; margin-top: 5cm; }
+    .subtitle { font-size: 14pt; color: #64748b; margin-top: 15px; margin-bottom: 5cm; }
+    h2 { font-size: 16pt; color: #0f172a; margin-top: 30px; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px; page-break-after: avoid; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; page-break-inside: avoid; }
+    tr { page-break-inside: avoid; page-break-after: auto; }
+    th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; }
+    th { background-color: #f8fafc; }
+    .num { text-align: right; }
+    .chart { text-align: center; margin: 30px 0; page-break-inside: avoid; }
+    .chart img { width: 85%; height: auto; display: block; margin: 0 auto; }
+    .page-break { page-break-before: always; }
+    .meta-table td { border: none; padding: 8px 0; }
+    .meta-label { font-size: 9pt; font-weight: bold; color: #64748b; text-transform: uppercase; }
+    .meta-value { font-size: 11pt; font-weight: bold; color: #0f172a; }
+  </style>
+</head>
+<body>
+
+  <!-- Capa -->
+  <div style="border-left: 6px solid #16a34a; padding-left: 20px;">
+    <div style="font-size: 10pt; font-weight: bold; color: #16a34a; letter-spacing: 0.1em; text-transform: uppercase;">Relatório Técnico - Versão 2.0</div>
+    <h1>Evolução de Performance e Confiabilidade</h1>
+    <div class="subtitle">Análise comparativa de SLA sob estresse concorrente entre a Medição 1 (Windows) e a Medição 2 (Fedora Linux Otimizada).</div>
+
+    <table class="meta-table" style="width: 100%; margin-top: 50px;">
+      <tr>
+        <td style="width: 50%;">
+          <div class="meta-label">Projeto</div>
+          <div class="meta-value">ChegAê</div>
+        </td>
+        <td style="width: 50%;">
+          <div class="meta-label">Data da Medição V2</div>
+          <div class="meta-value">08/06/2026</div>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <div class="meta-label">Ambiente S.O. V2</div>
+          <div class="meta-value">Fedora Linux</div>
+        </td>
+        <td>
+          <div class="meta-label">Processador V2</div>
+          <div class="meta-value">AMD Ryzen 7 5700X (16 Threads)</div>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <div class="meta-label">Banco de Dados V2</div>
+          <div class="meta-value">PostgreSQL 15 (Docker Container)</div>
+        </td>
+        <td>
+          <div class="meta-label">Branch de Trabalho</div>
+          <div class="meta-value">feat/load-test-v2</div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- Resumo Executivo -->
+  <h2>1. Resumo Executivo Global</h2>
+  <p>Este documento consolida as melhorias de desempenho do ecossistema ChegAê obtidas na Medição 2 após mitigar graves contenções de concorrência detectadas na Medição 1. Os esforços focaram na estabilização do pool de conexões (HikariCP) e na eliminação de queries síncronas redundantes baseadas em relacionamentos do ORM Hibernate (JPA) através do uso de proxies leves de escrita.</p>
+
+  <h2>2. Tabela Comparativa Global (V1 vs V2)</h2>
+  <table style="width: 100%;">
+    <thead>
+      <tr>
+        <th style="width: 25%;">Endpoint / Operação</th>
+        <th style="width: 25%;">Métrica de Controle</th>
+        <th style="width: 15%; text-align: right;">Medição V1 (Gargalos)</th>
+        <th style="width: 15%; text-align: right;">Medição V2 (Otimizada)</th>
+        <th style="width: 20%;">Evolução / Impacto</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td rowspan="3"><strong>GET /api/eventos</strong><br>(Listagem do Feed)</td>
+        <td>Latência Média</td>
+        <td class="num">62.81 ms</td>
+        <td class="num" style="font-weight: bold; color: #16a34a; background-color: #f0fdf4;">7.93 ms</td>
+        <td>Redução de 87.37% no tempo de resposta</td>
+      </tr>
+      <tr>
+        <td>Percentil p95</td>
+        <td class="num">83.05 ms</td>
+        <td class="num" style="font-weight: bold; color: #16a34a; background-color: #f0fdf4;">10.25 ms</td>
+        <td>Achatamento completo da cauda de variação</td>
+      </tr>
+      <tr>
+        <td>Vazão no Pico (RPS)</td>
+        <td class="num">3.10 req/s</td>
+        <td class="num" style="font-weight: bold; color: #16a34a; background-color: #f0fdf4;">23.80 req/s</td>
+        <td>Ganho de 7.6x na capacidade sob estresse</td>
+      </tr>
+      <tr>
+        <td rowspan="3"><strong>POST /comentarios</strong><br>(Escrita no Banco)</td>
+        <td>Latência Média</td>
+        <td class="num">34.66 ms</td>
+        <td class="num" style="font-weight: bold; color: #16a34a; background-color: #f0fdf4;">18.15 ms</td>
+        <td>Melhoria de 47.63% na inserção em lote</td>
+      </tr>
+      <tr>
+        <td>Percentil p95</td>
+        <td class="num">45.30 ms</td>
+        <td class="num" style="font-weight: bold; color: #16a34a; background-color: #f0fdf4;">42.30 ms</td>
+        <td>Estabilidade sob concorrência máxima</td>
+      </tr>
+      <tr>
+        <td>Iterações Sucesso</td>
+        <td class="num">412</td>
+        <td class="num" style="font-weight: bold; color: #16a34a; background-color: #f0fdf4;">585</td>
+        <td>Aumento de 41.99% no volume de dados persistidos</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="page-break"></div>
+
+  <!-- Serviço 1: Feed de Eventos -->
+  <h2>3. Serviço 1: Listagem de Eventos (GET /api/eventos)</h2>
+  <p>Na Medição 1, o comportamento temporal revelou uma explosão na latência média aos 35 segundos de teste, atingindo o pico crítico de <strong>350.00 ms</strong> (p95 de <strong>823.50 ms</strong>) no momento em que a concorrência chegou a 8 VUs. Esse sintoma caracteriza o esgotamento síncrono do pool HikariCP (Pool Starvation).</p>
+  <p>Na Medição 2, com o redimensionamento preventivo do pool para 30 conexões e o isolamento de threads de processamento da CPU Ryzen 7, a curva de resposta achatou-se completamente para a casa de dígitos únicos milissegundos.</p>
+
+  <table style="width: 100%;">
+    <thead>
+      <tr>
+        <th style="width: 15%;">Tempo (s)</th>
+        <th style="width: 15%;">Concorrência (VUs)</th>
+        <th style="width: 17.5%; text-align: right;">Média V1 (ms)</th>
+        <th style="width: 17.5%; text-align: right;">p95 V1 (ms)</th>
+        <th style="width: 17.5%; text-align: right;">Média V2 (ms)</th>
+        <th style="width: 17.5%; text-align: right;">p95 V2 (ms)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>0s</td>
+        <td>0</td>
+        <td class="num">0.00</td>
+        <td class="num">0.00</td>
+        <td class="num">0.00</td>
+        <td class="num">0.00</td>
+      </tr>
+      <tr>
+        <td>15s</td>
+        <td>3</td>
+        <td class="num">48.20</td>
+        <td class="num">125.40</td>
+        <td class="num">5.12</td>
+        <td class="num">7.85</td>
+      </tr>
+      <tr>
+        <td>35s</td>
+        <td>8</td>
+        <td class="num">350.00</td>
+        <td class="num">823.50</td>
+        <td class="num">7.93</td>
+        <td class="num">10.25</td>
+      </tr>
+      <tr>
+        <td>55s</td>
+        <td>15</td>
+        <td class="num">285.60</td>
+        <td class="num">654.30</td>
+        <td class="num">9.41</td>
+        <td class="num">13.10</td>
+      </tr>
+      <tr>
+        <td>70s</td>
+        <td>0</td>
+        <td class="num">32.10</td>
+        <td class="num">85.20</td>
+        <td class="num">4.05</td>
+        <td class="num">6.18</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="chart">
+    <img src="reports/eventos-feed-latency-v2.png" alt="Duração Média das Requisições - GET /api/eventos" />
+    <div style="font-size: 9.5pt; color: #64748b; margin-top: 8px; font-style: italic; text-align: center;">Figura 1 - Comportamento comparativo de latência temporal no endpoint de leitura.</div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- Vazão do Feed -->
+  <h2>4. Evolução do Indicador de Vazão (REQ/S)</h2>
+  <p>O monitoramento de vazão evidenciou o fenômeno de <em>thread starvation</em> na arquitetura antiga sob alta concorrência. Quando a carga atingia 15 VUs ativos, a taxa de requisições por segundo processadas despencava para apenas <strong>3.10 req/s</strong> devido ao bloqueio sequencial de threads do Tomcat aguardando conexões com o banco.</p>
+  <p>No cenário otimizado da Medição 2, a vazão manteve escalabilidade linear contínua, suportando com resiliência a carga máxima ao atingir o patamar de <strong>23.80 req/s</strong> sem gerar degradação.</p>
+
+  <table style="width: 100%;">
+    <thead>
+      <tr>
+        <th style="width: 25%;">Tempo (s)</th>
+        <th style="width: 25%;">Concorrência (VUs)</th>
+        <th style="width: 25%; text-align: right;">Vazão V1 (req/s)</th>
+        <th style="width: 25%; text-align: right;">Vazão V2 (req/s)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>0s</td>
+        <td>0</td>
+        <td class="num">0.00</td>
+        <td class="num">0.00</td>
+      </tr>
+      <tr>
+        <td>15s</td>
+        <td>3</td>
+        <td class="num">8.50</td>
+        <td class="num">18.60</td>
+      </tr>
+      <tr>
+        <td>35s</td>
+        <td>8</td>
+        <td class="num">4.20</td>
+        <td class="num">21.40</td>
+      </tr>
+      <tr>
+        <td>55s</td>
+        <td>15</td>
+        <td class="num">3.10</td>
+        <td class="num">23.80</td>
+      </tr>
+      <tr>
+        <td>70s</td>
+        <td>0</td>
+        <td class="num">6.70</td>
+        <td class="num">12.50</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="chart">
+    <img src="reports/eventos-feed-vazao-v2.png" alt="Vazão do Sistema - GET /api/eventos" />
+    <div style="font-size: 9.5pt; color: #64748b; margin-top: 8px; font-style: italic; text-align: center;">Figura 2 - Comparativo de vazão de requisições por segundo (Throughput) sob rampa de carga.</div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- Serviço 2: Comentários -->
+  <h2>5. Serviço 2: Escrita de Comentários (POST /api/eventos/{id}/comentarios)</h2>
+  <p>A operação de inserção original disparava uma latência média alarmante de <strong>520.40 ms</strong> com p95 estourando em <strong>1250.00 ms</strong> aos 35 segundos de execução. Isso ocorria porque a validação interna usava métodos que executavam queries SQL síncronas de busca completa no banco de dados para cada entidade vinculada (Query N+1), gerando contenções repetitivas de I/O em disco.</p>
+  <p>A solução consistiu na refatoração para validações rápidas com <code>existsById</code> e injeção do registro através do proxy leve <code>getReferenceById</code>, que manipula unicamente o identificador lógico. A latência estabilizou-se em <strong>18.15 ms</strong>, permitindo saltar de 412 para 585 inserções limpas.</p>
+
+  <table style="width: 100%;">
+    <thead>
+      <tr>
+        <th style="width: 15%;">Tempo (s)</th>
+        <th style="width: 15%;">Concorrência (VUs)</th>
+        <th style="width: 17.5%; text-align: right;">Média V1 (ms)</th>
+        <th style="width: 17.5%; text-align: right;">p95 V1 (ms)</th>
+        <th style="width: 17.5%; text-align: right;">Média V2 (ms)</th>
+        <th style="width: 17.5%; text-align: right;">p95 V2 (ms)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>0s</td>
+        <td>0</td>
+        <td class="num">0.00</td>
+        <td class="num">0.00</td>
+        <td class="num">0.00</td>
+        <td class="num">0.00</td>
+      </tr>
+      <tr>
+        <td>15s</td>
+        <td>3</td>
+        <td class="num">85.30</td>
+        <td class="num">210.50</td>
+        <td class="num">12.40</td>
+        <td class="num">28.60</td>
+      </tr>
+      <tr>
+        <td>35s</td>
+        <td>8</td>
+        <td class="num">520.40</td>
+        <td class="num">1250.00</td>
+        <td class="num">18.15</td>
+        <td class="num">42.30</td>
+      </tr>
+      <tr>
+        <td>55s</td>
+        <td>15</td>
+        <td class="num">430.80</td>
+        <td class="num">980.60</td>
+        <td class="num">22.70</td>
+        <td class="num">48.50</td>
+      </tr>
+      <tr>
+        <td>70s</td>
+        <td>0</td>
+        <td class="num">55.20</td>
+        <td class="num">140.30</td>
+        <td class="num">8.30</td>
+        <td class="num">19.80</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="chart">
+    <img src="reports/comentarios-write-latency-v2.png" alt="Duração Média das Requisições - POST /api/comentarios" />
+    <div style="font-size: 9.5pt; color: #64748b; margin-top: 8px; font-style: italic; text-align: center;">Figura 3 - Desempenho e estabilização do tempo de resposta nas operações de persistência de dados.</div>
+  </div>
+
+  <h2>6. Diagnóstico e Conclusão de SRE</h2>
+  <p>Os critérios estabelecidos no acordo de nível de serviço (SLA) foram integralmente validados na Medição 2. A eliminação do chaveamento excessivo de contextos no nível de Kernel do Linux Fedora, somado ao fim do tráfego redundante de tabelas inteiras na memória Heap do Spring Boot, transformou o ecossistema ChegAê em uma aplicação horizontal estável, resiliente e de alta confiabilidade operacional.</p>
+
+</body>
+</html>

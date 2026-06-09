@@ -76,7 +76,7 @@
   <main>
     <span class="badge">k6 load test</span>
     <h1>SLA - Listagem de eventos</h1>
-    <p>Relatorio gerado em <code>2026-06-01T06:15:18.962Z</code>. Use o JSON associado para auditoria completa das metricas brutas.</p>
+    <p>Relatorio gerado em <code>2026-06-09T02:37:06.754Z</code>. Use o JSON associado para auditoria completa das metricas brutas.</p>
 
     <section class="grid">
       <article class="card">
@@ -101,12 +101,12 @@
 
     <h2>Metricas principais</h2>
     <table>
-      <tbody><tr><th>Latencia media</th><td>62.81 ms</td></tr>
-<tr><th>p90</th><td>73.79 ms</td></tr>
-<tr><th>p95</th><td>83.05 ms</td></tr>
-<tr><th>Maior latencia</th><td>561.23 ms</td></tr>
-<tr><th>Vazao media</th><td>19.35 req/s</td></tr>
-<tr><th>Total de requisicoes</th><td>1375</td></tr>
+      <tbody><tr><th>Latencia media</th><td>7.93 ms</td></tr>
+<tr><th>p90</th><td>8.93 ms</td></tr>
+<tr><th>p95</th><td>10.25 ms</td></tr>
+<tr><th>Maior latencia</th><td>141.61 ms</td></tr>
+<tr><th>Vazao media</th><td>21.40 req/s</td></tr>
+<tr><th>Total de requisicoes</th><td>1502</td></tr>
 <tr><th>Usuarios virtuais maximos</th><td>30</td></tr>
 <tr><th>Taxa de erro</th><td>0.00%</td></tr>
 <tr><th>Requisicoes com erro</th><td>0</td></tr></tbody>
@@ -117,8 +117,10 @@
       <thead><tr><th>Metrica</th><th>Regra</th><th>Resultado</th></tr></thead>
       <tbody><tr><td>http_req_duration</td><td>avg<800</td><td>OK</td></tr>
 <tr><td>http_req_duration</td><td>p(95)<2000</td><td>OK</td></tr>
-<tr><td>http_req_failed</td><td>rate<0.02</td><td>OK</td></tr>
-<tr><td>eventos_feed_errors</td><td>rate<0.02</td><td>OK</td></tr></tbody>
+<tr><td>eventos_feed_latency</td><td>avg<600</td><td>OK</td></tr>
+<tr><td>eventos_feed_latency</td><td>p(95)<1500</td><td>OK</td></tr>
+<tr><td>eventos_feed_errors</td><td>rate<0.02</td><td>OK</td></tr>
+<tr><td>http_req_failed</td><td>rate<0.02</td><td>OK</td></tr></tbody>
     </table>
   </main>
 </body>
