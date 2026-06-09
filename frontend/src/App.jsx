@@ -14,13 +14,7 @@ import {
   X,
 } from "lucide-react";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-
-// ============================================================================
-// API Helper
-// ============================================================================
-
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
-
 async function api(path, options = {}) {
   const userId = localStorage.getItem("chegaae.userId");
   const headers = {
@@ -28,29 +22,18 @@ async function api(path, options = {}) {
     ...(userId && { "X-User-Id": userId }),
     ...options.headers,
   };
-
   const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
-
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: response.statusText }));
     throw new Error(error.message || `Erro ${response.status}`);
   }
-
   const text = await response.text();
   return text ? JSON.parse(text) : null;
 }
-
-// ============================================================================
-// Error Message Cleaner
-// ============================================================================
-
 function cleanErrorMessage(msg) {
   if (!msg) return "Ocorreu um erro inesperado. Tente novamente.";
   let clean = msg;
-  
-  // Remove technical prefixes and suffixes (e.g. RN001, UC03)
   clean = clean.replace(/RN\d+/gi, "").replace(/UC\d+/gi, "");
-  
   if (clean.includes("honra") || clean.includes("Honra") || clean.includes("reputacao") || clean.includes("Reputação")) {
     if (clean.toLowerCase().includes("abaixo") || clean.toLowerCase().includes("insuficiente") || clean.toLowerCase().includes("limite")) {
       return "Ação Não Permitida. Sua reputação atual na plataforma está abaixo do limite mínimo necessário para realizar esta ação.";
@@ -59,31 +42,19 @@ function cleanErrorMessage(msg) {
   if (clean.includes("vagas") || clean.includes("capacidade") || clean.includes("lotado")) {
     return "Limite de vagas atingido. O evento está lotado no momento.";
   }
-  
   clean = clean.replace(/^[\s\-\:\⚠️\❌]+/, "").trim();
   if (clean) {
     clean = clean.charAt(0).toUpperCase() + clean.slice(1);
   }
   return clean;
 }
-
-// ============================================================================
-// Constants
-// ============================================================================
-
 const categories = ["Futebol", "Pets", "Patinação", "Passeio", "Esporte", "Cultura", "Lazer"];
-
 const initialFilters = {
   search: "",
   category: "todos",
   distance: "todos",
   honor: "0",
 };
-
-// ============================================================================
-// Main App
-// ============================================================================
-
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [events, setEvents] = useState([]);
@@ -92,20 +63,15 @@ export default function App() {
   const [view, setView] = useState("feed");
   const [filters, setFilters] = useState(initialFilters);
   const [selectedEventId, setSelectedEventId] = useState(null);
-  const [alert, setAlert] = useState(null); // { type: 'success' | 'error' | 'warning' | 'info', message: string }
+  const [alert, setAlert] = useState(null); 
   const [loading, setLoading] = useState(false);
-
   const capacityLimit = currentUser && isAmbassador(currentUser.honor) ? 50 : 20;
   const selectedEvent = events.find((event) => event.id === selectedEventId);
-
-  // === Carregar eventos do backend ===
   const loadEvents = useCallback(async () => {
     try {
       setLoading(true);
       const data = await api("/eventos");
       setEvents(data);
-
-      // Recalcular enrollments baseado nos eventos carregados
       if (currentUser) {
         const newEnrollments = {};
         data.forEach((event) => {
@@ -124,15 +90,11 @@ export default function App() {
       setLoading(false);
     }
   }, [currentUser]);
-
-  // Carregar eventos quando o usuário logar
   useEffect(() => {
     if (currentUser) {
       loadEvents();
     }
   }, [currentUser, loadEvents]);
-
-  // Tentar restaurar sessão do localStorage
   useEffect(() => {
     const savedUser = localStorage.getItem("chegaae.user");
     if (savedUser) {
@@ -144,7 +106,6 @@ export default function App() {
       }
     }
   }, []);
-
   const filteredEvents = useMemo(() => {
     return events
       .filter((event) => {
@@ -156,7 +117,6 @@ export default function App() {
       })
       .sort((a, b) => Number(isAmbassador(b.organizer.honor)) - Number(isAmbassador(a.organizer.honor)));
   }, [events, filters]);
-
   const metrics = useMemo(() => {
     return {
       active: events.filter((event) => event.status === "ABERTO").length,
@@ -164,12 +124,9 @@ export default function App() {
       ambassadors: events.filter((event) => isAmbassador(event.organizer.honor)).length,
     };
   }, [events]);
-
   function updateFilter(name, value) {
     setFilters((current) => ({ ...current, [name]: value }));
   }
-
-  // === Login via API ===
   async function handleLogin(email) {
     try {
       setLoading(true);
@@ -187,7 +144,6 @@ export default function App() {
       setLoading(false);
     }
   }
-
   function handleLogout() {
     setCurrentUser(null);
     setEvents([]);
@@ -196,17 +152,13 @@ export default function App() {
     localStorage.removeItem("chegaae.userId");
     setView("feed");
   }
-
-  // === Criar evento via API ===
   async function createEvent(formEvent) {
     formEvent.preventDefault();
     const formElement = formEvent.currentTarget;
-
     if (currentUser.honor < 2) {
       showNotice("Ação Não Permitida. Sua reputação atual está abaixo do limite mínimo necessário para criar novos rolés.", "error");
       return;
     }
-
     const form = new FormData(formElement);
     const dto = {
       title: form.get("title").trim(),
@@ -219,14 +171,12 @@ export default function App() {
       distance: Number(form.get("distance")),
       description: form.get("description").trim(),
     };
-
     try {
       setLoading(true);
       const criado = await api("/eventos", {
         method: "POST",
         body: JSON.stringify(dto),
       });
-      // Recarregar todos os eventos para ter dados consistentes
       await loadEvents();
       formElement.reset();
       setView("feed");
@@ -238,18 +188,13 @@ export default function App() {
       setLoading(false);
     }
   }
-
-  // === Toggle inscrição via API ===
   async function toggleEnrollment(eventId) {
     try {
       setLoading(true);
       const result = await api(`/eventos/${eventId}/inscricao`, {
         method: "POST",
       });
-
       showNotice(result.message, "success");
-
-      // Recarregar eventos para atualizar listas de confirmados/fila
       await loadEvents();
     } catch (err) {
       showNotice("Não foi possível realizar a inscrição: " + err.message, "error");
@@ -257,8 +202,6 @@ export default function App() {
       setLoading(false);
     }
   }
-
-  // === Adicionar comentário via API ===
   async function addComment(eventId, text) {
     if (!text.trim()) return;
     try {
@@ -266,9 +209,6 @@ export default function App() {
         method: "POST",
         body: JSON.stringify({ text: text.trim() }),
       });
-
-      // Atualizar evento localmente adicionando o comentário recém-criado
-      // O backend agora retorna apenas o ComentarioResponseDTO (id, author, text, time)
       setEvents((current) =>
         current.map((event) =>
           event.id === eventId
@@ -290,20 +230,16 @@ export default function App() {
       showNotice("Não foi possível publicar o comentário: " + err.message, "error");
     }
   }
-
   async function deleteEvent(eventId) {
     const event = events.find((item) => item.id === eventId);
     if (!event) return;
-
     const canDelete = currentUser.isModerator || event.organizer.id === currentUser.id;
     if (!canDelete) {
       showNotice("Apenas o organizador ou um moderador pode excluir este rolé.", "error");
       return;
     }
-
     const confirmed = window.confirm(`Excluir o rolé "${event.title}"? Essa ação não pode ser desfeita.`);
     if (!confirmed) return;
-
     try {
       setLoading(true);
       await api(`/eventos/${eventId}`, { method: "DELETE" });
@@ -321,12 +257,9 @@ export default function App() {
       setLoading(false);
     }
   }
-
-  // === Denúncia (local por enquanto) ===
   function reportEvent(eventId) {
     const event = events.find((item) => item.id === eventId);
     if (!event) return;
-
     setReports((current) => [
       {
         id: createId(),
@@ -339,39 +272,31 @@ export default function App() {
     ]);
     showNotice("Denúncia enviada à moderação para análise.", "success");
   }
-
   function resolveReport(reportId, shouldLockEvent) {
     const report = reports.find((item) => item.id === reportId);
     if (!report) return;
-
     setReports((current) =>
       current.map((item) => (item.id === reportId ? { ...item, status: shouldLockEvent ? "PROCEDENTE" : "IMPROCEDENTE" } : item))
     );
   }
-
   function showNotice(message, type = "info") {
     const cleanMsg = type === "error" ? cleanErrorMessage(message) : message;
     setAlert({ message: cleanMsg, type });
   }
-
   useEffect(() => {
     if (alert) {
       const timer = setTimeout(() => setAlert(null), 6000);
       return () => clearTimeout(timer);
     }
   }, [alert]);
-
   useEffect(() => {
     if (currentUser && !currentUser.isModerator && view === "moderation") {
       setView("feed");
     }
   }, [currentUser, view]);
-
-  // === Tela de login ===
   if (!currentUser) {
     return <LoginScreen onLogin={handleLogin} loading={loading} />;
   }
-
   return (
     <main className="app-shell">
       <Sidebar
@@ -382,7 +307,6 @@ export default function App() {
         currentUser={currentUser}
         onLogout={handleLogout}
       />
-
       <section className="content">
         <header className="topbar">
           <div>
@@ -394,10 +318,8 @@ export default function App() {
             Criar rolé
           </button>
         </header>
-
         {alert && <Notice alert={alert} onClose={() => setAlert(null)} />}
         {loading && <div className="notice loading-notice">Carregando...</div>}
-
         {view === "feed" && (
           <FeedView
             events={filteredEvents}
@@ -411,12 +333,10 @@ export default function App() {
             deleteEvent={deleteEvent}
           />
         )}
-
         {view === "create" && <CreateView categoryOptions={categories} capacityLimit={capacityLimit} onSubmit={createEvent} />}
         {view === "profile" && <ProfileView events={events} enrollments={enrollments} currentUser={currentUser} />}
         {view === "moderation" && currentUser.isModerator && <ModerationView reports={reports} resolveReport={resolveReport} />}
       </section>
-
       {selectedEvent && (
         <EventModal
           event={selectedEvent}
@@ -432,18 +352,12 @@ export default function App() {
     </main>
   );
 }
-
-// ============================================================================
-// Login Screen
-// ============================================================================
-
 function Notice({ alert, onClose }) {
   const Icon = alert.type === "error"
     ? AlertTriangle
     : alert.type === "success"
       ? CheckCircle2
       : Info;
-
   return (
     <div className={`notice alert-${alert.type}`} role="status" aria-live="polite">
       <Icon size={20} />
@@ -454,15 +368,12 @@ function Notice({ alert, onClose }) {
     </div>
   );
 }
-
 function LoginScreen({ onLogin, loading }) {
   const [email, setEmail] = useState("pedro@chegae.dev");
-
   function handleSubmit(e) {
     e.preventDefault();
     if (email.trim()) onLogin(email.trim());
   }
-
   return (
     <main className="app-shell" style={{ justifyContent: "center", alignItems: "center" }}>
       <section className="login-card">
@@ -473,7 +384,6 @@ function LoginScreen({ onLogin, loading }) {
             <small>Companhia para sair de casa</small>
           </div>
         </div>
-
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           <label>
             E-mail
@@ -485,7 +395,6 @@ function LoginScreen({ onLogin, loading }) {
               required
             />
           </label>
-
           <div style={{ fontSize: "0.8rem", opacity: 0.7, lineHeight: 1.4 }}>
             <strong>Contas demo:</strong><br />
             pedro@chegae.dev (Embaixador, reputação 4.9)<br />
@@ -494,7 +403,6 @@ function LoginScreen({ onLogin, loading }) {
             baixa@chegae.dev (Reputação baixa, 2.5)<br />
             moderador@chegae.dev (Administrador)
           </div>
-
           <button className="primary-action" type="submit" disabled={loading}>
             <LogIn size={18} />
             {loading ? "Entrando..." : "Entrar"}
@@ -504,11 +412,6 @@ function LoginScreen({ onLogin, loading }) {
     </main>
   );
 }
-
-// ============================================================================
-// Sidebar
-// ============================================================================
-
 function Sidebar({ view, filters, setView, updateFilter, currentUser, onLogout }) {
   return (
     <aside className="sidebar">
@@ -519,7 +422,6 @@ function Sidebar({ view, filters, setView, updateFilter, currentUser, onLogout }
           <small>Companhia para sair de casa</small>
         </div>
       </div>
-
       <section className="profile-summary" aria-label="Resumo do perfil">
         <div>
           <span className="avatar" aria-hidden="true">{currentUser.name[0]}</span>
@@ -533,7 +435,6 @@ function Sidebar({ view, filters, setView, updateFilter, currentUser, onLogout }
           <strong>{currentUser.honor.toFixed(1)}</strong>
         </div>
       </section>
-
       <nav className="nav-tabs" aria-label="Navegação principal">
         {[
           ["feed", "Feed"],
@@ -549,7 +450,6 @@ function Sidebar({ view, filters, setView, updateFilter, currentUser, onLogout }
           Sair
         </button>
       </nav>
-
       <section className="filters" aria-label="Filtros de eventos">
         <label>
           Buscar rolé
@@ -558,19 +458,16 @@ function Sidebar({ view, filters, setView, updateFilter, currentUser, onLogout }
             <input value={filters.search} type="search" placeholder="futebol, pets, patins..." onChange={(event) => updateFilter("search", event.target.value)} />
           </span>
         </label>
-
         <SelectFilter label="Categoria" value={filters.category} onChange={(value) => updateFilter("category", value)}>
           <option value="todos">Todas</option>
           {categories.map((category) => <option key={category} value={category}>{category}</option>)}
         </SelectFilter>
-
         <SelectFilter label="Distância" value={filters.distance} onChange={(value) => updateFilter("distance", value)}>
           <option value="todos">Qualquer distância</option>
           <option value="5">Até 5 km</option>
           <option value="15">Até 15 km</option>
           <option value="30">Até 30 km</option>
         </SelectFilter>
-
         <SelectFilter label="Honra do organizador" value={filters.honor} onChange={(value) => updateFilter("honor", value)}>
           <option value="0">Qualquer honra</option>
           <option value="4">4.0+</option>
@@ -580,7 +477,6 @@ function Sidebar({ view, filters, setView, updateFilter, currentUser, onLogout }
     </aside>
   );
 }
-
 function SelectFilter({ label, value, onChange, children }) {
   return (
     <label>
@@ -591,11 +487,6 @@ function SelectFilter({ label, value, onChange, children }) {
     </label>
   );
 }
-
-// ============================================================================
-// Feed View
-// ============================================================================
-
 function FeedView({ events, metrics, filters, enrollments, currentUser, resetFilters, openEvent, toggleEnrollment, deleteEvent }) {
   return (
     <section className="view" aria-label="Feed de eventos">
@@ -613,13 +504,11 @@ function FeedView({ events, metrics, filters, enrollments, currentUser, resetFil
           <strong>RJ</strong>
         </div>
       </div>
-
       <div className="metric-row">
         <Metric icon={<CalendarDays size={18} />} label="Eventos ativos" value={metrics.active} />
         <Metric icon={<UsersRound size={18} />} label="Na lista de espera" value={metrics.waitlist} />
         <Metric icon={<Star size={18} />} label="Embaixadores" value={metrics.ambassadors} />
       </div>
-
       <div className="section-heading">
         <div>
           <h2>Rolés disponíveis</h2>
@@ -630,7 +519,6 @@ function FeedView({ events, metrics, filters, enrollments, currentUser, resetFil
           Limpar filtros
         </button>
       </div>
-
       <div className="event-grid">
         {events.length ? (
           events.map((event) => (
@@ -651,7 +539,6 @@ function FeedView({ events, metrics, filters, enrollments, currentUser, resetFil
     </section>
   );
 }
-
 function Metric({ icon, label, value }) {
   return (
     <article>
@@ -660,18 +547,12 @@ function Metric({ icon, label, value }) {
     </article>
   );
 }
-
-// ============================================================================
-// Event Card
-// ============================================================================
-
 function EventCard({ event, enrollment, currentUser, openEvent, toggleEnrollment, deleteEvent }) {
   const seats = Math.max(event.capacity - event.confirmed.length, 0);
   const percent = Math.min((event.confirmed.length / event.capacity) * 100, 100);
   const featured = isAmbassador(event.organizer.honor);
   const locked = event.status !== "ABERTO";
   const canManage = currentUser?.isModerator || event.organizer.id === currentUser?.id;
-
   return (
     <article className={`event-card ${featured ? "featured" : ""}`}>
       <div className="event-card-header">
@@ -681,7 +562,6 @@ function EventCard({ event, enrollment, currentUser, openEvent, toggleEnrollment
         </div>
         <EnrollmentBadge event={event} enrollment={enrollment} />
       </div>
-
       <div className="event-meta">
         <span>{formatDate(event.date)} às {event.time}</span>
         <span>{event.place}{event.distance > 0 ? ` - ${event.distance} km` : ""}</span>
@@ -705,18 +585,14 @@ function EventCard({ event, enrollment, currentUser, openEvent, toggleEnrollment
           <span>{event.confirmed.length}/{event.capacity} confirmados · {seats} vaga(s) restante(s)</span>
         )}
       </div>
-
       <div className="progress-track" aria-hidden="true">
         <span className="progress-fill" style={{ width: `${percent}%` }} />
       </div>
-
       <p>{event.description}</p>
-
       <div className="organizer-line">
         <span>Organizador: <strong>{event.organizer.name}</strong></span>
         <span>Reputação {event.organizer.honor.toFixed(1)}{featured ? " · Embaixador" : ""}</span>
       </div>
-
       <div className="card-actions">
         <button className="secondary-action" type="button" onClick={() => openEvent(event.id)}>Detalhes</button>
         <button className={locked ? "secondary-action" : "primary-action"} type="button" disabled={locked} onClick={() => toggleEnrollment(event.id)}>
@@ -732,7 +608,6 @@ function EventCard({ event, enrollment, currentUser, openEvent, toggleEnrollment
     </article>
   );
 }
-
 function EnrollmentBadge({ event, enrollment }) {
   if (event.status === "TRAVADO") return <span className="enrollment-badge locked">Suspenso</span>;
   if (event.status === "CANCELADO") return <span className="enrollment-badge locked">Cancelado</span>;
@@ -741,11 +616,6 @@ function EnrollmentBadge({ event, enrollment }) {
   if (event.confirmed.length >= event.capacity) return <span className="enrollment-badge waiting">Esgotado</span>;
   return <span className="enrollment-badge confirmed">Vagas Abertas</span>;
 }
-
-// ============================================================================
-// Create View
-// ============================================================================
-
 function CreateView({ categoryOptions, capacityLimit, onSubmit }) {
   return (
     <section className="view" aria-label="Criar evento">
@@ -755,7 +625,6 @@ function CreateView({ categoryOptions, capacityLimit, onSubmit }) {
           <h2>Novo rolé</h2>
           <p>Defina os detalhes do seu novo evento com limite de até {capacityLimit} participantes.</p>
         </div>
-
         <div className="form-grid">
           <label>Título<input name="title" required maxLength="80" placeholder="Patinação na orla" /></label>
           <label>Categoria<select name="category" required>{categoryOptions.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
@@ -766,12 +635,10 @@ function CreateView({ categoryOptions, capacityLimit, onSubmit }) {
           <label>Limite de participantes<input name="capacity" required min="3" max={capacityLimit} type="number" defaultValue="20" /></label>
           <label>Distância estimada<input name="distance" required min="1" max="80" type="number" defaultValue="8" /></label>
         </div>
-
         <label>
           Descrição
           <textarea name="description" required maxLength="260" rows="4" placeholder="Descreva o ponto de encontro, ritmo do rolé e combinados de segurança." />
         </label>
-
         <div className="form-actions">
           <button className="secondary-action" type="reset">Limpar</button>
           <button className="primary-action" type="submit"><Plus size={18} />Publicar rolé</button>
@@ -780,16 +647,10 @@ function CreateView({ categoryOptions, capacityLimit, onSubmit }) {
     </section>
   );
 }
-
-// ============================================================================
-// Profile View
-// ============================================================================
-
 function ProfileView({ events, enrollments, currentUser }) {
   const myEnrollments = Object.entries(enrollments)
     .map(([eventId, status]) => ({ event: events.find((item) => item.id === eventId), status }))
     .filter((item) => item.event);
-
   return (
     <section className="view" aria-label="Perfil e honra">
       <div className="profile-grid">
@@ -805,7 +666,6 @@ function ProfileView({ events, enrollments, currentUser }) {
             : "Participante ativo. Aumente sua reputação para se tornar Embaixador."
           }</p>
         </article>
-
         <article className="profile-panel">
           <span className="status-pill">Minhas inscrições</span>
           <h2>Confirmados e lista de espera</h2>
@@ -821,14 +681,8 @@ function ProfileView({ events, enrollments, currentUser }) {
     </section>
   );
 }
-
-// ============================================================================
-// Moderation View
-// ============================================================================
-
 function ModerationView({ reports, resolveReport }) {
   const pendingReports = reports.filter((report) => report.status === "PENDENTE");
-
   return (
     <section className="view" aria-label="Painel de moderação">
       <div className="section-heading">
@@ -868,22 +722,15 @@ function ModerationView({ reports, resolveReport }) {
     </section>
   );
 }
-
-// ============================================================================
-// Event Modal
-// ============================================================================
-
 function EventModal({ event, enrollment, close, toggleEnrollment, addComment, deleteEvent, reportEvent, currentUser }) {
   const [comment, setComment] = useState("");
   const canComment = enrollment === "CONFIRMADO" || enrollment === "FILA";
   const canManage = currentUser?.isModerator || event.organizer.id === currentUser?.id;
-
   function submitComment(formEvent) {
     formEvent.preventDefault();
     addComment(event.id, comment);
     setComment("");
   }
-
   return (
     <div className="modal-backdrop" role="presentation">
       <section className="event-dialog" role="dialog" aria-modal="true" aria-label={event.title}>
@@ -894,18 +741,15 @@ function EventModal({ event, enrollment, close, toggleEnrollment, addComment, de
             <h2>{event.title}</h2>
           </div>
           <p>{event.description}</p>
-
           <div className="dialog-stats">
             <div><strong>{formatDate(event.date)}</strong><span>{event.time}</span></div>
             <div><strong>{event.confirmed.length}/{event.capacity}</strong><span>confirmados</span></div>
             <div><strong>{event.waitlist.length}</strong><span>na lista de espera</span></div>
           </div>
-
           <div className="organizer-line">
             <span><MapPin size={15} /> {event.place} - CEP {event.cep || "não informado"}</span>
             <span>Reputação {event.organizer.honor.toFixed(1)}</span>
           </div>
-
           <div className="card-actions">
             <button className="primary-action" type="button" disabled={event.status !== "ABERTO"} onClick={() => toggleEnrollment(event.id)}>
               {getEnrollmentActionLabel(event, enrollment)}
@@ -921,7 +765,6 @@ function EventModal({ event, enrollment, close, toggleEnrollment, addComment, de
               </button>
             )}
           </div>
-
           <section className="comments-box">
             <h3>Comentários do rolé</h3>
             {event.comments.length ? (
@@ -934,7 +777,6 @@ function EventModal({ event, enrollment, close, toggleEnrollment, addComment, de
             ) : (
               <div className="empty-state">Sem comentários ainda.</div>
             )}
-
             {canComment ? (
               <form className="comment-form" onSubmit={submitComment}>
                 <label>
@@ -952,11 +794,6 @@ function EventModal({ event, enrollment, close, toggleEnrollment, addComment, de
     </div>
   );
 }
-
-// ============================================================================
-// Shared Components
-// ============================================================================
-
 function StackItem({ title, body }) {
   return (
     <article className="stack-item">
@@ -965,11 +802,6 @@ function StackItem({ title, body }) {
     </article>
   );
 }
-
-// ============================================================================
-// Utility Functions
-// ============================================================================
-
 function getEnrollmentActionLabel(event, enrollment) {
   if (event.status === "TRAVADO") return "Suspenso";
   if (event.status === "CANCELADO") return "Cancelado";
@@ -977,7 +809,6 @@ function getEnrollmentActionLabel(event, enrollment) {
   if (enrollment === "FILA") return "Sair da lista de espera";
   return event.confirmed.length >= event.capacity ? "Entrar na lista de espera" : "Quero participar";
 }
-
 function buildFilterSummary(filters) {
   const parts = [];
   if (filters.category !== "todos") parts.push(filters.category);
@@ -986,16 +817,13 @@ function buildFilterSummary(filters) {
   if (filters.search) parts.push(`busca "${filters.search}"`);
   return parts.length ? parts.join(" · ") : "Todos os rolés";
 }
-
 function isAmbassador(honor) {
   return honor >= 4.8;
 }
-
 function createId() {
   if (crypto.randomUUID) return crypto.randomUUID();
   return `id-${Date.now()}-${Math.round(Math.random() * 10000)}`;
 }
-
 function formatDate(date) {
   return new Intl.DateTimeFormat("pt-BR", {
     day: "2-digit",
