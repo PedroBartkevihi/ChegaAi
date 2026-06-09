@@ -111,12 +111,13 @@ docker compose -f .\infra\docker-compose.yml down -v
 docker compose -f .\infra\docker-compose.yml up -d
 ```
 
-## Fase E - Medicoes de SLA
+## Fase E - Medições de SLA (Evolução & Otimização)
 
-A 1ª medicao dos testes de carga esta documentada em [docs/sla/README.md](docs/sla/README.md).
+A suite de testes de carga e a evolução da performance estão documentadas em [docs/sla/README.md](docs/sla/README.md).
 
 Artefatos principais:
 
-- Relatorio em Markdown: [docs/sla/README.md](docs/sla/README.md)
-- PDF gerado: [docs/sla/medicoes-sla-testes-carga.pdf](docs/sla/medicoes-sla-testes-carga.pdf)
+- Relatório em Markdown (V2): [docs/sla/README.md](docs/sla/README.md)
+- Relatório em PDF Otimizado (V2): [reports/medicoes-sla-relatorio-v2.pdf](reports/medicoes-sla-relatorio-v2.pdf)
+- Histórico da Primeira Medição (V1): [reports/medicoes-sla-testes-carga-v1.pdf](reports/medicoes-sla-testes-carga-v1.pdf)
 - Scripts k6: [tests/load](tests/load)
