@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -26,7 +25,7 @@ public interface AvaliacaoRepository extends JpaRepository<Avaliacao, UUID> {
      * @return média das notas, ou {@code empty} se não houver avaliações
      */
     @Query("SELECT AVG(a.nota) FROM Avaliacao a WHERE a.avaliado.id = :usuarioId")
-    Optional<BigDecimal> calcularMediaNotas(@Param("usuarioId") UUID usuarioId);
+    Optional<Double> calcularMediaNotas(@Param("usuarioId") UUID usuarioId);
 
     /**
      * Conta quantas avaliações um usuário fez em um determinado evento.

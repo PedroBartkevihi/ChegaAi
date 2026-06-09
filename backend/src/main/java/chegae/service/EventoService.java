@@ -2,15 +2,20 @@ package chegae.service;
 
 import chegae.controller.dto.EventoRequestDTO;
 import chegae.controller.dto.EventoResponseDTO;
+import chegae.domain.enums.PapelSistema;
 import chegae.domain.enums.StatusEvento;
 import chegae.domain.enums.StatusInscricao;
 import chegae.domain.model.*;
 import chegae.repository.*;
+import chegae.service.external.ViaCEPService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -50,6 +55,7 @@ public class EventoService {
 
     /**
      * Lista todos os eventos convertidos para o formato do frontend.
+     * Mantido para compatibilidade com o frontend que espera um array completo.
      */
     @Transactional(readOnly = true)
     public List<EventoResponseDTO> listarTodos() {
@@ -57,6 +63,26 @@ public class EventoService {
         return eventos.stream()
             .map(this::toResponseDTO)
             .collect(Collectors.toList());
+    }
+
+    /**
+     * Lista eventos de forma paginada, eliminando o carregamento de toda a base
+     * em memória. Usa JOIN FETCH no Repository para resolver N+1 em uma única query.
+     *
+     * <p>Ganhos de performance:</p>
+     * <ul>
+     *   <li>Reduz o volume de dados trafegados entre DB → JVM → HTTP</li>
+     *   <li>Diminui pressão no Garbage Collector (menos objetos instanciados)</li>
+     *   <li>Libera conexões HikariCP mais rapidamente</li>
+     * </ul>
+     *
+     * @param pageable configuração de página (page, size)
+     * @return página de DTOs com metadados de paginação
+     */
+    @Transactional(readOnly = true)
+    public Page<EventoResponseDTO> listarTodosPaginado(Pageable pageable) {
+        Page<Evento> pagina = eventoRepository.findAllWithRelations(pageable);
+        return pagina.map(this::toResponseDTO);
     }
 
     /**
@@ -142,6 +168,24 @@ public class EventoService {
         return toResponseDTO(evento);
     }
 
+    @Transactional
+    public void excluirEvento(UUID eventoId, UUID usuarioId) {
+        Evento evento = eventoRepository.findByIdWithRelations(eventoId)
+            .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + eventoId));
+
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+            .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + usuarioId));
+
+        boolean organizador = evento.getOrganizador().getId().equals(usuarioId);
+        boolean moderador = usuario.getPapelSistema() == PapelSistema.ADMINISTRADOR;
+
+        if (!organizador && !moderador) {
+            throw new IllegalStateException("Apenas o organizador ou um moderador pode excluir este rolé.");
+        }
+
+        eventoRepository.delete(evento);
+    }
+
     // -----------------------------------------------------------------------
     // RN008 — Conclusão de evento e tratamento de ausências
     // -----------------------------------------------------------------------
@@ -221,11 +265,12 @@ public class EventoService {
         Usuario usuario = usuarioRepository.findById(usuarioId)
             .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + usuarioId));
 
-        Optional<BigDecimal> media = avaliacaoRepository.calcularMediaNotas(usuarioId);
+        Optional<Double> media = avaliacaoRepository.calcularMediaNotas(usuarioId);
 
         if (media.isPresent() && media.get() != null) {
             // Escala para 2 casas decimais (compatível com numeric(3,2))
-            BigDecimal novaHonra = media.get().setScale(2, java.math.RoundingMode.HALF_UP);
+            BigDecimal novaHonra = BigDecimal.valueOf(media.get())
+                .setScale(2, java.math.RoundingMode.HALF_UP);
             usuario.setHonraMedia(novaHonra);
             usuarioRepository.save(usuario);
             log.info("RN002: Honra recalculada para usuário '{}': {}", usuario.getNome(), novaHonra);

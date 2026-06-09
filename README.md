@@ -1,105 +1,122 @@
-# 📍 ChegAê — Conexões Reais e Seguras
+# ChegAê
 
-O **ChegAê** é uma plataforma que conecta pessoas para a realização de atividades e rolés presenciais com foco em segurança, controle de reputação e organização inteligente de vagas. 
+Plataforma para conectar pessoas em atividades presenciais, com foco em reputação, segurança, controle de vagas e lista de espera.
 
-Este repositório está organizado como um **Monorepo**, facilitando o desenvolvimento integrado do Front-end (React) e do Back-end (Spring Boot), além de centralizar as definições de infraestrutura (Docker, PostgreSQL, GraphDB).
-
----
-
-## 📂 Estrutura do Repositório
+## Estrutura
 
 ```text
-├── frontend/                  # Aplicação Single Page Application (SPA) em React + Vite.
-├── backend/                   # API RESTful construída em Java com Spring Boot.
-├── database/
-│   ├── postgres/migrations/   # Scripts SQL de DDL e DML para o PostgreSQL.
-│   └── graphdb/               # Consultas SPARQL e scripts RDF para o GraphDB.
-├── infra/                     # Docker Compose e configurações de infraestrutura local.
-├── docs/                      # Documentação técnica e histórico do projeto.
-├── config/                    # Configurações compartilhadas de ambiente.
-|
+frontend/                  Aplicação React + Vite
+backend/                   API REST em Spring Boot
+database/
+  postgres/migrations/     Migrations SQL versionadas
+  graphdb/                 Scripts SPARQL para GraphDB
+infra/                     Docker Compose local
+docs/                      Documentação técnica e materiais auxiliares
 ```
 
----
+## Requisitos
 
-## 🚀 Requisitos e Tecnologias
+- Node.js 20.19 ou superior
+- npm 10 ou superior
+- JDK 17 ou superior
+- Maven 3.9 ou superior
+- Docker Desktop ou Docker Engine com Docker Compose
+- Opcional: GraphDB Workbench em `http://localhost:7200`
 
-### Tecnologias Utilizadas
-- **Front-end**: React 19, Vite, Lucide Icons, Vanilla CSS com design responsivo e moderno.
-- **Back-end**: Java 17, Spring Boot 3, Spring Data JPA, Spring Security (CORS liberado para o frontend).
-- **Bancos de Dados**:
-  - **PostgreSQL** (Persistência relacional de usuários, eventos, comentários, inscrições).
-  - **GraphDB** (Mapeamento semântico e sistema de recomendações de rolés).
-- **Infraestrutura**: Docker & Docker Compose.
+No Windows, se o PowerShell bloquear `npm`, use `npm.cmd` nos comandos.
 
----
+## Subir a infraestrutura
 
-## 🛠️ Como Iniciar o Projeto Localmente
-
-Siga o passo a passo abaixo para ligar todos os serviços do ChegAê na sua máquina local:
-
-### Passo 1: Subir o Banco de Dados (PostgreSQL)
-Certifique-se de ter o Docker e Docker Compose instalados. Execute os comandos abaixo para iniciar o container do PostgreSQL:
-
-```bash
-# Caso precise de permissões de administrador (Linux):
-sudo docker compose -f infra/docker-compose.yml up -d postgres
-
-# Para checar o status e ver se está ativo:
-sudo docker compose -f infra/docker-compose.yml ps
+```powershell
+docker compose -f .\infra\docker-compose.yml up -d
+docker compose -f .\infra\docker-compose.yml ps
 ```
-*O PostgreSQL estará disponível na porta padrão **5432**.*
 
----
+Serviços locais:
 
-### Passo 2: Configurar e Rodar o Back-end (Spring Boot)
-1. Navegue até a pasta do backend:
-   ```bash
-   cd backend
-   ```
-2. Compile e inicialize o servidor com o Maven Wrapper:
-   ```bash
-   ./mvnw spring-boot:run
-   ```
-   *(ou apenas `mvn spring-boot:run` se possuir o Maven instalado globalmente).*
+- PostgreSQL: `localhost:5432`, banco `chegae`, usuário `chegae`, senha `chegae`
+- GraphDB: `http://localhost:7200`
 
-3. **Carga Inicial Automática (Seed)**: 
-   Ao iniciar, o serviço `DataSeederService` do backend irá popular o banco de dados automaticamente caso ele esteja vazio, inserindo categorias, localizações, rolés demonstrativos e vários usuários para testes.
+## Rodar o backend
 
-*O servidor do backend estará ativo em **`http://localhost:8080`**.*
+```powershell
+cd .\backend
+mvn spring-boot:run
+```
 
----
+A API roda em `http://localhost:8080/api`.
 
-### Passo 3: Rodar o Front-end (React)
-1. Abra um novo terminal e navegue para a pasta do frontend:
-   ```bash
-   cd frontend
-   ```
-2. Instale as dependências necessárias:
-   ```bash
-   npm install
-   ```
-3. Inicie o servidor de desenvolvimento:
-   ```bash
-   npm run dev
-   ```
-4. Acesse a aplicação no seu navegador:
-   **`http://localhost:5173`**
+O backend usa Flyway por padrão com as migrations em `database/postgres/migrations`.
+Se você rodar o backend a partir de outro diretório, informe o caminho das migrations:
 
-*Nota: O frontend está configurado com um proxy transparente no Vite. Todas as requisições para `/api` são redirecionadas automaticamente para `http://localhost:8080`.*
+```powershell
+$env:CHEGAE_FLYWAY_LOCATIONS = "filesystem:C:/ChegaÊ/database/postgres/migrations"
+mvn -f C:\ChegaÊ\backend\pom.xml spring-boot:run
+```
 
----
+Variáveis úteis:
 
-## 👥 Contas Demonstrativas para Testes
+- `CHEGAE_DB_URL`
+- `CHEGAE_DB_USER`
+- `CHEGAE_DB_PASSWORD`
+- `CHEGAE_FLYWAY_ENABLED`
+- `CHEGAE_FLYWAY_LOCATIONS`
+- `CHEGAE_GRAPHDB_URL`
+- `CHEGAE_GRAPHDB_REPOSITORY`
+- `CHEGAE_VIACEP_URL`
+- `CHEGAE_SHOW_SQL`
 
-O sistema possui uma gama de usuários simulando diferentes perfis e níveis de reputação. Faça o login utilizando os e-mails abaixo na tela inicial:
+## Rodar o frontend
 
-| E-mail | Tipo de Conta | Nível de Reputação | Comportamento Esperado |
-| :--- | :--- | :--- | :--- |
-| **`pedro@chegae.dev`** | Embaixador | **4.9** | Acesso total. Pode criar rolés de destaque com limite de até **50 participantes**. |
-| **`caio@chegae.dev`** | Embaixador | **5.0** | Acesso total. Pode criar rolés de destaque com limite de até **50 participantes**. |
-| **`marcos@chegae.dev`** | Embaixador | **5.0** | Acesso total. Pode criar rolés de destaque com limite de até **50 participantes**. |
-| **`baixa@chegae.dev`** | Participante | **2.5** | **Reputação Baixa**. Bloqueado para inscrição de novos eventos devido à reputação abaixo do limite de 3.0. |
-| **`moderador@chegae.dev`**| Administrador | **5.0** | Acesso ao **Painel de Moderação** para aprovar, arquivar ou suspender rolés denunciados. |
+```powershell
+cd .\frontend
+npm install
+npm run dev
+```
 
----
+A aplicação roda em `http://localhost:5173`.
+
+Por padrão, o Vite envia chamadas `/api` para `http://localhost:8080`. Para usar outro backend:
+
+```powershell
+$env:VITE_API_BASE_URL = "http://localhost:8080/api"
+npm run dev
+```
+
+## Contas demonstrativas
+
+| E-mail | Perfil | Reputação |
+| --- | --- | --- |
+| `pedro@chegae.dev` | Embaixador | 4.9 |
+| `caio@chegae.dev` | Embaixador | 4.9 |
+| `marcos@chegae.dev` | Embaixador | 5.0 |
+| `baixa@chegae.dev` | Participante com reputação baixa | 2.5 |
+| `moderador@chegae.dev` | Administrador | 5.0 |
+
+## Validação rápida
+
+```powershell
+cd .\frontend
+npm run build
+
+cd ..\backend
+mvn test
+```
+
+Se você já tinha um volume PostgreSQL antigo criado antes das migrations, pode ser necessário recriar o banco local para evitar divergência de schema:
+
+```powershell
+cd C:\ChegaÊ
+docker compose -f .\infra\docker-compose.yml down -v
+docker compose -f .\infra\docker-compose.yml up -d
+```
+
+## Fase E - Medicoes de SLA
+
+A 1ª medicao dos testes de carga esta documentada em [docs/sla/README.md](docs/sla/README.md).
+
+Artefatos principais:
+
+- Relatorio em Markdown: [docs/sla/README.md](docs/sla/README.md)
+- PDF gerado: [docs/sla/medicoes-sla-testes-carga.pdf](docs/sla/medicoes-sla-testes-carga.pdf)
+- Scripts k6: [tests/load](tests/load)

@@ -38,8 +38,8 @@ public class DataSeederService implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        if (categoriaRepository.count() > 0) {
-            log.info("Dados já existem no banco. Pulando seed.");
+        if (usuarioRepository.findByEmail("pedro@chegae.dev").isPresent()) {
+            log.info("Dados de demonstração já existem no banco. Pulando seed.");
             return;
         }
 
@@ -106,7 +106,7 @@ public class DataSeederService implements CommandLineRunner {
         Evento evtFutebol = salvarEvento(caio, catFutebol, endAterro,
             "Futebol no Aterro",
             "Pelada leve com times mistos. Chegar 15 minutos antes para dividir equipes e combinar regras.",
-            "2026-06-02", "09:00", 20);
+            LocalDate.now().plusDays(3).toString(), "09:00", 20);
 
         inscrever(caio, evtFutebol, StatusInscricao.CONFIRMADA);
         inscrever(marcos, evtFutebol, StatusInscricao.CONFIRMADA);
@@ -123,7 +123,7 @@ public class DataSeederService implements CommandLineRunner {
         Evento evtPets = salvarEvento(nina, catPets, endBotafogo,
             "Passeio com cães na praça",
             "Rolé tranquilo para socializar pets. Guia obrigatória e água para os cães.",
-            "2026-06-03", "16:30", 8);
+            LocalDate.now().plusDays(4).toString(), "16:30", 8);
 
         inscrever(nina, evtPets, StatusInscricao.CONFIRMADA);
         inscrever(paula, evtPets, StatusInscricao.CONFIRMADA);
@@ -142,7 +142,7 @@ public class DataSeederService implements CommandLineRunner {
         Evento evtPatinacao = salvarEvento(marcos, catPatinacao, endCopacabana,
             "Patinação iniciante na orla",
             "Treino básico para quem quer ganhar confiança. Embaixador organizando, capacete recomendado.",
-            "2026-06-04", "18:00", 50);
+            LocalDate.now().plusDays(5).toString(), "18:00", 50);
 
         inscrever(marcos, evtPatinacao, StatusInscricao.CONFIRMADA);
         inscrever(bruno, evtPatinacao, StatusInscricao.CONFIRMADA);
@@ -156,7 +156,7 @@ public class DataSeederService implements CommandLineRunner {
         Evento evtLazer = salvarEvento(marcos, catLazer, endTijuca,
             "Café e jogo de tabuleiro",
             "Encontro em local público. Evento temporariamente travado por análise de moderação.",
-            "2026-06-05", "15:00", 6);
+            LocalDate.now().plusDays(6).toString(), "15:00", 6);
 
         evtLazer.setTravado(true);
         eventoRepository.save(evtLazer);

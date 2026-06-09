@@ -52,7 +52,7 @@ public class Endereco {
     @NotBlank(message = "O CEP é obrigatório.")
     @Pattern(regexp = "^[0-9]{8}$",
              message = "O CEP deve conter exatamente 8 dígitos numéricos, sem hífen.")
-    @Column(name = "cep", nullable = false, columnDefinition = "char(8)")
+    @Column(name = "cep", nullable = false, length = 8)
     private String cep;
 
     /**
@@ -89,7 +89,7 @@ public class Endereco {
     @NotBlank(message = "O estado (UF) é obrigatório.")
     @Pattern(regexp = "^[A-Z]{2}$",
              message = "O estado deve ser uma sigla válida de 2 letras maiúsculas (ex: RJ, SP).")
-    @Column(name = "estado", nullable = false, columnDefinition = "char(2)")
+    @Column(name = "estado", nullable = false, length = 2)
     private String estado;
 
     /**

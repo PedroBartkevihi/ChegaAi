@@ -109,7 +109,7 @@ public abstract class Usuario {
      */
     @NotBlank(message = "O CPF é obrigatório.")
     @Pattern(regexp = "^[0-9]{11}$", message = "O CPF deve conter exatamente 11 dígitos numéricos.")
-    @Column(name = "cpf", nullable = false, unique = true, columnDefinition = "char(11)")
+    @Column(name = "cpf", nullable = false, unique = true, length = 11)
     private String cpf;
 
     /**

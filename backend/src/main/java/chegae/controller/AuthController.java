@@ -5,6 +5,7 @@ import chegae.controller.dto.UsuarioResponseDTO;
 import chegae.domain.enums.PapelSistema;
 import chegae.domain.model.Usuario;
 import chegae.repository.UsuarioRepository;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,7 +28,7 @@ public class AuthController {
      * Simula autenticação buscando o usuário pelo e-mail.
      */
     @PostMapping("/login")
-    public ResponseEntity<UsuarioResponseDTO> login(@RequestBody LoginRequestDTO request) {
+    public ResponseEntity<UsuarioResponseDTO> login(@Valid @RequestBody LoginRequestDTO request) {
         Usuario usuario = usuarioRepository.findByEmail(request.email())
             .orElseThrow(() -> new NoSuchElementException(
                 "Usuário não encontrado com o e-mail: " + request.email()));

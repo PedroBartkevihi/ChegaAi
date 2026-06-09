@@ -11,6 +11,7 @@ CREATE TABLE usuario (
     status_usuario varchar(20) NOT NULL,
     papel_sistema varchar(20) NOT NULL,
     qtd_denuncias_validadas integer NOT NULL DEFAULT 0,
+    criado_em timestamptz NOT NULL DEFAULT now(),
 
     CONSTRAINT uk_usuario_email UNIQUE (email),
     CONSTRAINT uk_usuario_cpf UNIQUE (cpf),
@@ -56,6 +57,8 @@ CREATE TABLE evento (
     data_hora_realizacao timestamptz NOT NULL,
     limite_participantes integer NOT NULL,
     status_evento varchar(20) NOT NULL,
+    travado boolean NOT NULL DEFAULT false,
+    criado_em timestamptz NOT NULL DEFAULT now(),
 
     CONSTRAINT fk_evento_organizador FOREIGN KEY (id_organizador)
         REFERENCES usuario (id_usuario)

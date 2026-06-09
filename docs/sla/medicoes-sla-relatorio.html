@@ -1,0 +1,371 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Medições de SLA - Testes de Carga ChegAê</title>
+  <style>
+    @page { size: A4; margin: 18mm 16mm; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: #172033;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11.2pt;
+      line-height: 1.45;
+      background: #fff;
+    }
+    .cover {
+      min-height: 245mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      border-left: 8px solid #2563eb;
+      padding: 18mm 0 18mm 14mm;
+    }
+    .eyebrow {
+      margin: 0 0 12px;
+      color: #2563eb;
+      font-size: 10pt;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      max-width: 720px;
+      font-size: 31pt;
+      line-height: 1.08;
+      color: #0f172a;
+    }
+    .subtitle {
+      max-width: 680px;
+      margin: 20px 0 0;
+      color: #475569;
+      font-size: 13pt;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 18px;
+      margin-top: 34px;
+      max-width: 680px;
+    }
+    .meta-item {
+      border-top: 1px solid #cbd5e1;
+      padding-top: 8px;
+    }
+    .label {
+      display: block;
+      color: #64748b;
+      font-size: 8.7pt;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .value {
+      display: block;
+      margin-top: 3px;
+      color: #0f172a;
+      font-weight: 700;
+    }
+    h2 {
+      margin: 0 0 12px;
+      color: #0f172a;
+      font-size: 17pt;
+      line-height: 1.25;
+      break-after: avoid;
+    }
+    h3 {
+      margin: 20px 0 8px;
+      color: #1e3a8a;
+      font-size: 13pt;
+      line-height: 1.25;
+      break-after: avoid;
+    }
+    section { margin: 0 0 20px; break-inside: auto; }
+    .page { break-before: page; }
+    .lead {
+      margin: 0 0 14px;
+      color: #475569;
+      font-size: 11.8pt;
+    }
+    .callout {
+      border: 1px solid #bfdbfe;
+      border-left: 5px solid #2563eb;
+      border-radius: 7px;
+      background: #eff6ff;
+      padding: 12px 14px;
+      margin: 12px 0 16px;
+    }
+    .callout strong { color: #1e40af; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 16px;
+      font-size: 9.6pt;
+      break-inside: avoid;
+    }
+    th {
+      background: #e2e8f0;
+      color: #0f172a;
+      font-weight: 700;
+      text-align: left;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 7px 8px;
+      vertical-align: top;
+    }
+    td.num, th.num { text-align: right; white-space: nowrap; }
+    ul { margin: 6px 0 14px 20px; padding: 0; }
+    li { margin: 3px 0; }
+    code {
+      font-family: Consolas, 'Courier New', monospace;
+      font-size: 9.5pt;
+      color: #111827;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      padding: 1px 4px;
+    }
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font-family: Consolas, 'Courier New', monospace;
+      font-size: 8.8pt;
+      line-height: 1.35;
+      background: #0f172a;
+      color: #e2e8f0;
+      border-radius: 7px;
+      padding: 12px;
+      margin: 8px 0 14px;
+      break-inside: avoid;
+    }
+    .chart {
+      margin: 10px 0 18px;
+      padding: 8px;
+      border: 1px solid #d8e1ee;
+      border-radius: 7px;
+      break-inside: avoid;
+    }
+    .chart img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    .caption {
+      margin: 6px 2px 0;
+      color: #64748b;
+      font-size: 9pt;
+    }
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .small { font-size: 9.5pt; color: #475569; }
+    .footer-note {
+      margin-top: 22px;
+      color: #64748b;
+      font-size: 9pt;
+      border-top: 1px solid #cbd5e1;
+      padding-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <article>
+    <section class="cover">
+      <p class="eyebrow">Relatório técnico</p>
+      <h1>Medições de SLA - Testes de Carga do ChegAê</h1>
+      <p class="subtitle">Resultados dos testes k6 aplicados a dois serviços internos do backend, incluindo uma operação de escrita no banco de dados.</p>
+      <div class="meta-grid">
+        <div class="meta-item"><span class="label">Projeto</span><span class="value">ChegAê</span></div>
+        <div class="meta-item"><span class="label">Data da medição</span><span class="value">01/06/2026</span></div>
+        <div class="meta-item"><span class="label">Branch</span><span class="value">feat/medicao-teste-carga</span></div>
+        <div class="meta-item"><span class="label">Ferramenta</span><span class="value">k6 v2.0.0</span></div>
+        <div class="meta-item"><span class="label">API base</span><span class="value">http://localhost:8080/api</span></div>
+        <div class="meta-item"><span class="label">Banco</span><span class="value">PostgreSQL 15 via Docker Compose</span></div>
+      </div>
+    </section>
+
+    <section class="page">
+      <h2>Resumo executivo</h2>
+      <p class="lead">Os testes avaliaram a evolução de latência, vazão, concorrência e taxa de erro conforme a carga aumentou em estágios. A suíte cobre a listagem de eventos, uma operação de leitura com retorno de dados agregados, e a publicação de comentários, uma operação de escrita no PostgreSQL.</p>
+      <div class="callout"><strong>Resultado geral:</strong> ambos os serviços concluíram a execução local sem erros HTTP. A listagem de eventos alcançou 30 usuários virtuais com média de 62,81 ms, enquanto a escrita de comentários alcançou 15 usuários virtuais com média de 34,66 ms.</div>
+
+      <h2>Ambiente de execução</h2>
+      <table>
+        <tbody>
+          <tr><th>Item</th><th>Configuração observada</th></tr>
+          <tr><td>Sistema operacional</td><td>Microsoft Windows 11 Pro 10.0.22631, PowerShell</td></tr>
+          <tr><td>Hardware local</td><td>AMD Ryzen 5 2400G, 15,9 GB RAM</td></tr>
+          <tr><td>Backend</td><td>Spring Boot 3.3.0, Java 17, Maven</td></tr>
+          <tr><td>Banco de dados</td><td>PostgreSQL 15 executado via Docker Compose</td></tr>
+          <tr><td>Serviço auxiliar</td><td>GraphDB 10.6 executado via Docker Compose</td></tr>
+          <tr><td>URL base da API</td><td><code>http://localhost:8080/api</code></td></tr>
+          <tr><td>Observação</td><td>Os resultados refletem ambiente local de desenvolvimento e podem variar conforme máquina, containers, volume de dados e processos em execução.</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Serviços testados</h2>
+      <table>
+        <thead>
+          <tr><th>Serviço</th><th>Operação</th><th>Endpoint</th><th>Script k6</th><th>Relatório HTML</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Listagem de eventos</td><td>Leitura</td><td><code>GET /api/eventos</code></td><td><code>tests/load/eventos-feed.js</code></td><td><code>docs/sla/reports/eventos-feed-dashboard.html</code></td></tr>
+          <tr><td>Publicação de comentários</td><td>Inserção</td><td><code>POST /api/eventos/{id}/comentarios</code></td><td><code>tests/load/comentarios-write.js</code></td><td><code>docs/sla/reports/comentarios-write-dashboard.html</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2>Resultados consolidados</h2>
+      <table>
+        <thead>
+          <tr><th>Métrica</th><th class="num">GET /api/eventos</th><th class="num">POST comentários</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Latência média</td><td class="num">62,81 ms</td><td class="num">34,66 ms</td></tr>
+          <tr><td>p90</td><td class="num">73,79 ms</td><td class="num">41,56 ms</td></tr>
+          <tr><td>p95</td><td class="num">83,05 ms</td><td class="num">45,30 ms</td></tr>
+          <tr><td>Vazão média</td><td class="num">19,35 req/s</td><td class="num">5,86 req/s</td></tr>
+          <tr><td>Total de requisições HTTP</td><td class="num">1375</td><td class="num">412</td></tr>
+          <tr><td>Escritas no corpo principal do teste</td><td class="num">-</td><td class="num">410</td></tr>
+          <tr><td>Usuários virtuais máximos</td><td class="num">30</td><td class="num">15</td></tr>
+          <tr><td>Taxa de erro HTTP</td><td class="num">0,00%</td><td class="num">0,00%</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="page">
+      <h2>Configuração de carga</h2>
+      <div class="two-col">
+        <div>
+          <h3>Listagem de eventos</h3>
+          <ul>
+            <li>Carga leve: 15s até 5 VUs.</li>
+            <li>Carga média: 20s até 15 VUs.</li>
+            <li>Carga alta: 20s até 30 VUs.</li>
+            <li>Redução gradual: 15s até 0 VUs.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Publicação de comentários</h3>
+          <ul>
+            <li>Carga leve: 15s até 3 VUs.</li>
+            <li>Carga média: 20s até 8 VUs.</li>
+            <li>Carga alta: 20s até 15 VUs.</li>
+            <li>Redução gradual: 15s até 0 VUs.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h2>Arquivos backend envolvidos</h2>
+      <table>
+        <thead>
+          <tr><th>Serviço</th><th>Arquivos de implementação</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Listagem de eventos</td>
+            <td><code>EventoController.java</code>, <code>EventoService.java</code>, <code>EventoRepository.java</code>, <code>InscricaoRepository.java</code>, <code>ComentarioRepository.java</code></td>
+          </tr>
+          <tr>
+            <td>Publicação de comentários</td>
+            <td><code>EventoController.java</code>, <code>ComentarioService.java</code>, <code>EventoService.java</code>, <code>ComentarioRepository.java</code>, <code>InscricaoRepository.java</code>, <code>EventoRepository.java</code>, <code>UsuarioRepository.java</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Gráficos de evolução temporal</h2>
+      <p class="lead">Os gráficos usam a saída JSONL do k6 para plotar a duração média das requisições por segundo, linhas globais de p95/p99 e a concorrência em usuários virtuais ao longo do teste.</p>
+      <div class="chart">
+        <img src="reports/eventos-feed-latency.png" alt="Gráfico de latência da listagem de eventos" />
+        <p class="caption">Figura 1 - Latência e concorrência ao longo do teste de leitura <code>GET /api/eventos</code>.</p>
+      </div>
+      <div class="chart">
+        <img src="reports/comentarios-write-latency.png" alt="Gráfico de latência da publicação de comentários" />
+        <p class="caption">Figura 2 - Latência e concorrência ao longo do teste de escrita <code>POST /api/eventos/{id}/comentarios</code>.</p>
+      </div>
+    </section>
+
+    <section class="page">
+      <h2>Métricas por intervalo</h2>
+      <p class="lead">As séries temporais JSONL do k6 foram agregadas nas granularidades solicitadas: 1s, 5s, 10s, 30s e 1min. O arquivo completo está em <code>docs/sla/reports/interval-metrics.md</code>.</p>
+
+      <h3>Listagem de eventos</h3>
+      <table>
+        <thead>
+          <tr><th>Granularidade</th><th class="num">Latência média</th><th class="num">p95 médio</th><th class="num">Vazão média</th><th class="num">Concorrência máx.</th><th class="num">Erro médio</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1s</td><td class="num">67,45 ms</td><td class="num">82,97 ms</td><td class="num">19,63 req/s</td><td class="num">30</td><td class="num">0,00%</td></tr>
+          <tr><td>5s</td><td class="num">66,87 ms</td><td class="num">111,45 ms</td><td class="num">19,63 req/s</td><td class="num">30</td><td class="num">0,00%</td></tr>
+          <tr><td>10s</td><td class="num">66,09 ms</td><td class="num">102,07 ms</td><td class="num">19,63 req/s</td><td class="num">30</td><td class="num">0,00%</td></tr>
+          <tr><td>30s</td><td class="num">60,83 ms</td><td class="num">81,12 ms</td><td class="num">15,27 req/s</td><td class="num">30</td><td class="num">0,00%</td></tr>
+          <tr><td>1min</td><td class="num">59,73 ms</td><td class="num">78,36 ms</td><td class="num">11,45 req/s</td><td class="num">30</td><td class="num">0,00%</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Publicação de comentários</h3>
+      <table>
+        <thead>
+          <tr><th>Granularidade</th><th class="num">Latência média</th><th class="num">p95 médio</th><th class="num">Vazão média</th><th class="num">Concorrência máx.</th><th class="num">Erro médio</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1s</td><td class="num">35,38 ms</td><td class="num">39,36 ms</td><td class="num">6,03 req/s</td><td class="num">15</td><td class="num">0,00%</td></tr>
+          <tr><td>5s</td><td class="num">35,29 ms</td><td class="num">49,44 ms</td><td class="num">5,86 req/s</td><td class="num">15</td><td class="num">0,00%</td></tr>
+          <tr><td>10s</td><td class="num">35,26 ms</td><td class="num">57,23 ms</td><td class="num">5,86 req/s</td><td class="num">15</td><td class="num">0,00%</td></tr>
+          <tr><td>30s</td><td class="num">34,88 ms</td><td class="num">46,12 ms</td><td class="num">4,56 req/s</td><td class="num">15</td><td class="num">0,00%</td></tr>
+          <tr><td>1min</td><td class="num">35,22 ms</td><td class="num">43,76 ms</td><td class="num">3,42 req/s</td><td class="num">15</td><td class="num">0,00%</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="page">
+      <h2>Análise por serviço</h2>
+      <h3>Listagem de eventos</h3>
+      <p>O endpoint de leitura sustentou a subida até 30 usuários virtuais sem falhas. A latência média ficou próxima de 63 ms e o p95 ficou em 83,05 ms no ambiente local. A vazão acompanhou o crescimento de VUs e reduziu naturalmente na etapa de ramp-down.</p>
+      <ul>
+        <li>Hipótese 1: a listagem retorna todos os eventos sem paginação, o que pode degradar a resposta conforme a tabela cresce.</li>
+        <li>Hipótese 2: a montagem do DTO pode realizar consultas auxiliares de inscrições e comentários por evento.</li>
+        <li>Hipótese 3: o payload aumenta com a quantidade de comentários retornados em cada evento.</li>
+        <li>Hipótese 4: a ordenação por data de criação depende do volume e dos índices disponíveis na tabela de eventos.</li>
+      </ul>
+
+      <h3>Publicação de comentários</h3>
+      <p>O endpoint de escrita sustentou 15 usuários virtuais sem erro HTTP. Foram realizadas 410 escritas no corpo principal do teste, todas com prefixo <code>k6-test</code>, e os dados de carga foram removidos do banco após a medição local.</p>
+      <ul>
+        <li>Hipótese 1: cada comentário passa por validações de usuário, evento e inscrição antes da persistência.</li>
+        <li>Hipótese 2: após salvar o comentário, o endpoint retorna o evento completo atualizado.</li>
+        <li>Hipótese 3: escritas concorrentes no mesmo evento podem disputar conexões do pool e recursos do PostgreSQL.</li>
+        <li>Hipótese 4: a resposta tende a crescer conforme mais comentários ficam associados ao mesmo evento.</li>
+      </ul>
+
+      <h2>Comandos de reprodução</h2>
+      <pre>cd C:\ChegaAe
+docker compose -f .\infra\docker-compose.yml up -d
+
+cd C:\ChegaAe\backend
+mvn spring-boot:run</pre>
+      <pre>cd C:\ChegaAe
+$env:BASE_URL = "http://localhost:8080/api"
+.\.tools\k6\k6.exe run .\tests\load\eventos-feed.js
+.\.tools\k6\k6.exe run .\tests\load\comentarios-write.js</pre>
+      <pre>$env:BASE_URL = "http://localhost:8080/api"
+.\.tools\k6\k6.exe run --out json=docs/sla/reports/eventos-feed-timeseries.jsonl .\tests\load\eventos-feed.js
+.\.tools\k6\k6.exe run --out json=docs/sla/reports/comentarios-write-timeseries.jsonl .\tests\load\comentarios-write.js</pre>
+
+      <h2>Relatórios gerados</h2>
+      <ul>
+        <li><code>docs/sla/reports/eventos-feed-dashboard.html</code></li>
+        <li><code>docs/sla/reports/comentarios-write-dashboard.html</code></li>
+        <li><code>docs/sla/reports/eventos-feed-latency.png</code></li>
+        <li><code>docs/sla/reports/comentarios-write-latency.png</code></li>
+        <li><code>docs/sla/reports/interval-metrics.md</code></li>
+        <li><code>docs/sla/medicoes-sla-testes-carga.pdf</code></li>
+      </ul>
+      <p class="footer-note">Relatório gerado localmente a partir dos artefatos k6 em <code>docs/sla/reports/</code>. Como a execução foi feita em ambiente de desenvolvimento, os números devem ser interpretados como evidência acadêmica local, não como SLA de produção.</p>
+    </section>
+  </article>
+</body>
+</html>

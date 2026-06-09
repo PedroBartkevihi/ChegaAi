@@ -1,9 +1,12 @@
-package chegae.service;
+package chegae.service.external;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+
+import chegae.service.EventoService;
 
 import java.util.Optional;
 
@@ -40,9 +43,10 @@ import java.util.Optional;
 @Slf4j
 public class ViaCEPService {
 
-    private static final String VIACEP_URL = "https://viacep.com.br/ws/{cep}/json/";
-
     private final RestTemplate restTemplate;
+
+    @Value("${chegae.viacep.url}")
+    private String viaCepBaseUrl;
 
     public ViaCEPService() {
         this.restTemplate = new RestTemplate();
@@ -110,7 +114,8 @@ public class ViaCEPService {
         // 2. Consultar a API
         try {
             log.info("ViaCEP: consultando CEP '{}'...", cepLimpo);
-            ViaCEPResponse resposta = restTemplate.getForObject(VIACEP_URL, ViaCEPResponse.class, cepLimpo);
+            String url = viaCepBaseUrl.replaceAll("/+$", "") + "/{cep}/json/";
+            ViaCEPResponse resposta = restTemplate.getForObject(url, ViaCEPResponse.class, cepLimpo);
 
             if (resposta == null) {
                 log.warn("ViaCEP: resposta nula para o CEP '{}'.", cepLimpo);

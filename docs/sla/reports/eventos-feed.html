@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SLA - Listagem de eventos</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --ink: #17212b;
+      --muted: #5a6875;
+      --line: #d8e0e8;
+      --accent: #1f6feb;
+    }
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, Arial, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+    main {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 32px 20px;
+    }
+    h1, h2 { margin: 0 0 12px; }
+    p { color: var(--muted); line-height: 1.55; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin: 20px 0;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      background: var(--card);
+      box-shadow: 0 8px 24px rgba(31, 53, 79, 0.08);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+    th { width: 260px; background: #f1f5f9; }
+    tr:last-child th, tr:last-child td { border-bottom: 0; }
+    code {
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: #e9eef5;
+    }
+    .badge {
+      display: inline-block;
+      margin-bottom: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      color: #0f3f7a;
+      background: #e7f0ff;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <span class="badge">k6 load test</span>
+    <h1>SLA - Listagem de eventos</h1>
+    <p>Relatorio gerado em <code>2026-06-01T06:15:18.962Z</code>. Use o JSON associado para auditoria completa das metricas brutas.</p>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Servico</h2>
+        <p><strong>Listagem de eventos</strong></p>
+        <p>Leitura em <code>GET /api/eventos</code></p>
+      </article>
+      <article class="card">
+        <h2>Ambiente</h2>
+        <p>Base URL: <code>http://localhost:8080/api</code></p>
+        <p>Perfil de carga: <code>academic</code></p>
+      </article>
+    </section>
+
+    <section class="card">
+      <h2>Estagios de carga</h2>
+      <ul><li>15s: alvo de 5 VUs</li>
+<li>20s: alvo de 15 VUs</li>
+<li>20s: alvo de 30 VUs</li>
+<li>15s: alvo de 0 VUs</li></ul>
+    </section>
+
+    <h2>Metricas principais</h2>
+    <table>
+      <tbody><tr><th>Latencia media</th><td>62.81 ms</td></tr>
+<tr><th>p90</th><td>73.79 ms</td></tr>
+<tr><th>p95</th><td>83.05 ms</td></tr>
+<tr><th>Maior latencia</th><td>561.23 ms</td></tr>
+<tr><th>Vazao media</th><td>19.35 req/s</td></tr>
+<tr><th>Total de requisicoes</th><td>1375</td></tr>
+<tr><th>Usuarios virtuais maximos</th><td>30</td></tr>
+<tr><th>Taxa de erro</th><td>0.00%</td></tr>
+<tr><th>Requisicoes com erro</th><td>0</td></tr></tbody>
+    </table>
+
+    <h2 style="margin-top: 24px;">Thresholds</h2>
+    <table>
+      <thead><tr><th>Metrica</th><th>Regra</th><th>Resultado</th></tr></thead>
+      <tbody><tr><td>http_req_duration</td><td>avg<800</td><td>OK</td></tr>
+<tr><td>http_req_duration</td><td>p(95)<2000</td><td>OK</td></tr>
+<tr><td>http_req_failed</td><td>rate<0.02</td><td>OK</td></tr>
+<tr><td>eventos_feed_errors</td><td>rate<0.02</td><td>OK</td></tr></tbody>
+    </table>
+  </main>
+</body>
+</html>

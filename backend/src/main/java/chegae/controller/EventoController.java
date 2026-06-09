@@ -1,14 +1,20 @@
 package chegae.controller;
 
 import chegae.controller.dto.*;
+import chegae.domain.model.Comentario;
 import chegae.service.ComentarioService;
 import chegae.service.EventoService;
 import chegae.service.InscricaoService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,6 +24,7 @@ import java.util.UUID;
  * <p>Expõe os endpoints consumidos pelo frontend React:</p>
  * <ul>
  *   <li>{@code GET  /api/eventos}               — listar todos os eventos</li>
+ *   <li>{@code GET  /api/eventos/paginado}       — listar eventos com paginação</li>
  *   <li>{@code POST /api/eventos}               — criar novo evento</li>
  *   <li>{@code GET  /api/eventos/{id}}          — buscar evento por ID</li>
  *   <li>{@code POST /api/eventos/{id}/inscricao}    — toggle inscrição</li>
@@ -39,10 +46,28 @@ public class EventoController {
     /**
      * GET /api/eventos
      * Lista todos os eventos no formato consumido pelo frontend.
+     * Mantido para compatibilidade com o frontend React que espera um array.
      */
     @GetMapping
     public ResponseEntity<List<EventoResponseDTO>> listarTodos() {
         return ResponseEntity.ok(eventoService.listarTodos());
+    }
+
+    /**
+     * GET /api/eventos/paginado?page=0&size=20
+     * Listagem paginada de eventos — otimização para reduzir carga no banco
+     * e na serialização JSON sob alta concorrência.
+     *
+     * <p>Parâmetros de query:</p>
+     * <ul>
+     *   <li>{@code page} — número da página (0-indexed, default: 0)</li>
+     *   <li>{@code size} — tamanho da página (default: 20)</li>
+     * </ul>
+     */
+    @GetMapping("/paginado")
+    public ResponseEntity<Page<EventoResponseDTO>> listarPaginado(
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(eventoService.listarTodosPaginado(pageable));
     }
 
     /**
@@ -60,10 +85,18 @@ public class EventoController {
      */
     @PostMapping
     public ResponseEntity<EventoResponseDTO> criarEvento(
-            @RequestBody EventoRequestDTO dto,
+            @Valid @RequestBody EventoRequestDTO dto,
             @RequestHeader("X-User-Id") UUID usuarioId) {
         EventoResponseDTO criado = eventoService.criarEvento(dto, usuarioId);
         return ResponseEntity.status(HttpStatus.CREATED).body(criado);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> excluirEvento(
+            @PathVariable UUID id,
+            @RequestHeader("X-User-Id") UUID usuarioId) {
+        eventoService.excluirEvento(id, usuarioId);
+        return ResponseEntity.noContent().build();
     }
 
     /**
@@ -95,15 +128,30 @@ public class EventoController {
     /**
      * POST /api/eventos/{id}/comentarios
      * Adiciona um comentário ao evento. Requer header X-User-Id.
+     *
+     * <p><b>Otimização (Medição 2):</b> Retorna apenas o DTO do comentário
+     * recém-criado (HTTP 201) em vez de reconstruir o Evento completo.
+     * Isso elimina a query extra de buscarPorId() que gerava overhead
+     * de serialização e retenção de conexão HikariCP sob concorrência.</p>
      */
     @PostMapping("/{id}/comentarios")
-    public ResponseEntity<EventoResponseDTO> adicionarComentario(
+    public ResponseEntity<ComentarioResponseDTO> adicionarComentario(
             @PathVariable UUID id,
-            @RequestBody ComentarioRequestDTO dto,
+            @Valid @RequestBody ComentarioRequestDTO dto,
             @RequestHeader("X-User-Id") UUID usuarioId) {
-        comentarioService.adicionarComentario(id, usuarioId, dto.text());
-        // Retorna o evento atualizado para o frontend
-        EventoResponseDTO eventoAtualizado = eventoService.buscarPorId(id);
-        return ResponseEntity.ok(eventoAtualizado);
+        Comentario comentario = comentarioService.adicionarComentario(id, usuarioId, dto.text());
+
+        DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
+        ComentarioResponseDTO response = new ComentarioResponseDTO(
+            comentario.getId(),
+            comentario.getAutor().getNome().split(" ")[0],
+            comentario.getTexto(),
+            comentario.getDataHoraComentario() != null
+                ? comentario.getDataHoraComentario().format(timeFmt)
+                : "00:00"
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }
+

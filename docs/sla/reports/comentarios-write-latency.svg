@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="620" viewBox="0 0 1180 620" role="img" aria-label="Duracao media das requisicoes - POST comentarios">
+  <style>
+    .title { font: 700 21px Segoe UI, Arial, sans-serif; fill: #111827; }
+    .axis-label { font: 600 15px Segoe UI, Arial, sans-serif; fill: #1f6feb; }
+    .axis-label.secondary { fill: #737373; }
+    .tick { font: 12px Segoe UI, Arial, sans-serif; fill: #44515f; }
+    .grid { stroke: #cfd8e3; stroke-width: 1; stroke-dasharray: 2 3; }
+    .vertical { stroke-opacity: .7; }
+    .axis { stroke: #6b7280; stroke-width: 1.2; }
+    .latency { fill: none; stroke: #1f77b4; stroke-width: 2.2; }
+    .p95 { stroke: #e3c600; stroke-width: 1.8; stroke-dasharray: 7 4; }
+    .p99 { stroke: #ef4444; stroke-width: 1.8; stroke-dasharray: 5 4; }
+    .vus { fill: #b8bec7; fill-opacity: .42; stroke: none; }
+    .legend-bg { fill: white; stroke: #d1d5db; stroke-width: 1; opacity: .94; }
+    .legend { font: 13px Segoe UI, Arial, sans-serif; fill: #1f2937; }
+    .meta { font: 12px Segoe UI, Arial, sans-serif; fill: #667085; }
+  </style>
+
+  <rect x="0" y="0" width="1180" height="620" rx="8" fill="#ffffff" stroke="#d1d5db" />
+  <text x="590" y="34" text-anchor="middle" class="title">Duracao media das requisicoes - POST comentarios</text>
+  <line x1="92" y1="544" x2="1088" y2="544" class="grid" />
+<text x="80" y="548" text-anchor="end" class="tick">0</text>
+<line x1="92" y1="380.6666666666667" x2="1088" y2="380.6666666666667" class="grid" />
+<text x="80" y="384.6666666666667" text-anchor="end" class="tick">50</text>
+<line x1="92" y1="217.33333333333337" x2="1088" y2="217.33333333333337" class="grid" />
+<text x="80" y="221.33333333333337" text-anchor="end" class="tick">100</text>
+<line x1="92" y1="54" x2="1088" y2="54" class="grid" />
+<text x="80" y="58" text-anchor="end" class="tick">150</text>
+  <line x1="92" y1="54" x2="92" y2="544" class="grid vertical" />
+<text x="92" y="572" text-anchor="middle" class="tick" transform="rotate(-35 92 572)">0</text>
+<line x1="163.14285714285714" y1="54" x2="163.14285714285714" y2="544" class="grid vertical" />
+<text x="163.14285714285714" y="572" text-anchor="middle" class="tick" transform="rotate(-35 163.14285714285714 572)">5</text>
+<line x1="234.28571428571428" y1="54" x2="234.28571428571428" y2="544" class="grid vertical" />
+<text x="234.28571428571428" y="572" text-anchor="middle" class="tick" transform="rotate(-35 234.28571428571428 572)">10</text>
+<line x1="305.42857142857144" y1="54" x2="305.42857142857144" y2="544" class="grid vertical" />
+<text x="305.42857142857144" y="572" text-anchor="middle" class="tick" transform="rotate(-35 305.42857142857144 572)">15</text>
+<line x1="376.57142857142856" y1="54" x2="376.57142857142856" y2="544" class="grid vertical" />
+<text x="376.57142857142856" y="572" text-anchor="middle" class="tick" transform="rotate(-35 376.57142857142856 572)">20</text>
+<line x1="447.7142857142857" y1="54" x2="447.7142857142857" y2="544" class="grid vertical" />
+<text x="447.7142857142857" y="572" text-anchor="middle" class="tick" transform="rotate(-35 447.7142857142857 572)">25</text>
+<line x1="518.8571428571429" y1="54" x2="518.8571428571429" y2="544" class="grid vertical" />
+<text x="518.8571428571429" y="572" text-anchor="middle" class="tick" transform="rotate(-35 518.8571428571429 572)">30</text>
+<line x1="590" y1="54" x2="590" y2="544" class="grid vertical" />
+<text x="590" y="572" text-anchor="middle" class="tick" transform="rotate(-35 590 572)">35</text>
+<line x1="661.1428571428571" y1="54" x2="661.1428571428571" y2="544" class="grid vertical" />
+<text x="661.1428571428571" y="572" text-anchor="middle" class="tick" transform="rotate(-35 661.1428571428571 572)">40</text>
+<line x1="732.2857142857143" y1="54" x2="732.2857142857143" y2="544" class="grid vertical" />
+<text x="732.2857142857143" y="572" text-anchor="middle" class="tick" transform="rotate(-35 732.2857142857143 572)">45</text>
+<line x1="803.4285714285714" y1="54" x2="803.4285714285714" y2="544" class="grid vertical" />
+<text x="803.4285714285714" y="572" text-anchor="middle" class="tick" transform="rotate(-35 803.4285714285714 572)">50</text>
+<line x1="874.5714285714286" y1="54" x2="874.5714285714286" y2="544" class="grid vertical" />
+<text x="874.5714285714286" y="572" text-anchor="middle" class="tick" transform="rotate(-35 874.5714285714286 572)">55</text>
+<line x1="945.7142857142857" y1="54" x2="945.7142857142857" y2="544" class="grid vertical" />
+<text x="945.7142857142857" y="572" text-anchor="middle" class="tick" transform="rotate(-35 945.7142857142857 572)">60</text>
+<line x1="1016.8571428571429" y1="54" x2="1016.8571428571429" y2="544" class="grid vertical" />
+<text x="1016.8571428571429" y="572" text-anchor="middle" class="tick" transform="rotate(-35 1016.8571428571429 572)">65</text>
+<line x1="1088" y1="54" x2="1088" y2="544" class="grid vertical" />
+<text x="1088" y="572" text-anchor="middle" class="tick" transform="rotate(-35 1088 572)">70</text>
+  <polygon points="92.00,544.00 92.00,515.18 106.23,515.18 120.46,515.18 134.69,515.18 148.91,515.18 163.14,515.18 177.37,515.18 191.60,515.18 205.83,486.35 220.06,486.35 234.29,486.35 248.51,486.35 262.74,486.35 276.97,486.35 291.20,486.35 305.43,486.35 319.66,457.53 333.89,457.53 348.11,457.53 362.34,457.53 376.57,428.71 390.80,428.71 405.03,428.71 419.26,428.71 433.49,399.88 447.71,399.88 461.94,399.88 476.17,399.88 490.40,371.06 504.63,371.06 518.86,371.06 533.09,371.06 547.31,342.24 561.54,342.24 575.77,342.24 590.00,342.24 604.23,313.41 618.46,313.41 632.69,313.41 646.91,284.59 661.14,284.59 675.37,255.76 689.60,255.76 703.83,255.76 718.06,226.94 732.29,226.94 746.51,226.94 760.74,198.12 774.97,198.12 789.20,198.12 803.43,169.29 817.66,169.29 831.89,169.29 846.11,140.47 860.34,140.47 874.57,140.47 888.80,111.65 903.03,111.65 917.26,140.47 931.49,198.12 945.71,226.94 959.94,255.76 974.17,284.59 988.40,284.59 1002.63,313.41 1016.86,342.24 1031.09,399.88 1045.31,428.71 1059.54,457.53 1073.77,486.35 1088.00,515.18 1088.00,544.00" class="vus" />
+  <line x1="92" y1="396.0167333333333" x2="1088" y2="396.0167333333333" class="p95" />
+  <line x1="92" y1="356.11374666666666" x2="1088" y2="356.11374666666666" class="p99" />
+  <polyline points="92.00,196.61 106.23,438.26 120.46,448.04 148.91,427.69 163.14,441.12 177.37,430.58 191.60,431.57 205.83,432.21 220.06,440.03 234.29,451.23 248.51,447.89 262.74,449.02 276.97,431.18 291.20,424.37 305.43,408.80 319.66,422.91 333.89,444.51 348.11,430.19 362.34,427.19 376.57,427.32 390.80,434.86 405.03,443.20 419.26,448.76 433.49,435.13 447.71,434.06 461.94,434.02 476.17,427.63 490.40,449.72 504.63,449.93 518.86,442.33 533.09,435.68 547.31,430.98 561.54,439.46 575.77,451.20 590.00,424.41 604.23,448.34 618.46,443.01 632.69,438.67 646.91,435.80 661.14,442.91 675.37,439.69 689.60,433.15 703.83,434.04 718.06,426.22 732.29,435.72 746.51,419.57 760.74,444.93 774.97,441.91 789.20,436.86 803.43,417.43 817.66,433.83 831.89,440.95 846.11,439.01 860.34,441.34 874.57,416.41 888.80,428.39 903.03,395.75 917.26,435.29 931.49,422.13 945.71,424.24 959.94,426.77 974.17,426.94 988.40,433.84 1002.63,410.36 1016.86,428.65 1031.09,424.69 1045.31,430.16 1059.54,436.68 1073.77,433.78" class="latency" />
+
+  <line x1="92" y1="544" x2="1088" y2="544" class="axis" />
+  <line x1="92" y1="54" x2="92" y2="544" class="axis" />
+  <line x1="1088" y1="54" x2="1088" y2="544" class="axis" />
+  <line x1="92" y1="544" x2="1088" y2="544" class="grid" />
+<text x="1100" y="548" text-anchor="start" class="tick">0</text>
+
+  <text x="590" y="600" text-anchor="middle" class="axis-label secondary">Tempo (s)</text>
+  <text x="28" y="310" text-anchor="middle" class="axis-label" transform="rotate(-90 28 310)">Duracao media das requisicoes (ms)</text>
+  <text x="1152" y="310" text-anchor="middle" class="axis-label secondary" transform="rotate(90 1152 310)">Concorrencia (VUs)</text>
+
+  <rect x="110" y="88" width="300" height="120" rx="6" class="legend-bg" />
+  <line x1="130" y1="114" x2="164" y2="114" class="latency" />
+  <text x="178" y="118" class="legend">Duracao media das requisicoes (ms)</text>
+  <line x1="130" y1="140" x2="164" y2="140" class="p95" />
+  <text x="178" y="144" class="legend">P95 (45.30 ms)</text>
+  <line x1="130" y1="166" x2="164" y2="166" class="p99" />
+  <text x="178" y="170" class="legend">P99 (57.52 ms)</text>
+  <rect x="130" y="186" width="34" height="16" fill="#b8bec7" opacity=".42" />
+  <text x="178" y="199" class="legend">Concorrencia (VUs)</text>
+
+  <text x="92" y="612" class="meta">Amostras: 412 | media global: 34.66 ms | vazao aproximada: 5.89 req/s</text>
+</svg>
