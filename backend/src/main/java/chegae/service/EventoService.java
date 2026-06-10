@@ -1,6 +1,8 @@
 package chegae.service;
 import chegae.controller.dto.EventoRequestDTO;
 import chegae.controller.dto.EventoResponseDTO;
+import chegae.controller.dto.AvaliacaoRequestDTO;
+import chegae.controller.dto.AvaliacaoResponseDTO;
 import chegae.domain.enums.PapelSistema;
 import chegae.domain.enums.StatusEvento;
 import chegae.domain.enums.StatusInscricao;
@@ -155,6 +157,79 @@ public class EventoService {
             log.info("RN002: Honra recalculada para usuário '{}': {}", usuario.getNome(), novaHonra);
         }
     }
+    @Transactional
+    public AvaliacaoResponseDTO avaliarParticipante(UUID eventoId, UUID avaliadorId,
+                                                     AvaliacaoRequestDTO dto) {
+        Evento evento = eventoRepository.findByIdWithRelations(eventoId)
+            .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + eventoId));
+
+        if (evento.getStatusEvento() != StatusEvento.CONCLUIDO) {
+            throw new IllegalStateException(
+                "Avaliações só podem ser registradas após a conclusão do evento.");
+        }
+
+        Usuario avaliador = usuarioRepository.findById(avaliadorId)
+            .orElseThrow(() -> new NoSuchElementException(
+                "Avaliador não encontrado: " + avaliadorId));
+
+        Usuario avaliado = usuarioRepository.findById(dto.avaliadoId())
+            .orElseThrow(() -> new NoSuchElementException(
+                "Usuário avaliado não encontrado: " + dto.avaliadoId()));
+
+        if (avaliadorId.equals(dto.avaliadoId())) {
+            throw new IllegalArgumentException("Um usuário não pode avaliar a si mesmo.");
+        }
+
+        boolean avaliadorParticipou = inscricaoRepository
+            .findByUsuarioIdAndEventoId(avaliadorId, eventoId)
+            .map(i -> i.getStatusInscricao() == StatusInscricao.CONFIRMADA)
+            .orElse(false);
+
+        if (!avaliadorParticipou) {
+            throw new IllegalStateException(
+                "Apenas participantes confirmados podem avaliar.");
+        }
+
+        if (avaliacaoRepository.contarAvaliacoesFeitas(avaliadorId, eventoId) > 0) {
+            long jaAvaliou = avaliacaoRepository.contarAvaliacoesFeitas(avaliadorId, eventoId);
+            // Verificar se já avaliou este usuário específico
+            boolean jaAvaliouEste = avaliacaoRepository
+                .findAll()
+                .stream()
+                .anyMatch(a -> a.getAvaliador().getId().equals(avaliadorId)
+                            && a.getAvaliado().getId().equals(dto.avaliadoId())
+                            && a.getEvento().getId().equals(eventoId));
+            if (jaAvaliouEste) {
+                throw new IllegalStateException(
+                    "Você já avaliou este participante neste evento.");
+            }
+        }
+
+        Avaliacao avaliacao = new Avaliacao();
+        avaliacao.setEvento(evento);
+        avaliacao.setAvaliador(avaliador);
+        avaliacao.setAvaliado(avaliado);
+        avaliacao.setNota(dto.nota());
+        avaliacao.setComentarioOpcional(dto.comentario());
+
+        avaliacao = avaliacaoRepository.save(avaliacao);
+
+        recalcularHonra(dto.avaliadoId());
+
+        log.info("RF004: Avaliação registrada — avaliador={} avaliado={} nota={} evento={}",
+            avaliador.getNome(), avaliado.getNome(), dto.nota(), evento.getTitulo());
+
+        return new AvaliacaoResponseDTO(
+            avaliacao.getId(),
+            eventoId,
+            avaliadorId,
+            dto.avaliadoId(),
+            dto.nota(),
+            dto.comentario(),
+            "Avaliação registrada com sucesso."
+        );
+    }
+
     private Endereco montarEndereco(EventoRequestDTO dto) {
         Endereco endereco = new Endereco();
         String cepLimpo = (dto.cep() != null) ? dto.cep().replaceAll("[^0-9]", "") : "";

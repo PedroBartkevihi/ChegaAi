@@ -1,5 +1,7 @@
 package chegae.controller;
 import chegae.controller.dto.*;
+import chegae.controller.dto.AvaliacaoRequestDTO;
+import chegae.controller.dto.AvaliacaoResponseDTO;
 import chegae.domain.model.Comentario;
 import chegae.service.ComentarioService;
 import chegae.service.EventoService;
@@ -64,6 +66,15 @@ public class EventoController {
         EventoResponseDTO concluido = eventoService.concluirEvento(id, usuarioId);
         return ResponseEntity.ok(concluido);
     }
+    @PostMapping("/{id}/avaliacoes")
+    public ResponseEntity<AvaliacaoResponseDTO> avaliarParticipante(
+            @PathVariable UUID id,
+            @Valid @RequestBody AvaliacaoRequestDTO dto,
+            @RequestHeader("X-User-Id") UUID usuarioId) {
+        AvaliacaoResponseDTO resultado = eventoService.avaliarParticipante(id, usuarioId, dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(resultado);
+    }
+
     @PostMapping("/{id}/comentarios")
     public ResponseEntity<ComentarioResponseDTO> adicionarComentario(
             @PathVariable UUID id,
