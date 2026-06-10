@@ -313,7 +313,7 @@ export default function App() {
             <p className="eyebrow">Conexões reais e seguras</p>
             <h1>Encontre companhia confiável para rolés presenciais.</h1>
           </div>
-          <button className="primary-action" type="button" onClick={() => setView("create")}>
+          <button data-testid="btn-criar-role" className="primary-action" type="button" onClick={() => setView("create")}>
             <Plus size={18} />
             Criar rolé
           </button>
@@ -388,6 +388,7 @@ function LoginScreen({ onLogin, loading }) {
           <label>
             E-mail
             <input
+              data-testid="input-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -403,7 +404,7 @@ function LoginScreen({ onLogin, loading }) {
             baixa@chegae.dev (Reputação baixa, 2.5)<br />
             moderador@chegae.dev (Administrador)
           </div>
-          <button className="primary-action" type="submit" disabled={loading}>
+          <button data-testid="btn-login" className="primary-action" type="submit" disabled={loading}>
             <LogIn size={18} />
             {loading ? "Entrando..." : "Entrar"}
           </button>
@@ -554,7 +555,7 @@ function EventCard({ event, enrollment, currentUser, openEvent, toggleEnrollment
   const locked = event.status !== "ABERTO";
   const canManage = currentUser?.isModerator || event.organizer.id === currentUser?.id;
   return (
-    <article className={`event-card ${featured ? "featured" : ""}`}>
+    <article data-testid={`event-card-${event.id}`} className={`event-card ${featured ? "featured" : ""}`}>
       <div className="event-card-header">
         <div>
           <span className="event-type">{event.category}</span>
@@ -632,7 +633,7 @@ function CreateView({ categoryOptions, capacityLimit, onSubmit }) {
           <label>Horário<input name="time" required type="time" /></label>
           <label>CEP<input name="cep" inputMode="numeric" maxLength="9" placeholder="22290-240" /></label>
           <label>Cidade / bairro<input name="place" required maxLength="90" placeholder="Botafogo, Rio de Janeiro" /></label>
-          <label>Limite de participantes<input name="capacity" required min="3" max={capacityLimit} type="number" defaultValue="20" /></label>
+          <label>Limite de participantes<input data-testid="input-capacidade" name="capacity" required min="3" max={capacityLimit} type="number" defaultValue="20" /></label>
           <label>Distância estimada<input name="distance" required min="1" max="80" type="number" defaultValue="8" /></label>
         </div>
         <label>
@@ -658,7 +659,7 @@ function ProfileView({ events, enrollments, currentUser }) {
           <span className="status-pill">Sua Reputação</span>
           <h2>{currentUser.fullName}</h2>
           <div className="big-honor">
-            <strong>{currentUser.honor.toFixed(1)}</strong>
+            <strong data-testid="honor-value">{currentUser.honor.toFixed(1)}</strong>
             <span>reputação média</span>
           </div>
           <p>{isAmbassador(currentUser.honor) 
