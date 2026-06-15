@@ -375,7 +375,7 @@ function LoginScreen({ onLogin, loading }) {
     if (email.trim()) onLogin(email.trim());
   }
   return (
-    <main className="app-shell" style={{ justifyContent: "center", alignItems: "center" }}>
+    <main className="app-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
       <section className="login-card">
         <div className="brand" style={{ marginBottom: "1.5rem" }}>
           <span className="brand-mark" aria-hidden="true">Cê</span>
