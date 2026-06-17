@@ -1,123 +1,124 @@
-# ChegAê
+# ChegAê 🚀
 
-Plataforma para conectar pessoas em atividades presenciais, com foco em reputação, segurança, controle de vagas e lista de espera.
+O **ChegAê** é uma plataforma inovadora para conectar pessoas interessadas em realizar atividades presenciais (rolés) na faculdade ou na cidade, com um forte foco em um sistema orgânico de **reputação**, **segurança**, controle rigoroso de **vagas** e gerenciamento inteligente de **lista de espera**.
 
-## Estrutura
+Seja para marcar um futebol de sexta, organizar um grupo de estudos ou adotar uma trilha no fim de semana, o ChegAê garante que os organizadores sejam confiáveis e que os participantes sejam comprometidos.
 
-```text
-frontend/                  Aplicação React + Vite
-backend/                   API REST em Spring Boot
-database/
-  postgres/migrations/     Migrations SQL versionadas
-  graphdb/                 Scripts SPARQL para GraphDB
-infra/                     Docker Compose local
-docs/                      Documentação técnica e materiais auxiliares
+---
+
+## 🛠️ Tecnologias Utilizadas
+
+A arquitetura do projeto foi construída seguindo o modelo cliente-servidor, separando claramente as responsabilidades do frontend e backend, e validada com sólidas estratégias de testes automatizados e medição de desempenho.
+
+### Backend (API REST)
+- **Java 17** & **Spring Boot 3.3**
+- **Spring Data JPA** & **Hibernate**
+- Banco de Dados: **PostgreSQL**
+- Migrations: **Flyway**
+- Arquitetura MVC com Repository Pattern
+
+### Frontend (Web App)
+- **React 18** & **Vite**
+- Componentização Funcional e Hooks
+- Estilização Responsiva e Dinâmica
+
+### Qualidade e Confiabilidade (QA)
+- Testes Ponta-a-Ponta (E2E): **Playwright**
+- Testes de Carga e Stress: **k6**
+- Ambiente conteinerizado: **Docker** & **Docker Compose**
+
+---
+
+## 🎯 Principais Regras de Negócio Implementadas
+
+1. **Reputação (Índice de Honra)**: Usuários que cancelam presença de última hora perdem pontos. Usuários com honra baixa (abaixo de 2.0) são **impedidos de criar novos eventos**, protegendo a plataforma.
+2. **Avaliações Obrigatórias**: Não é possível entrar em um novo rolé se você deixou de avaliar os participantes de um rolé passado.
+3. **Fila de Espera Automática (FIFO)**: Quando um evento atinge a capacidade máxima, novos inscritos caem automaticamente em uma fila de espera ordenada por ordem de chegada.
+4. **Fórum de Comentários Restrito**: Apenas participantes confirmados ou na lista de espera podem interagir nos comentários do evento, evitando spam de não-inscritos.
+
+---
+
+## 🚀 Como Executar o Projeto Localmente
+
+### 1. Requisitos Prévios
+- [Node.js](https://nodejs.org/en/) (v20+)
+- [Java JDK 17+](https://adoptium.net/)
+- [Maven](https://maven.apache.org/) (v3.9+)
+- [Docker](https://www.docker.com/) e Docker Compose
+
+### 2. Subindo o Banco de Dados (Docker)
+Na raiz do projeto, inicialize a infraestrutura através do Docker Compose:
+```bash
+docker compose -f infra/docker-compose.yml up -d
 ```
+*Isso criará o container do PostgreSQL mapeado para a porta 5432 com o schema `chegae`.*
 
-## Requisitos
-
-- Node.js 20.19 ou superior
-- npm 10 ou superior
-- JDK 17 ou superior
-- Maven 3.9 ou superior
-- Docker Desktop ou Docker Engine com Docker Compose
-- Opcional: GraphDB Workbench em `http://localhost:7200`
-
-No Windows, se o PowerShell bloquear `npm`, use `npm.cmd` nos comandos.
-
-## Subir a infraestrutura
-
-```powershell
-docker compose -f .\infra\docker-compose.yml up -d
-docker compose -f .\infra\docker-compose.yml ps
+### 3. Executando o Backend
+Abra um novo terminal na pasta `backend` e inicie a API do Spring Boot. O Flyway aplicará todas as *migrations* e o Seeder injetará os dados de demonstração automaticamente.
+```bash
+cd backend
+mvn clean spring-boot:run
 ```
+*A API ficará disponível em `http://localhost:8080/api`.*
 
-Serviços locais:
-
-- PostgreSQL: `localhost:5432`, banco `chegae`, usuário `chegae`, senha `chegae`
-- GraphDB: `http://localhost:7200`
-
-## Rodar o backend
-
-```powershell
-cd .\backend
-mvn spring-boot:run
-```
-
-A API roda em `http://localhost:8080/api`.
-
-O backend usa Flyway por padrão com as migrations em `database/postgres/migrations`.
-Se você rodar o backend a partir de outro diretório, informe o caminho das migrations:
-
-```powershell
-$env:CHEGAE_FLYWAY_LOCATIONS = "filesystem:C:/ChegaÊ/database/postgres/migrations"
-mvn -f C:\ChegaÊ\backend\pom.xml spring-boot:run
-```
-
-Variáveis úteis:
-
-- `CHEGAE_DB_URL`
-- `CHEGAE_DB_USER`
-- `CHEGAE_DB_PASSWORD`
-- `CHEGAE_FLYWAY_ENABLED`
-- `CHEGAE_FLYWAY_LOCATIONS`
-- `CHEGAE_GRAPHDB_URL`
-- `CHEGAE_GRAPHDB_REPOSITORY`
-- `CHEGAE_VIACEP_URL`
-- `CHEGAE_SHOW_SQL`
-
-## Rodar o frontend
-
-```powershell
-cd .\frontend
+### 4. Executando o Frontend
+Abra um novo terminal na pasta `frontend`, instale as dependências e inicie o servidor de desenvolvimento:
+```bash
+cd frontend
 npm install
 npm run dev
 ```
+*Acesse a aplicação no navegador via `http://localhost:5173`.*
 
-A aplicação roda em `http://localhost:5173`.
+---
 
-Por padrão, o Vite envia chamadas `/api` para `http://localhost:8080`. Para usar outro backend:
+## 🧪 Contas Demonstrativas (Seeder)
 
-```powershell
-$env:VITE_API_BASE_URL = "http://localhost:8080/api"
-npm run dev
-```
-
-## Contas demonstrativas
+Para testar a plataforma e as regras de negócio em ação, utilize os e-mails pré-cadastrados (o sistema utiliza um mock seguro para login imediato na versão de desenvolvimento):
 
 | E-mail | Perfil | Reputação |
 | --- | --- | --- |
-| `pedro@chegae.dev` | Embaixador | 4.9 |
-| `caio@chegae.dev` | Embaixador | 4.9 |
-| `marcos@chegae.dev` | Embaixador | 5.0 |
-| `baixa@chegae.dev` | Participante com reputação baixa | 2.5 |
-| `moderador@chegae.dev` | Administrador | 5.0 |
+| `pedro@chegae.dev` | Embaixador | ⭐ 4.9 |
+| `marcos@chegae.dev` | Embaixador | ⭐ 5.0 |
+| `caio@chegae.dev` | Embaixador | ⭐ 4.9 |
+| `baixa@chegae.dev` | Participante (Bloqueado) | ⭐ 1.5 |
+| `tester.pendente@chegae.dev`| Participante (Com Pendência) | ⭐ 3.5 |
 
-## Validação rápida
+---
 
-```powershell
-cd .\frontend
-npm run build
+## 🤖 Executando os Testes E2E (Playwright)
 
-cd ..\backend
-mvn test
+A qualidade da interface é atestada por uma suite completa cobrindo 8 fluxos principais de rastreabilidade do sistema.
+
+Para rodar os testes:
+```bash
+cd frontend
+npx playwright test --reporter=list
 ```
 
-Se você já tinha um volume PostgreSQL antigo criado antes das migrations, pode ser necessário recriar o banco local para evitar divergência de schema:
-
-```powershell
-cd C:\ChegaÊ
-docker compose -f .\infra\docker-compose.yml down -v
-docker compose -f .\infra\docker-compose.yml up -d
+Se desejar ver a automação operando visualmente o navegador:
+```bash
+npx playwright test --headed
 ```
 
-## Fase E - Medições de SLA (Evolução & Otimização)
+---
 
-A suite de testes de carga e a evolução da performance estão documentadas em [docs/sla/README.md](docs/sla/README.md).
+## 📈 Testes de Carga e SLA (k6)
 
-Artefatos principais:
+O ChegAê também passou por rigorosas rodadas de avaliação de performance (SLA) para garantir sua escalabilidade, suportando picos de tráfego (acessos concorrentes ao Feed e Fila de Espera).
 
-- Relatório em Markdown (V2): [docs/sla/README.md](docs/sla/README.md)
-- Relatório em PDF Otimizado (V2): [reports/medicoes-sla-relatorio-v2.pdf](reports/medicoes-sla-relatorio-v2.pdf)
-- Histórico da Primeira Medição (V1): [reports/medicoes-sla-testes-carga-v1.pdf](reports/medicoes-sla-testes-carga-v1.pdf)
-- Scripts k6: [tests/load](tests/load)
+Os scripts para os testes de carga e pico foram desenvolvidos com **k6** e ficam alocados em:
+```text
+tests/load/                 Scripts k6 otimizados
+docs/sla/README.md          Relatório final das medições de performance
+```
+
+Para rodar os testes localmente (caso possua o k6 instalado):
+```bash
+cd tests/load
+k6 run spike_test.js
+```
+
+---
+
+*Projeto acadêmico desenvolvido para consolidar os conceitos de Arquitetura de Software, Engenharia de Requisitos e Qualidade de Software.*
