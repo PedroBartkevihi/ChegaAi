@@ -5,16 +5,22 @@ export default defineConfig({
   fullyParallel: false, // Mantém falso para rodar os cenários em ordem limpa
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: 1, // Excelente para ambiente de desenvolvimento local
+  workers: 1, // Excelente para ambiente de desenvolvimento local e logs ordenados
+  
+  // TAREFA 1: CONFIGURAÇÃO DE EVIDÊNCIAS E LOGS
   reporter: [
-    ['html', { outputFolder: 'playwright-report' }],
-    ['list'] // Mostra o log detalhado direto no terminal
+    ['list'],                                           // Mostra o log detalhado no terminal
+    ['html', { outputFolder: 'playwright-report' }],    // Relatório HTML rico
+    ['json', { outputFile: 'test-results/report.json' }]// Relatório JSON para Rastreabilidade
   ],
+  
   use: {
-    baseURL: 'http://localhost:5173', // Sua URL local do Vite
-    trace: 'retain-on-failure',       // Gera um "raio-x" do teste se falhar
-    screenshot: 'only-on-failure',    // Tira print se der erro
-    video: 'retain-on-failure',       // Grava a tela se der erro
+    baseURL: 'http://localhost:5173', // URL local do Vite
+    
+    // TAREFA 1: Screenshots e Traces (Evidências)
+    trace: 'on',         // Gera um "raio-x" visual sempre (ótimo para rastreabilidade)
+    screenshot: 'on',    // Tira print ao final de CADA teste (sucesso ou falha)
+    video: 'retain-on-failure',
   },
 
   /* Focaremos no Chromium (Chrome) para acelerar seus testes acadêmicos */
@@ -23,9 +29,6 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
+    // { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
   ],
 });

@@ -115,6 +115,47 @@ public class DataSeederService implements CommandLineRunner {
         inscrever(bia, evtLazer, StatusInscricao.CONFIRMADA);
         inscrever(rafael, evtLazer, StatusInscricao.CONFIRMADA);
         inscrever(paula, evtLazer, StatusInscricao.CONFIRMADA);
+        // --- INÍCIO: CENÁRIOS ESPECÍFICOS PARA TESTES E2E (QA) ---
+        
+        // 1. Evento Lotado para Marcos testar FIFO (Capacidade 3 - mínimo permitido)
+        Evento evtLotadoFifo = salvarEvento(caio, catFutebol, endAterro,
+            "Futebol de Domingo (Lotado)",
+            "Evento criado especificamente para testar limite de vagas e transição para fila de espera.",
+            LocalDate.now().plusDays(7).toString(), "10:00", 3);
+        inscrever(caio, evtLotadoFifo, StatusInscricao.CONFIRMADA); 
+        inscrever(lia, evtLotadoFifo, StatusInscricao.CONFIRMADA);
+        inscrever(bruno, evtLotadoFifo, StatusInscricao.CONFIRMADA);
+        // Evento agora tem 3/3 vagas ocupadas. Marcos (marcos@chegae.dev) não é inscrito inicialmente.
+
+        // 2. Evento Ativo onde Caio NÃO está inscrito (Testar bloqueio de comentários RN006)
+        Evento evtComentarioBloqueado = salvarEvento(nina, catPasseio, endBotafogo,
+            "Passeio Fechado (Sem Caio)",
+            "Apenas confirmados e fila de espera podem comentar. Caio tentará comentar e falhará.",
+            LocalDate.now().plusDays(2).toString(), "15:00", 10);
+        inscrever(nina, evtComentarioBloqueado, StatusInscricao.CONFIRMADA);
+        // Caio (caio@chegae.dev) NÃO está inscrito neste evento.
+
+        // 3. Usuário tester.pendente com participação concluída e compareceu=true, mas sem avaliação (RN007)
+        Participante testerPendente = salvarParticipante("Tester Pendente", "tester.pendente@chegae.dev",
+            "12312312312", "1995-05-05", BigDecimal.valueOf(5.0));
+        
+        Evento evtPassadoSemAvaliacao = salvarEvento(pedro, catLazer, endTijuca,
+            "Encontro Passado (Avaliação Pendente)",
+            "Evento concluído no passado que requer avaliação mútua dos participantes.",
+            LocalDate.now().plusDays(1).toString(), "10:00", 10);
+        evtPassadoSemAvaliacao.setStatusEvento(StatusEvento.CONCLUIDO);
+        eventoRepository.save(evtPassadoSemAvaliacao);
+        
+        Inscricao inscPendente = new Inscricao();
+        inscPendente.setUsuario(testerPendente);
+        inscPendente.setEvento(evtPassadoSemAvaliacao);
+        inscPendente.setStatusInscricao(StatusInscricao.CONFIRMADA);
+        inscPendente.setCompareceu(true);
+        inscricaoRepository.save(inscPendente);
+        // Nenhuma avaliação é adicionada na tabela 'avaliacao' para este usuário neste evento.
+
+        // --- FIM: CENÁRIOS E2E ---
+
         log.info("Carga de dados de demonstração concluída com sucesso!");
     }
     private Categoria salvarCategoria(String nome, String descricao) {
