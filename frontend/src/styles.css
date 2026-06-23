@@ -851,8 +851,8 @@ h3 {
 
 /* === Login Screen === */
 .login-card {
-  width: min(420px, calc(100vw - 48px));
-  padding: 32px;
+  width: min(460px, calc(100vw - 48px));
+  padding: 36px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--surface);
@@ -868,3 +868,168 @@ h3 {
   min-height: 48px;
   font-size: 1rem;
 }
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.login-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid rgba(181, 68, 56, 0.3);
+  border-radius: 8px;
+  color: #9b1c1c;
+  background: #fdf2f2;
+  font-size: 0.88rem;
+  font-weight: 600;
+  animation: shake 0.35s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+.login-links {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.login-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--blue);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.login-link:hover {
+  color: var(--blue-dark);
+  text-decoration: underline;
+}
+
+.login-link strong {
+  font-weight: 800;
+}
+
+.login-divider {
+  position: relative;
+  margin: 1.5rem 0 1rem;
+  text-align: center;
+}
+
+.login-divider::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--line);
+}
+
+.login-divider span {
+  position: relative;
+  padding: 0 12px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.login-accounts {
+  display: grid;
+  gap: 8px;
+}
+
+.login-account-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+
+.login-account-card:hover {
+  border-color: rgba(8, 118, 184, 0.4);
+  background: var(--surface-soft);
+}
+
+.login-account-card.selected {
+  border-color: var(--blue);
+  background: rgba(8, 118, 184, 0.06);
+  box-shadow: 0 0 0 3px rgba(8, 118, 184, 0.12);
+}
+
+.login-account-card .avatar {
+  width: 34px;
+  height: 34px;
+  font-size: 0.82rem;
+  flex-shrink: 0;
+}
+
+.login-account-card div {
+  flex: 1;
+  min-width: 0;
+}
+
+.login-account-card strong {
+  display: block;
+  font-size: 0.88rem;
+}
+
+.login-account-card small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.login-account-badge {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(8, 118, 184, 0.1);
+  color: var(--blue-dark);
+  font-size: 0.7rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.login-hint {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-style: italic;
+  text-align: center;
+}
+
+.login-hint code {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(8, 118, 184, 0.08);
+  color: var(--blue-dark);
+  font-family: monospace;
+  font-weight: 700;
+  font-style: normal;
+}
+

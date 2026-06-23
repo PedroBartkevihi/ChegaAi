@@ -32,6 +32,7 @@ test.describe('ChegAê - Fluxos Principais do Sistema', () => {
     await page.getByTestId('input-email').fill('pedro@chegae.dev');
     console.log(`2.type on id=email with value pedro@chegae.dev OK ${getSimulatedTime(2)}`);
 
+    await page.getByTestId('input-password').fill('admin123');
     await page.getByTestId('btn-login').click();
     console.log(`3.click on css=button[data-testid="btn-login"] OK ${getSimulatedTime(3)}`);
 
@@ -50,6 +51,7 @@ test.describe('ChegAê - Fluxos Principais do Sistema', () => {
     await page.getByTestId('input-email').fill('pedro@chegae.dev');
     console.log(`1.type on id=email with value pedro@chegae.dev OK ${getSimulatedTime(1)}`);
 
+    await page.getByTestId('input-password').fill('admin123');
     await page.getByTestId('btn-login').click();
     console.log(`2.click on css=button[data-testid="btn-login"] OK ${getSimulatedTime(2)}`);
 
@@ -102,6 +104,7 @@ test.describe('ChegAê - Fluxos Principais do Sistema', () => {
     await page.getByTestId('input-email').fill('baixa@chegae.dev');
     console.log(`1.type on id=email with value baixa@chegae.dev OK ${getSimulatedTime(1)}`);
 
+    await page.getByTestId('input-password').fill('admin123');
     await page.getByTestId('btn-login').click();
     console.log(`2.click on css=button[data-testid="btn-login"] OK ${getSimulatedTime(2)}`);
 
@@ -125,6 +128,7 @@ test.describe('ChegAê - Fluxos Principais do Sistema', () => {
     await page.getByTestId('input-email').fill('pedro@chegae.dev');
     console.log(`1.type on id=email with value pedro@chegae.dev OK ${getSimulatedTime(1)}`);
 
+    await page.getByTestId('input-password').fill('admin123');
     await page.getByTestId('btn-login').click();
     console.log(`2.click on css=button[data-testid="btn-login"] OK ${getSimulatedTime(2)}`);
 
@@ -166,6 +170,7 @@ test.describe('ChegAê - Fluxos Principais do Sistema', () => {
     await page.getByTestId('input-email').fill('pedro@chegae.dev');
     console.log(`1.type on id=email with value pedro@chegae.dev OK ${getSimulatedTime(1)}`);
 
+    await page.getByTestId('input-password').fill('admin123');
     await page.getByTestId('btn-login').click();
     console.log(`2.click on css=button[data-testid="btn-login"] OK ${getSimulatedTime(2)}`);
 
@@ -199,6 +204,7 @@ test.describe('ChegAê - Fluxos Principais do Sistema', () => {
     await page.getByTestId('input-email').fill('marcos@chegae.dev');
     console.log(`1.type on id=email with value marcos@chegae.dev OK ${getSimulatedTime(1)}`);
 
+    await page.getByTestId('input-password').fill('admin123');
     await page.getByTestId('btn-login').click();
     console.log(`2.click on css=button[data-testid="btn-login"] OK ${getSimulatedTime(2)}`);
 
@@ -229,6 +235,7 @@ test.describe('ChegAê - Fluxos Principais do Sistema', () => {
     await page.getByTestId('input-email').fill('caio@chegae.dev');
     console.log(`1.type on id=email with value caio@chegae.dev OK ${getSimulatedTime(1)}`);
 
+    await page.getByTestId('input-password').fill('admin123');
     await page.getByTestId('btn-login').click();
     console.log(`2.click on css=button[data-testid="btn-login"] OK ${getSimulatedTime(2)}`);
 
@@ -262,6 +269,7 @@ test.describe('ChegAê - Fluxos Principais do Sistema', () => {
     await page.getByTestId('input-email').fill('tester.pendente@chegae.dev');
     console.log(`1.type on id=email with value tester.pendente@chegae.dev OK ${getSimulatedTime(1)}`);
 
+    await page.getByTestId('input-password').fill('admin123');
     await page.getByTestId('btn-login').click();
     console.log(`2.click on css=button[data-testid="btn-login"] OK ${getSimulatedTime(2)}`);
 
