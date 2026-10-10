@@ -72,7 +72,7 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
         {notice && <Notice alert={notice} onClose={onCloseNotice} />}
 
         {mode === "login" ? (
-          <form onSubmit={handleLogin} className="login-form">
+          <form key="login" onSubmit={handleLogin} className="login-form">
             {error && <LoginError message={error} />}
 
             <label>
@@ -114,7 +114,7 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
             </button>
           </form>
         ) : (
-          <form onSubmit={handleRegister} className="login-form">
+          <form key="register" onSubmit={handleRegister} className="login-form">
             {error && <LoginError message={error} />}
 
             <label>
