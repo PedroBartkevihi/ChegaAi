@@ -1,3 +1,5 @@
+"use client";
+
 import {
   AlertTriangle,
   CalendarDays,
@@ -14,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 import React, { useEffect, useMemo, useState, useCallback } from "react";
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
 async function api(path, options = {}) {
   const userId = localStorage.getItem("chegaai.userId");
   const headers = {

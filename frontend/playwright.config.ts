@@ -15,12 +15,19 @@ export default defineConfig({
   ],
   
   use: {
-    baseURL: 'http://localhost:5173', // URL local do Vite
+    baseURL: 'http://localhost:3000', // URL local do Next.js
     
     // TAREFA 1: Screenshots e Traces (Evidências)
     trace: 'on',         // Gera um "raio-x" visual sempre (ótimo para rastreabilidade)
     screenshot: 'on',    // Tira print ao final de CADA teste (sucesso ou falha)
     video: 'retain-on-failure',
+  },
+
+  // Sobe o Next.js antes dos testes (a API Spring Boot precisa estar rodando na porta 8080)
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
   },
 
   /* Focaremos no Chromium (Chrome) para acelerar seus testes acadêmicos */

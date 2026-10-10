@@ -111,7 +111,8 @@ test.describe('ChegaAí - Fluxos Principais do Sistema', () => {
     await page.locator('[aria-label="Navegação principal"]').getByRole('button', { name: 'Criar rolé' }).click();
     console.log(`3.click on css=button:has-text("Criar rolé") OK ${getSimulatedTime(3)}`);
 
-    const alerta = page.locator('.notice.alert-error').or(page.getByRole('alert')).or(page.getByRole('status'));
+    // O Next.js injeta um anunciador de rotas com role="alert"; por isso o seletor mira o aviso da aplicação
+    const alerta = page.locator('.notice.alert-error');
     await expect(alerta).toBeVisible();
     await expect(alerta).toContainText(/reputação|honra/i);
     console.log(`4.assertText on css=.notice.alert-error with value reputação OK ${getSimulatedTime(4)}`);
@@ -285,7 +286,8 @@ test.describe('ChegaAí - Fluxos Principais do Sistema', () => {
     await btnParticipar.click();
     console.log(`4.click on css=button:has-text("Participar") OK ${getSimulatedTime(4)}`);
 
-    const alerta = page.locator('.notice.alert-error').or(page.getByRole('alert')).or(page.getByRole('status'));
+    // O Next.js injeta um anunciador de rotas com role="alert"; por isso o seletor mira o aviso da aplicação
+    const alerta = page.locator('.notice.alert-error');
     await expect(alerta).toBeVisible();
     await expect(alerta).toContainText(/pendente|avaliar|anterior/i);
     console.log(`5.assertText on css=.notice.alert-error with value pendente|avaliar OK ${getSimulatedTime(5)}`);
