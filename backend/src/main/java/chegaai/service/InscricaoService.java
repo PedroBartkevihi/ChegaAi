@@ -110,6 +110,21 @@ public class InscricaoService {
             "Inscrição cancelada com sucesso."
         );
     }
+    @Transactional
+    public void registrarPresenca(UUID eventoId, UUID organizadorId, UUID participanteId) {
+        Evento evento = eventoRepository.findById(eventoId)
+            .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + eventoId));
+        if (!evento.getOrganizador().getId().equals(organizadorId)) {
+            throw new IllegalStateException("Apenas o organizador pode registrar presenças.");
+        }
+        if (evento.getStatusEvento() != StatusEvento.ATIVO) {
+            throw new IllegalStateException("Presenças só podem ser registradas antes de concluir o evento.");
+        }
+        Inscricao inscricao = inscricaoRepository.findByUsuarioIdAndEventoId(participanteId, eventoId)
+            .orElseThrow(() -> new NoSuchElementException("Este usuário não está inscrito no evento."));
+        inscricao.registrarPresenca();
+        inscricaoRepository.save(inscricao);
+    }
     private void verificarAvaliacoesPendentes(Usuario usuario) {
         List<Inscricao> inscricoesComparecidas = inscricaoRepository
             .findCompareceuEmEventosConcluidos(usuario.getId());

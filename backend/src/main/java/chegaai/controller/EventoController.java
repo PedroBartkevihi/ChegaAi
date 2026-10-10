@@ -67,6 +67,14 @@ public class EventoController {
         EventoResponseDTO concluido = eventoService.concluirEvento(id, usuarioId);
         return ResponseEntity.ok(concluido);
     }
+    @PostMapping("/{id}/presencas")
+    public ResponseEntity<Void> registrarPresenca(
+            @PathVariable UUID id,
+            @Valid @RequestBody PresencaRequestDTO dto,
+            @UsuarioAutenticado UUID usuarioId) {
+        inscricaoService.registrarPresenca(id, usuarioId, dto.participanteId());
+        return ResponseEntity.noContent().build();
+    }
     @PostMapping("/{id}/avaliacoes")
     public ResponseEntity<AvaliacaoResponseDTO> avaliarParticipante(
             @PathVariable UUID id,

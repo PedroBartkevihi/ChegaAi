@@ -129,6 +129,12 @@ public class EventoService {
             .findByEventoIdAndStatusInscricao(eventoId, StatusInscricao.CONFIRMADA);
         BigDecimal deducao = BigDecimal.valueOf(deducaoHonraAusencia);
         for (Inscricao inscricao : confirmadas) {
+            if (inscricao.getUsuario().getId().equals(usuarioId)) {
+                // o organizador conduziu o rolé: conta como presente e não é penalizado
+                inscricao.registrarPresenca();
+                inscricaoRepository.save(inscricao);
+                continue;
+            }
             if (!Boolean.TRUE.equals(inscricao.getCompareceu())) {
                 inscricao.marcarAusente();
                 inscricaoRepository.save(inscricao);
@@ -180,29 +186,20 @@ public class EventoService {
             throw new IllegalArgumentException("Um usuário não pode avaliar a si mesmo.");
         }
 
-        boolean avaliadorParticipou = inscricaoRepository
-            .findByUsuarioIdAndEventoId(avaliadorId, eventoId)
-            .map(i -> i.getStatusInscricao() == StatusInscricao.CONFIRMADA)
-            .orElse(false);
-
-        if (!avaliadorParticipou) {
+        if (!participouDoEvento(avaliadorId, eventoId)) {
             throw new IllegalStateException(
                 "Apenas participantes confirmados podem avaliar.");
         }
 
-        if (avaliacaoRepository.contarAvaliacoesFeitas(avaliadorId, eventoId) > 0) {
-            long jaAvaliou = avaliacaoRepository.contarAvaliacoesFeitas(avaliadorId, eventoId);
-            // Verificar se já avaliou este usuário específico
-            boolean jaAvaliouEste = avaliacaoRepository
-                .findAll()
-                .stream()
-                .anyMatch(a -> a.getAvaliador().getId().equals(avaliadorId)
-                            && a.getAvaliado().getId().equals(dto.avaliadoId())
-                            && a.getEvento().getId().equals(eventoId));
-            if (jaAvaliouEste) {
-                throw new IllegalStateException(
-                    "Você já avaliou este participante neste evento.");
-            }
+        if (!participouDoEvento(dto.avaliadoId(), eventoId)) {
+            throw new IllegalStateException(
+                "Só é possível avaliar quem participou do evento.");
+        }
+
+        if (avaliacaoRepository.existsByAvaliador_IdAndAvaliado_IdAndEvento_Id(
+                avaliadorId, dto.avaliadoId(), eventoId)) {
+            throw new IllegalStateException(
+                "Você já avaliou este participante neste evento.");
         }
 
         Avaliacao avaliacao = new Avaliacao();
@@ -228,6 +225,12 @@ public class EventoService {
             dto.comentario(),
             "Avaliação registrada com sucesso."
         );
+    }
+
+    private boolean participouDoEvento(UUID usuarioId, UUID eventoId) {
+        return inscricaoRepository.findByUsuarioIdAndEventoId(usuarioId, eventoId)
+            .map(i -> i.getStatusInscricao() == StatusInscricao.CONFIRMADA)
+            .orElse(false);
     }
 
     private Endereco montarEndereco(EventoRequestDTO dto) {
