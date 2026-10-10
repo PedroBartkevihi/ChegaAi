@@ -12,6 +12,7 @@ import ModerationView from "./components/ModerationView";
 import EventModal from "./components/EventModal";
 import { api, cleanErrorMessage, TOKEN_KEY, USER_KEY, SESSION_EXPIRED_EVENT } from "./lib/api";
 import { categories, initialFilters, isAmbassador, createId } from "./lib/eventos";
+import { useDemora, AVISO_SERVIDOR_ACORDANDO } from "./lib/useDemora";
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [events, setEvents] = useState([]);
@@ -22,6 +23,7 @@ export default function App() {
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [alert, setAlert] = useState(null); 
   const [loading, setLoading] = useState(false);
+  const loadingSlow = useDemora(loading);
   const capacityLimit = currentUser && isAmbassador(currentUser.honor) ? 50 : 20;
   const selectedEvent = events.find((event) => event.id === selectedEventId);
   const loadEvents = useCallback(async () => {
@@ -53,6 +55,9 @@ export default function App() {
     }
   }, [currentUser, loadEvents]);
   useEffect(() => {
+    // Na hospedagem gratuita a API dorme quando fica parada: acordá-la já na abertura da
+    // página adianta a espera enquanto a pessoa ainda está na tela de login.
+    api("/actuator/health").catch(() => {});
     const savedUser = localStorage.getItem(USER_KEY);
     if (!savedUser || !localStorage.getItem(TOKEN_KEY)) {
       clearSession();
@@ -318,7 +323,7 @@ export default function App() {
           </button>
         </header>
         {alert && <Notice alert={alert} onClose={() => setAlert(null)} />}
-        {loading && <div className="notice loading-notice">Carregando...</div>}
+        {loading && <div className="notice loading-notice">{loadingSlow ? AVISO_SERVIDOR_ACORDANDO : "Carregando..."}</div>}
         {view === "feed" && (
           <FeedView
             events={filteredEvents}

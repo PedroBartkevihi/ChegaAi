@@ -336,4 +336,21 @@ test.describe('ChegaAí - Fluxos Principais do Sistema', () => {
     await expect(page.locator('.notice.alert-success')).toContainText(/conta criada/i);
   });
 
+  // -----------------------------------------------------------------------
+  // CT11
+  // -----------------------------------------------------------------------
+  test('CT11 - Aviso de servidor acordando quando a API demora a responder', async ({ page }) => {
+    // simula a API em repouso: o login só segue depois de 6 segundos
+    await page.route('**/api/auth/login', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 6000));
+      await route.continue();
+    });
+    await page.getByTestId('input-email').fill('pedro@chegaai.dev');
+    await page.getByTestId('input-password').fill('admin123');
+    await page.getByTestId('btn-login').click();
+
+    await expect(page.getByText(/servidor estava em repouso/i)).toBeVisible({ timeout: 8000 });
+    await expect(page.locator('section[aria-label="Feed de eventos"]')).toBeVisible({ timeout: 15000 });
+  });
+
 });

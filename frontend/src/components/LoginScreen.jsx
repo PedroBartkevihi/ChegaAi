@@ -2,6 +2,7 @@ import { AlertTriangle, LogIn, Search, UserPlus } from "lucide-react";
 import { useState } from "react";
 import Notice from "./Notice";
 import { cleanErrorMessage } from "../lib/api";
+import { useDemora, AVISO_SERVIDOR_ACORDANDO } from "../lib/useDemora";
 const DEMO_PASSWORD = "admin123";
 const DEMO_ACCOUNTS = [
   { email: "pedro@chegaai.dev", label: "Pedro", detail: "Embaixador · Reputação 4.9" },
@@ -17,6 +18,7 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const submittingSlow = useDemora(submitting);
 
   async function submit(action) {
     setError("");
@@ -150,6 +152,8 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
             </button>
           </form>
         )}
+
+        {submittingSlow && <p className="login-hint" role="status">{AVISO_SERVIDOR_ACORDANDO}</p>}
 
         {mode === "login" && (
           <>
