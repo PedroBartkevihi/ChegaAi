@@ -34,23 +34,7 @@ export default function Sidebar({ view, filters, setView, updateFilter, currentU
             className={`nav-tab ${view === key ? "active" : ""}`} 
             key={key} 
             type="button" 
-            onClick={(e) => {
-              if (key === "create" && currentUser.honor < 2.0) {
-                e.preventDefault();
-                // O alerta deve usar "error" que mapeia para alert-error e role="status"
-                const errorAlert = {
-                  message: "Ação Não Permitida. Sua reputação/honra atual é inferior a 2.0. Aumente sua honra para criar rolés.",
-                  type: "error"
-                };
-                // Dispara o alerta enviando o evento customizado ou chamando setView?
-                // Como setView é a prop, não podemos disparar showNotice facilmente daqui, pois a Sidebar não recebe showNotice.
-                // Mas pera, a instrução pediu para interceptar o clique E disparar um alerta! 
-                // A prop setView antes estava usando handleSetView. Vamos voltar para usar apenas handleSetView na prop, ou injetar showNotice na Sidebar!
-                setView("DISPARAR_ALERTA_RN004");
-              } else {
-                setView(key);
-              }
-            }}
+            onClick={() => setView(key)}
           >
             {label}
           </button>

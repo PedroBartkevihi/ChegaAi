@@ -1,22 +1,30 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "/api";
+export const TOKEN_KEY = "chegaai.token";
+export const USER_KEY = "chegaai.user";
+export const SESSION_EXPIRED_EVENT = "chegaai:sessao-expirada";
+export class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.status = status;
+  }
+}
 export async function api(path, options = {}) {
-  const userId = localStorage.getItem("chegaai.userId");
+  const token = localStorage.getItem(TOKEN_KEY);
   const headers = {
     "Content-Type": "application/json",
-    ...(userId && { "X-User-Id": userId }),
+    ...(token && { Authorization: `Bearer ${token}` }),
     ...options.headers,
   };
   const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
   if (!response.ok) {
+    if (response.status === 401 && token) {
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    }
     const error = await response.json().catch(() => ({ message: response.statusText }));
-    throw new Error(error.message || `Erro ${response.status}`);
+    throw new ApiError(error.message || `Erro ${response.status}`, response.status);
   }
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
-  if (data && data.email === "baixa@chegaai.dev") {
-    data.honor = 1.5;
-  }
-  return data;
+  return text ? JSON.parse(text) : null;
 }
 export function cleanErrorMessage(msg) {
   if (!msg) return "Ocorreu um erro inesperado. Tente novamente.";

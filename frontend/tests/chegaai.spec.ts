@@ -1,5 +1,18 @@
 import { test, expect, Page } from '@playwright/test';
 
+// Gera um CPF válido (com dígitos verificadores) para o teste de cadastro
+function gerarCpfValido(): string {
+  const base = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10));
+  const digito = (numeros: number[]) => {
+    const soma = numeros.reduce((total, n, i) => total + n * (numeros.length + 1 - i), 0);
+    const resto = (soma * 10) % 11;
+    return resto === 10 ? 0 : resto;
+  };
+  base.push(digito(base));
+  base.push(digito(base));
+  return base.join('');
+}
+
 // Função auxiliar para gerar timestamps fictícios sequenciais baseados na hora local
 function getSimulatedTime(stepOffset: number): string {
   const d = new Date();
@@ -16,7 +29,7 @@ test.describe('ChegaAí - Fluxos Principais do Sistema', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.removeItem('chegaai.user');
-      localStorage.removeItem('chegaai.userId');
+      localStorage.removeItem('chegaai.token');
     });
     await page.reload();
     await expect(page.getByTestId('input-email')).toBeVisible();
@@ -293,6 +306,34 @@ test.describe('ChegaAí - Fluxos Principais do Sistema', () => {
     console.log(`5.assertText on css=.notice.alert-error with value pendente|avaliar OK ${getSimulatedTime(5)}`);
 
     console.log(`'CT08' completed successfully`);
+  });
+
+  // -----------------------------------------------------------------------
+  // CT09
+  // -----------------------------------------------------------------------
+  test('CT09 - Login recusado com senha incorreta', async ({ page }) => {
+    await page.getByTestId('input-email').fill('pedro@chegaai.dev');
+    await page.getByTestId('input-password').fill('senha-errada');
+    await page.getByTestId('btn-login').click();
+
+    await expect(page.locator('.login-error')).toContainText(/e-mail ou senha inválidos/i);
+    await expect(page.locator('section[aria-label="Feed de eventos"]')).toHaveCount(0);
+  });
+
+  // -----------------------------------------------------------------------
+  // CT10
+  // -----------------------------------------------------------------------
+  test('CT10 - Cadastro de nova conta e entrada no feed', async ({ page }) => {
+    await page.getByTestId('link-cadastro').click();
+    await page.getByTestId('input-nome').fill('Ana Teste');
+    await page.getByTestId('input-email-cadastro').fill(`ana.${Date.now()}@exemplo.com`);
+    await page.getByTestId('input-cpf').fill(gerarCpfValido());
+    await page.getByTestId('input-nascimento').fill('2000-01-15');
+    await page.getByTestId('input-senha-cadastro').fill('senhaSegura123');
+    await page.getByTestId('btn-cadastrar').click();
+
+    await expect(page.locator('section[aria-label="Feed de eventos"]')).toBeVisible();
+    await expect(page.locator('.notice.alert-success')).toContainText(/conta criada/i);
   });
 
 });

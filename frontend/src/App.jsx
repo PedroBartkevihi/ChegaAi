@@ -10,7 +10,7 @@ import CreateView from "./components/CreateView";
 import ProfileView from "./components/ProfileView";
 import ModerationView from "./components/ModerationView";
 import EventModal from "./components/EventModal";
-import { api, cleanErrorMessage } from "./lib/api";
+import { api, cleanErrorMessage, TOKEN_KEY, USER_KEY, SESSION_EXPIRED_EVENT } from "./lib/api";
 import { categories, initialFilters, isAmbassador, createId } from "./lib/eventos";
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -53,19 +53,31 @@ export default function App() {
     }
   }, [currentUser, loadEvents]);
   useEffect(() => {
-    const savedUser = localStorage.getItem("chegaai.user");
-    if (savedUser) {
-      try {
-        const parsed = JSON.parse(savedUser);
-        if (parsed && parsed.email === "baixa@chegaai.dev") {
-          parsed.honor = 1.5;
-        }
-        setCurrentUser(parsed);
-      } catch {
-        localStorage.removeItem("chegaai.user");
-        localStorage.removeItem("chegaai.userId");
-      }
+    const savedUser = localStorage.getItem(USER_KEY);
+    if (!savedUser || !localStorage.getItem(TOKEN_KEY)) {
+      clearSession();
+      return;
     }
+    try {
+      setCurrentUser(JSON.parse(savedUser));
+    } catch {
+      clearSession();
+      return;
+    }
+    api("/auth/me")
+      .then((user) => {
+        setCurrentUser(user);
+        localStorage.setItem(USER_KEY, JSON.stringify(user));
+      })
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
+    function handleSessionExpired() {
+      handleLogout();
+      showNotice("Sua sessão expirou. Entre novamente.", "error");
+    }
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
   }, []);
   const filteredEvents = useMemo(() => {
     return events
@@ -88,29 +100,35 @@ export default function App() {
   function updateFilter(name, value) {
     setFilters((current) => ({ ...current, [name]: value }));
   }
-  async function handleLogin(email) {
-    try {
-      setLoading(true);
-      const user = await api("/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email }),
-      });
-      setCurrentUser(user);
-      localStorage.setItem("chegaai.user", JSON.stringify(user));
-      localStorage.setItem("chegaai.userId", user.id);
-      showNotice(`Bem-vindo(a), ${user.name}!`, "success");
-    } catch (err) {
-      showNotice("Erro no login: " + err.message, "error");
-    } finally {
-      setLoading(false);
-    }
+  async function handleLogin(email, password) {
+    const session = await api("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    startSession(session, `Bem-vindo(a), ${session.user.name}!`);
+  }
+  async function handleRegister(account) {
+    const session = await api("/auth/cadastro", {
+      method: "POST",
+      body: JSON.stringify(account),
+    });
+    startSession(session, `Conta criada! Bem-vindo(a), ${session.user.name}!`);
+  }
+  function startSession({ token, user }, welcomeMessage) {
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    setCurrentUser(user);
+    showNotice(welcomeMessage, "success");
+  }
+  function clearSession() {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
   }
   function handleLogout() {
     setCurrentUser(null);
     setEvents([]);
     setEnrollments({});
-    localStorage.removeItem("chegaai.user");
-    localStorage.removeItem("chegaai.userId");
+    clearSession();
     setView("feed");
   }
   async function createEvent(formEvent) {
@@ -150,10 +168,6 @@ export default function App() {
     }
   }
   async function toggleEnrollment(eventId) {
-    if (currentUser && currentUser.email === "tester.pendente@chegaai.dev") {
-      showNotice("Inscrição não permitida. Você possui avaliações pendentes de eventos anteriores.", "error");
-      return;
-    }
     try {
       setLoading(true);
       const result = await api(`/eventos/${eventId}/inscricao`, {
@@ -259,10 +273,6 @@ export default function App() {
       showNotice("Ação Não Permitida. Sua reputação/honra atual é inferior a 2.0. Aumente sua honra para criar rolés.", "error");
       return;
     }
-    if (newView === "DISPARAR_ALERTA_RN004") {
-      showNotice("Ação Não Permitida. Sua reputação/honra atual é inferior a 2.0. Aumente sua honra para criar rolés.", "error");
-      return;
-    }
     setView(newView);
   }
 
@@ -272,7 +282,7 @@ export default function App() {
     }
   }, [currentUser, view]);
   if (!currentUser) {
-    return <LoginScreen onLogin={handleLogin} loading={loading} />;
+    return <LoginScreen onLogin={handleLogin} onRegister={handleRegister} notice={alert} onCloseNotice={() => setAlert(null)} />;
   }
   return (
     <main className="app-shell">
