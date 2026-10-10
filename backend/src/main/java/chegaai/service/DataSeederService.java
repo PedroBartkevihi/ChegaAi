@@ -5,7 +5,9 @@ import chegaai.domain.model.*;
 import chegaai.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,12 +16,20 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class DataSeederService implements CommandLineRunner {
     /** Senha de todas as contas de demonstração. */
     public static final String SENHA_DEMO = "admin123";
+    /** Contas criadas por este seeder; a recriação da demonstração apaga só elas e o que é delas. */
+    static final List<String> EMAILS_DEMO = List.of(
+        "pedro@chegaai.dev", "caio@chegaai.dev", "nina@chegaai.dev", "marcos@chegaai.dev",
+        "lia@chegaai.dev", "rafael@chegaai.dev", "bia@chegaai.dev", "paula@chegaai.dev",
+        "bruno@chegaai.dev", "baixa@chegaai.dev", "moderador@chegaai.dev", "tester.pendente@chegaai.dev");
     private final CategoriaRepository categoriaRepository;
     private final EnderecoRepository enderecoRepository;
     private final UsuarioRepository usuarioRepository;
@@ -27,11 +37,16 @@ public class DataSeederService implements CommandLineRunner {
     private final InscricaoRepository inscricaoRepository;
     private final ComentarioRepository comentarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final NamedParameterJdbcTemplate jdbc;
     private String senhaDemoHash;
+    @Value("${chegaai.demo.recriar-ao-iniciar:false}")
+    private boolean recriarAoIniciar;
     @Override
     @Transactional
     public void run(String... args) {
-        if (usuarioRepository.findByEmail("pedro@chegaai.dev").isPresent()) {
+        if (recriarAoIniciar) {
+            removerDemonstracao();
+        } else if (usuarioRepository.findByEmail("pedro@chegaai.dev").isPresent()) {
             log.info("Dados de demonstração já existem no banco. Pulando seed.");
             return;
         }
@@ -166,12 +181,36 @@ public class DataSeederService implements CommandLineRunner {
 
         log.info("Carga de dados de demonstração concluída com sucesso!");
     }
+    /**
+     * Apaga as contas de demonstração e tudo que depende delas: eventos que organizam
+     * (com inscrições, comentários e avaliações, por cascata), as próprias inscrições e
+     * comentários em eventos de outras pessoas, avaliações, denúncias e penalidades.
+     * Contas e eventos de usuários reais não são tocados.
+     */
+    private void removerDemonstracao() {
+        List<UUID> ids = jdbc.queryForList(
+            "SELECT id_usuario FROM usuario WHERE email IN (:emails)", Map.of("emails", EMAILS_DEMO), UUID.class);
+        if (ids.isEmpty()) {
+            return;
+        }
+        Map<String, Object> params = Map.of("ids", ids);
+        jdbc.update("DELETE FROM avaliacao WHERE id_avaliador IN (:ids) OR id_avaliado IN (:ids)", params);
+        jdbc.update("DELETE FROM denuncia WHERE id_denunciante IN (:ids) OR id_denunciado IN (:ids)", params);
+        jdbc.update("DELETE FROM penalidade WHERE id_usuario IN (:ids) OR id_admin_aplicador IN (:ids)", params);
+        jdbc.update("DELETE FROM evento WHERE id_organizador IN (:ids)", params);
+        jdbc.update("DELETE FROM usuario WHERE id_usuario IN (:ids)", params);
+        jdbc.update("DELETE FROM endereco e WHERE NOT EXISTS "
+            + "(SELECT 1 FROM evento ev WHERE ev.id_endereco = e.id_endereco)", Map.of());
+        log.info("Demonstração anterior removida ({} contas). Recriando com datas atuais.", ids.size());
+    }
     private Categoria salvarCategoria(String nome, String descricao) {
-        Categoria cat = new Categoria();
-        cat.setNome(nome);
-        cat.setDescricao(descricao);
-        cat.setAtiva(true);
-        return categoriaRepository.save(cat);
+        return categoriaRepository.findByNome(nome).orElseGet(() -> {
+            Categoria cat = new Categoria();
+            cat.setNome(nome);
+            cat.setDescricao(descricao);
+            cat.setAtiva(true);
+            return categoriaRepository.save(cat);
+        });
     }
     private Endereco salvarEndereco(String cep, String logradouro, String bairro,
                                      String cidade, String estado, String numero,
