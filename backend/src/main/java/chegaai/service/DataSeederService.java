@@ -71,7 +71,7 @@ public class DataSeederService implements CommandLineRunner {
         Participante bruno = salvarParticipante("Bruno Silva", "bruno@chegaai.dev",
             "01234567890", "2000-08-14", BigDecimal.valueOf(4.10));
         Participante userBaixa = salvarParticipante("Tester Baixa Honra", "baixa@chegaai.dev",
-            "11223344556", "2002-02-02", BigDecimal.valueOf(2.50));
+            "11223344556", "2002-02-02", BigDecimal.valueOf(1.50));
         Administrador admin = salvarAdmin("Moderador ChegaAí", "moderador@chegaai.dev",
             "99988877766", "1990-01-01");
         Evento evtFutebol = salvarEvento(caio, catFutebol, endAterro,
@@ -158,6 +158,8 @@ public class DataSeederService implements CommandLineRunner {
         inscPendente.setStatusInscricao(StatusInscricao.CONFIRMADA);
         inscPendente.setCompareceu(true);
         inscricaoRepository.save(inscPendente);
+        // Rafael também participou, então o tester.pendente tem alguém para avaliar.
+        inscrever(rafael, evtPassadoSemAvaliacao, StatusInscricao.CONFIRMADA);
         // Nenhuma avaliação é adicionada na tabela 'avaliacao' para este usuário neste evento.
 
         // --- FIM: CENÁRIOS E2E ---
