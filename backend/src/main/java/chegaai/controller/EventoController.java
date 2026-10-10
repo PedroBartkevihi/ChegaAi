@@ -1,4 +1,5 @@
 package chegaai.controller;
+import chegaai.config.UsuarioAutenticado;
 import chegaai.controller.dto.*;
 import chegaai.controller.dto.AvaliacaoRequestDTO;
 import chegaai.controller.dto.AvaliacaoResponseDTO;
@@ -41,28 +42,28 @@ public class EventoController {
     @PostMapping
     public ResponseEntity<EventoResponseDTO> criarEvento(
             @Valid @RequestBody EventoRequestDTO dto,
-            @RequestHeader("X-User-Id") UUID usuarioId) {
+            @UsuarioAutenticado UUID usuarioId) {
         EventoResponseDTO criado = eventoService.criarEvento(dto, usuarioId);
         return ResponseEntity.status(HttpStatus.CREATED).body(criado);
     }
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> excluirEvento(
             @PathVariable UUID id,
-            @RequestHeader("X-User-Id") UUID usuarioId) {
+            @UsuarioAutenticado UUID usuarioId) {
         eventoService.excluirEvento(id, usuarioId);
         return ResponseEntity.noContent().build();
     }
     @PostMapping("/{id}/inscricao")
     public ResponseEntity<InscricaoResponseDTO> toggleInscricao(
             @PathVariable UUID id,
-            @RequestHeader("X-User-Id") UUID usuarioId) {
+            @UsuarioAutenticado UUID usuarioId) {
         InscricaoResponseDTO resultado = inscricaoService.toggleInscricao(id, usuarioId);
         return ResponseEntity.ok(resultado);
     }
     @PostMapping("/{id}/concluir")
     public ResponseEntity<EventoResponseDTO> concluirEvento(
             @PathVariable UUID id,
-            @RequestHeader("X-User-Id") UUID usuarioId) {
+            @UsuarioAutenticado UUID usuarioId) {
         EventoResponseDTO concluido = eventoService.concluirEvento(id, usuarioId);
         return ResponseEntity.ok(concluido);
     }
@@ -70,7 +71,7 @@ public class EventoController {
     public ResponseEntity<AvaliacaoResponseDTO> avaliarParticipante(
             @PathVariable UUID id,
             @Valid @RequestBody AvaliacaoRequestDTO dto,
-            @RequestHeader("X-User-Id") UUID usuarioId) {
+            @UsuarioAutenticado UUID usuarioId) {
         AvaliacaoResponseDTO resultado = eventoService.avaliarParticipante(id, usuarioId, dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(resultado);
     }
@@ -79,7 +80,7 @@ public class EventoController {
     public ResponseEntity<ComentarioResponseDTO> adicionarComentario(
             @PathVariable UUID id,
             @Valid @RequestBody ComentarioRequestDTO dto,
-            @RequestHeader("X-User-Id") UUID usuarioId) {
+            @UsuarioAutenticado UUID usuarioId) {
         Comentario comentario = comentarioService.adicionarComentario(id, usuarioId, dto.text());
         ComentarioResponseDTO response = new ComentarioResponseDTO(
             comentario.getId(),

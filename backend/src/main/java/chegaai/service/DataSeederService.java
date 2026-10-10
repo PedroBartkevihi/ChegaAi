@@ -6,6 +6,7 @@ import chegaai.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
@@ -17,12 +18,16 @@ import java.time.ZoneOffset;
 @RequiredArgsConstructor
 @Slf4j
 public class DataSeederService implements CommandLineRunner {
+    /** Senha de todas as contas de demonstração. */
+    public static final String SENHA_DEMO = "admin123";
     private final CategoriaRepository categoriaRepository;
     private final EnderecoRepository enderecoRepository;
     private final UsuarioRepository usuarioRepository;
     private final EventoRepository eventoRepository;
     private final InscricaoRepository inscricaoRepository;
     private final ComentarioRepository comentarioRepository;
+    private final PasswordEncoder passwordEncoder;
+    private String senhaDemoHash;
     @Override
     @Transactional
     public void run(String... args) {
@@ -31,6 +36,7 @@ public class DataSeederService implements CommandLineRunner {
             return;
         }
         log.info("Iniciando carga de dados de demonstração...");
+        senhaDemoHash = passwordEncoder.encode(SENHA_DEMO);
         Categoria catFutebol = salvarCategoria("Futebol", "Partidas e peladas de futebol.");
         Categoria catPets = salvarCategoria("Pets", "Passeios e encontros com animais de estimação.");
         Categoria catPatinacao = salvarCategoria("Patinação", "Treinos e passeios de patinação.");
@@ -181,7 +187,7 @@ public class DataSeederService implements CommandLineRunner {
     private Participante salvarParticipante(String nome, String email, String cpf,
                                              String dataNascimento, BigDecimal honra) {
         Participante p = new Participante(nome, email, cpf,
-            "$2a$10$DEMO_HASH_MVP_NAO_USAR", LocalDate.parse(dataNascimento));
+            senhaDemoHash, LocalDate.parse(dataNascimento));
         p.setHonraMedia(honra);
         return usuarioRepository.save(p);
     }
@@ -191,7 +197,7 @@ public class DataSeederService implements CommandLineRunner {
         a.setNome(nome);
         a.setEmail(email);
         a.setCpf(cpf);
-        a.setSenhaHash("$2a$10$ADMIN_HASH_MVP_NAO_USAR");
+        a.setSenhaHash(senhaDemoHash);
         a.setDataNascimento(LocalDate.parse(dataNascimento));
         a.setHonraMedia(BigDecimal.valueOf(5.0));
         return usuarioRepository.save(a);
