@@ -10,7 +10,7 @@ import java.util.Optional;
 @Slf4j
 public class ViaCEPService {
     private final RestTemplate restTemplate;
-    @Value("${chegae.viacep.url}")
+    @Value("${chegaai.viacep.url}")
     private String viaCepBaseUrl;
     public ViaCEPService() {
         this.restTemplate = new RestTemplate();

@@ -1,4 +1,4 @@
-PREFIX chegae: <http://chegae.dev/ontology#>
+PREFIX chegaai: <http://chegaai.dev/ontology#>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 
 # DESCUBRA A BOLHA:
@@ -6,14 +6,14 @@ PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 SELECT ?nomeDaPessoa ?eventoEmComum
 WHERE {
     # Pegamos o ID do João (a222)
-    BIND(<http://chegae.dev/user/a2222222-2222-4222-8222-222222222222> AS ?joao)
+    BIND(<http://chegaai.dev/user/a2222222-2222-4222-8222-222222222222> AS ?joao)
     
     # Verificamos quem o João conhece
-    ?joao chegae:conhece ?amigo .
+    ?joao chegaai:conhece ?amigo .
     ?amigo foaf:name ?nomeDaPessoa .
     
     # E de qual evento em comum surgiu essa amizade
-    ?amigo chegae:participouDe ?evento .
-    ?joao chegae:participouDe ?evento .
-    ?evento chegae:titulo ?eventoEmComum .
+    ?amigo chegaai:participouDe ?evento .
+    ?joao chegaai:participouDe ?evento .
+    ?evento chegaai:titulo ?eventoEmComum .
 }

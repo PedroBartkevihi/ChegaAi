@@ -27,7 +27,7 @@
   * **Vazão (RPS):** ~480 req/s
   * **Concorrência Máxima:** 200 usuários simultâneos sem estourar limites de timeout.
 * **Melhorias/otimizações:**
-  * Desativação de logs redundantes do Hibernate (`CHEGAE_SHOW_SQL=false`).
+  * Desativação de logs redundantes do Hibernate (`CHEGAAI_SHOW_SQL=false`).
   * Execução em ambiente dedicado nativo no Fedora Linux.
   * Minificação sintática do backend por remoção de comentários e linhas órfãs via automação Python.
 

@@ -25,7 +25,7 @@ public class InscricaoService {
     private final EventoRepository eventoRepository;
     private final UsuarioRepository usuarioRepository;
     private final AvaliacaoRepository avaliacaoRepository;
-    @Value("${chegae.regras.honra-minima-inscricao:3.0}")
+    @Value("${chegaai.regras.honra-minima-inscricao:3.0}")
     private double honraMinimaInscricao;
     @Transactional
     public InscricaoResponseDTO toggleInscricao(UUID eventoId, UUID usuarioId) {

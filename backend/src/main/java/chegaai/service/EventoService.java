@@ -39,9 +39,9 @@ public class EventoService {
     private final ComentarioRepository comentarioRepository;
     private final AvaliacaoRepository avaliacaoRepository;
     private final ViaCEPService viaCEPService;   
-    @Value("${chegae.regras.honra-minima-criacao:2.0}")
+    @Value("${chegaai.regras.honra-minima-criacao:2.0}")
     private double honraMinimaCriacao;
-    @Value("${chegae.regras.deducao-honra-ausencia:0.5}")
+    @Value("${chegaai.regras.deducao-honra-ausencia:0.5}")
     private double deducaoHonraAusencia;
     @Transactional(readOnly = true)
     public List<EventoResponseDTO> listarTodos() {

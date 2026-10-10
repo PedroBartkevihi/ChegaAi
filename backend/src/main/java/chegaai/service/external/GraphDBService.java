@@ -13,11 +13,11 @@ import java.time.Duration;
 public class GraphDBService {
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(5);
     private final WebClient.Builder webClientBuilder;
-    @Value("${chegae.graphdb.url}")
+    @Value("${chegaai.graphdb.url}")
     private String graphDbUrl;
-    @Value("${chegae.graphdb.repositorio}")
+    @Value("${chegaai.graphdb.repositorio}")
     private String repository;
-    @Value("${chegae.graphdb.ontologia-prefix}")
+    @Value("${chegaai.graphdb.ontologia-prefix}")
     private String ontologyPrefix;
     public String getRepository() {
         return repository;
