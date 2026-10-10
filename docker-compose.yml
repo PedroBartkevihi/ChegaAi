@@ -1,0 +1,56 @@
+# Aplicação completa: docker compose up --build
+#   Front-end: http://localhost:3000   API: http://localhost:8080/api   Swagger: http://localhost:8080/api/swagger-ui.html
+# Só o banco, para desenvolver API e front-end fora do Docker: docker compose up -d db
+# GraphDB (recomendações, opcional): docker compose --profile graphdb up -d graphdb
+name: chegaai
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: chegaai
+      POSTGRES_USER: chegaai
+      POSTGRES_PASSWORD: chegaai
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chegaai -d chegaai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      CHEGAAI_DB_URL: jdbc:postgresql://db:5432/chegaai
+      CHEGAAI_GRAPHDB_URL: http://graphdb:7200
+    ports:
+      - "8080:8080"
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        API_URL: http://api:8080
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+
+  graphdb:
+    image: ontotext/graphdb:10.6.0
+    profiles: ["graphdb"]
+    ports:
+      - "7200:7200"
+    volumes:
+      - graphdb:/opt/graphdb/home
+
+volumes:
+  pgdata:
+  graphdb:

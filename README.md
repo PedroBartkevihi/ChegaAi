@@ -18,7 +18,7 @@ A arquitetura do projeto foi construída seguindo o modelo cliente-servidor, sep
 - Arquitetura MVC com Repository Pattern
 
 ### Frontend (Web App)
-- **React 18** & **Vite**
+- **React 19** & **Next.js 16** (App Router)
 - Componentização Funcional e Hooks
 - Estilização Responsiva e Dinâmica
 
@@ -49,7 +49,7 @@ A arquitetura do projeto foi construída seguindo o modelo cliente-servidor, sep
 ### 2. Subindo o Banco de Dados (Docker)
 Na raiz do projeto, inicialize a infraestrutura através do Docker Compose:
 ```bash
-docker compose -f infra/docker-compose.yml up -d
+docker compose up -d db
 ```
 *Isso criará o container do PostgreSQL mapeado para a porta 5432 com o schema `chegaai`.*
 
@@ -57,7 +57,7 @@ docker compose -f infra/docker-compose.yml up -d
 Abra um novo terminal na pasta `backend` e inicie a API do Spring Boot. O Flyway aplicará todas as *migrations* e o Seeder injetará os dados de demonstração automaticamente.
 ```bash
 cd backend
-mvn clean spring-boot:run
+./mvnw spring-boot:run
 ```
 *A API ficará disponível em `http://localhost:8080/api`.*
 
@@ -68,7 +68,7 @@ cd frontend
 npm install
 npm run dev
 ```
-*Acesse a aplicação no navegador via `http://localhost:5173`.*
+*Acesse a aplicação no navegador via `http://localhost:3000`.*
 
 ---
 
