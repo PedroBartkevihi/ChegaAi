@@ -525,6 +525,7 @@ h3 {
 
 .event-card {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 13px;
   min-height: 330px;
   padding: 16px;
@@ -576,6 +577,7 @@ h3 {
 
 .organizer-line {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 12px;
   padding: 10px;
@@ -597,6 +599,7 @@ h3 {
 
 .card-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: auto;
 }
