@@ -7,7 +7,9 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 class SegurancaIT extends IntegracaoBase {
@@ -88,5 +90,18 @@ class SegurancaIT extends IntegracaoBase {
         mockMvc.perform(delete("/eventos/{id}", eventoId).header("Authorization", bearer(moderador)))
             .andExpect(status().isNoContent());
         mockMvc.perform(get("/eventos/{id}", eventoId)).andExpect(status().isNotFound());
+    }
+    @Test
+    @DisplayName("CORS libera só as origens configuradas")
+    void corsLiberaSoOrigensConfiguradas() throws Exception {
+        mockMvc.perform(options("/eventos")
+                .header("Origin", "http://localhost:3000")
+                .header("Access-Control-Request-Method", "POST"))
+            .andExpect(status().isOk())
+            .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:3000"));
+        mockMvc.perform(options("/eventos")
+                .header("Origin", "https://site-qualquer.example")
+                .header("Access-Control-Request-Method", "POST"))
+            .andExpect(status().isForbidden());
     }
 }
