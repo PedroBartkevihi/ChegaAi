@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 public record EventoRequestDTO(
-    @NotBlank @Size(max = 150)
+    @NotBlank @Size(min = 3, max = 150, message = "o título deve ter entre 3 e 150 caracteres")
     String title,
     @NotBlank
     String category,
@@ -21,6 +21,6 @@ public record EventoRequestDTO(
     int capacity,
     @Min(0) @Max(80)
     int distance,
-    @NotBlank @Size(max = 3000)
+    @NotBlank @Size(min = 10, max = 3000, message = "a descrição deve ter entre 10 e 3000 caracteres")
     String description
 ) {}

@@ -1,4 +1,5 @@
 import { Plus } from "lucide-react";
+import { todayInputValue } from "../lib/eventos";
 export default function CreateView({ categoryOptions, capacityLimit, onSubmit }) {
   return (
     <section className="view" aria-label="Criar evento">
@@ -9,9 +10,9 @@ export default function CreateView({ categoryOptions, capacityLimit, onSubmit })
           <p>Defina os detalhes do seu novo evento com limite de até {capacityLimit} participantes.</p>
         </div>
         <div className="form-grid">
-          <label>Título<input name="title" required maxLength="80" placeholder="Patinação na orla" /></label>
+          <label>Título<input name="title" required minLength="3" maxLength="80" placeholder="Patinação na orla" /></label>
           <label>Categoria<select name="category" required>{categoryOptions.map((category) => <option key={category} value={category}>{category}</option>)}</select></label>
-          <label>Data<input name="date" required type="date" /></label>
+          <label>Data<input name="date" required type="date" min={todayInputValue()} /></label>
           <label>Horário<input name="time" required type="time" /></label>
           <label>CEP<input name="cep" inputMode="numeric" maxLength="9" placeholder="22290-240" /></label>
           <label>Cidade / bairro<input name="place" required maxLength="90" placeholder="Botafogo, Rio de Janeiro" /></label>
@@ -20,7 +21,7 @@ export default function CreateView({ categoryOptions, capacityLimit, onSubmit })
         </div>
         <label>
           Descrição
-          <textarea name="description" required maxLength="260" rows="4" placeholder="Descreva o ponto de encontro, ritmo do rolé e combinados de segurança." />
+          <textarea name="description" required minLength="10" maxLength="260" rows="4" placeholder="Descreva o ponto de encontro, ritmo do rolé e combinados de segurança." />
         </label>
         <div className="form-actions">
           <button className="secondary-action" type="reset">Limpar</button>

@@ -1,7 +1,10 @@
 package chegaai.controller.exception;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -34,6 +37,18 @@ public class GlobalExceptionHandler {
         String message = ex.getBindingResult().getFieldErrors().stream()
             .findFirst()
             .map(error -> "Campo '" + error.getField() + "': " + error.getDefaultMessage())
+            .orElse("Requisição inválida.");
+        return buildResponse(HttpStatus.BAD_REQUEST, message);
+    }
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleUnreadableBody(HttpMessageNotReadableException ex) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "O corpo da requisição não é um JSON válido.");
+    }
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleConstraintViolation(ConstraintViolationException ex) {
+        String message = ex.getConstraintViolations().stream()
+            .findFirst()
+            .map(ConstraintViolation::getMessage)
             .orElse("Requisição inválida.");
         return buildResponse(HttpStatus.BAD_REQUEST, message);
     }

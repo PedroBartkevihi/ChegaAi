@@ -34,3 +34,7 @@ export function formatDate(date) {
     year: "numeric",
   }).format(new Date(`${date}T12:00:00`));
 }
+export function todayInputValue() {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split("T")[0];
+}
