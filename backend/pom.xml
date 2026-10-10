@@ -40,6 +40,8 @@
         <flyway.version>10.12.0</flyway.version>
         <springdoc.version>2.5.0</springdoc.version>
         <lombok.version>1.18.38</lombok.version>
+        <!-- 1.21.4+ conversa com Docker Engine 29 (API mínima 1.40); a 1.19.x do Boot 3.3 não -->
+        <testcontainers.version>1.21.4</testcontainers.version>
     </properties>
 
     <!-- ===================================================== -->
