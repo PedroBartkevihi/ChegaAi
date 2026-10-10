@@ -25,7 +25,8 @@ export default defineConfig({
 
   // Sobe o Next.js antes dos testes (a API Spring Boot precisa estar rodando na porta 8080)
   webServer: {
-    command: 'npm run dev',
+    // no CI o workflow já fez o build de produção
+    command: process.env.CI ? 'npm run start' : 'npm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
   },
