@@ -1,4 +1,5 @@
 package chegaai.controller;
+import chegaai.config.FusoHorario;
 import chegaai.config.UsuarioAutenticado;
 import chegaai.controller.dto.*;
 import chegaai.controller.dto.AvaliacaoRequestDTO;
@@ -15,17 +16,16 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 @RestController
 @RequestMapping("/eventos")
 @RequiredArgsConstructor
 public class EventoController {
-    private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
     private final EventoService eventoService;
     private final InscricaoService inscricaoService;
     private final ComentarioService comentarioService;
+    private final FusoHorario fusoHorario;
     @GetMapping
     public ResponseEntity<List<EventoResponseDTO>> listarTodos() {
         return ResponseEntity.ok(eventoService.listarTodos());
@@ -87,7 +87,7 @@ public class EventoController {
             comentario.getAutor().getNome().split(" ")[0],
             comentario.getTexto(),
             comentario.getDataHoraComentario() != null
-                ? comentario.getDataHoraComentario().format(TIME_FMT)
+                ? fusoHorario.hora(comentario.getDataHoraComentario())
                 : "00:00"
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

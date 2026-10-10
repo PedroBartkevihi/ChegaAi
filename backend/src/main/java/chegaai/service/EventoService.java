@@ -1,4 +1,5 @@
 package chegaai.service;
+import chegaai.config.FusoHorario;
 import chegaai.controller.dto.EventoRequestDTO;
 import chegaai.controller.dto.EventoResponseDTO;
 import chegaai.controller.dto.AvaliacaoRequestDTO;
@@ -20,8 +21,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -39,6 +38,7 @@ public class EventoService {
     private final ComentarioRepository comentarioRepository;
     private final AvaliacaoRepository avaliacaoRepository;
     private final ViaCEPService viaCEPService;   
+    private final FusoHorario fusoHorario;
     @Value("${chegaai.regras.honra-minima-criacao:2.0}")
     private double honraMinimaCriacao;
     @Value("${chegaai.regras.deducao-honra-ausencia:0.5}")
@@ -76,7 +76,7 @@ public class EventoService {
         endereco = enderecoRepository.save(endereco);
         LocalDate data = LocalDate.parse(dto.date());
         LocalTime hora = LocalTime.parse(dto.time());
-        OffsetDateTime dataHora = OffsetDateTime.of(data, hora, ZoneOffset.ofHours(-3));
+        OffsetDateTime dataHora = fusoHorario.instante(data, hora);
         int limiteMax = organizador.getHonraMedia().compareTo(BigDecimal.valueOf(4.8)) >= 0 ? 50 : 20;
         int capacidade = Math.min(dto.capacity(), limiteMax);
         Evento evento = new Evento();
@@ -288,13 +288,12 @@ public class EventoService {
         List<String> waitlistNames = fila.stream()
             .map(i -> i.getUsuario().getNome().split(" ")[0])
             .collect(Collectors.toList());
-        DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
         List<EventoResponseDTO.CommentDTO> commentDTOs = comentarios.stream()
             .map(c -> new EventoResponseDTO.CommentDTO(
                 c.getAutor().getNome().split(" ")[0],
                 c.getTexto(),
                 c.getDataHoraComentario() != null
-                    ? c.getDataHoraComentario().format(timeFmt)
+                    ? fusoHorario.hora(c.getDataHoraComentario())
                     : "00:00"
             ))
             .collect(Collectors.toList());
@@ -308,8 +307,8 @@ public class EventoService {
                 case CONCLUIDO -> "CONCLUIDO";
             };
         }
-        String dateStr = evento.getDataHoraRealizacao().toLocalDate().toString();
-        String timeStr = evento.getDataHoraRealizacao().toLocalTime().format(timeFmt);
+        String dateStr = fusoHorario.data(evento.getDataHoraRealizacao()).toString();
+        String timeStr = fusoHorario.hora(evento.getDataHoraRealizacao());
         Endereco end = evento.getEndereco();
         String placeStr = end.getBairro() + ", " + end.getCidade();
         Usuario org = evento.getOrganizador();
