@@ -1,0 +1,4 @@
+# Scripts executados no Linux (CI e contêineres) precisam de LF
+*.sh text eol=lf
+mvnw text eol=lf
+*.cmd text eol=crlf
