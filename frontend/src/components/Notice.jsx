@@ -1,0 +1,22 @@
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Info,
+  X,
+} from "lucide-react";
+export default function Notice({ alert, onClose }) {
+  const Icon = alert.type === "error"
+    ? AlertTriangle
+    : alert.type === "success"
+      ? CheckCircle2
+      : Info;
+  return (
+    <div className={`notice alert-${alert.type}`} role="status" aria-live="polite">
+      <Icon size={20} />
+      <div>{alert.message}</div>
+      <button className="notice-close" type="button" aria-label="Fechar alerta" onClick={onClose}>
+        <X size={18} />
+      </button>
+    </div>
+  );
+}
