@@ -1,0 +1,34 @@
+@startuml implantacao
+!pragma layout smetana
+!include estilo.iuml
+title ChegaAí — Diagrama de implantação (versão online)
+
+node "Navegador" as Navegador {
+  artifact "Aplicação Next.js\n(React 19, exportada estática)" as SPA
+}
+node "Render\n(site estático)" as Render {
+  artifact "frontend/out\n(HTML, JS, CSS)" as Estatico
+}
+node "Google Cloud Run\nsouthamerica-east1" as CloudRun {
+  node "Contêiner\n(JRE 17, 512 MiB, 0–1 instância)" as Conteiner {
+    artifact "chegaai-backend.jar\n(Spring Boot 3.3)" as Api
+  }
+}
+database "Neon\nPostgreSQL (aws-sa-east-1)" as Neon
+cloud "GitHub" as GitHub {
+  artifact "Repositório + GitHub Actions\n(testes a cada push)" as Repo
+}
+node "Google Cloud Build" as CloudBuild
+
+Navegador --> Render : HTTPS (baixa o site)
+SPA --> Api : HTTPS /api + JWT\n(CORS liberado só para o front)
+Api --> Neon : JDBC + TLS\n(Flyway na inicialização)
+Repo --> CloudBuild : push na main
+CloudBuild --> CloudRun : imagem do backend/Dockerfile
+Repo --> Render : push na main\n(build do frontend)
+
+note bottom of Neon
+  GraphDB (recomendações) é opcional
+  e não roda na versão online
+end note
+@enduml

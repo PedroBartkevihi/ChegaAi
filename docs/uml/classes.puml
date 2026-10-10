@@ -1,0 +1,155 @@
+@startuml classes
+!pragma layout smetana
+!include estilo.iuml
+title ChegaAí — Diagrama de classes do domínio
+hide empty members
+skinparam linetype ortho
+
+abstract class Usuario {
+  - id : UUID
+  - nome : String
+  - email : String
+  - cpf : String
+  - senhaHash : String
+  - dataNascimento : LocalDate
+  - honraMedia : BigDecimal
+  - statusUsuario : StatusUsuario
+  - qtdDenunciasValidadas : int
+  + {abstract} getPapelSistema() : PapelSistema
+  + podeCriarEvento(honraMinima) : boolean
+  + podeSeInscrever() : boolean
+  + qualificaEmbaixador(limite) : boolean
+  + deveSerBanidoAutomaticamente(honra, denuncias) : boolean
+}
+class Participante
+class Embaixador
+class Administrador
+Usuario <|-- Participante
+Usuario <|-- Embaixador
+Usuario <|-- Administrador
+note right of Usuario
+  Herança em tabela única
+  (coluna papel_sistema)
+end note
+
+class Evento {
+  - id : UUID
+  - titulo : String
+  - descricao : String
+  - dataHoraRealizacao : OffsetDateTime
+  - limiteParticipantes : int
+  - statusEvento : StatusEvento
+  - travado : boolean
+  + possuiVaga() : boolean
+  + concluir()
+  + cancelar()
+  + travar()
+}
+class Inscricao {
+  - id : UUID
+  - dataHoraSolicitacao : OffsetDateTime
+  - statusInscricao : StatusInscricao
+  - compareceu : boolean
+  + confirmar()
+  + cancelar()
+  + registrarPresenca()
+  + marcarAusente()
+  + estaEmFilaDeEspera() : boolean
+}
+class Comentario {
+  - id : UUID
+  - texto : String
+  - dataHoraComentario : OffsetDateTime
+}
+class Avaliacao {
+  - id : UUID
+  - nota : int {1..5}
+  - comentarioOpcional : String
+  - dataHoraAvaliacao : OffsetDateTime
+  + ehAutoAvaliacao() : boolean
+}
+class Categoria {
+  - id : UUID
+  - nome : String
+  - descricao : String
+  - ativa : boolean
+}
+class Endereco {
+  - id : UUID
+  - cep : String
+  - logradouro : String
+  - bairro : String
+  - cidade : String
+  - estado : String
+  + formatarEnderecoCompleto() : String
+}
+class Denuncia {
+  - id : UUID
+  - motivo : String
+  - detalhes : String
+  - statusDenuncia : StatusDenuncia
+  + classificarComoProcedente()
+  + classificarComoImprocedente()
+}
+class Penalidade {
+  - id : UUID
+  - tipoPenalidade : TipoPenalidade
+  - motivo : String
+  - dataInicio : LocalDate
+  - dataFim : LocalDate
+  + estaAtiva() : boolean
+}
+
+Usuario "1 organizador" -- "0..*" Evento : organiza >
+Evento "0..*" --> "1" Categoria
+Evento "0..*" --> "1" Endereco
+Evento "1" *-- "0..*" Inscricao
+Usuario "1" -- "0..*" Inscricao : solicita >
+Evento "1" *-- "0..*" Comentario
+Usuario "1 autor" -- "0..*" Comentario
+Evento "1" *-- "0..*" Avaliacao
+Usuario "1 avaliador" -- "0..*" Avaliacao
+Usuario "1 avaliado" -- "0..*" Avaliacao
+Denuncia "0..*" --> "1 denunciante" Usuario
+Denuncia "0..*" --> "1 denunciado" Usuario
+Denuncia "0..*" --> "0..1" Evento
+Penalidade "0..*" --> "1 penalizado" Usuario
+Penalidade "0..*" --> "1 aplicador" Administrador
+
+enum PapelSistema {
+  PARTICIPANTE
+  EMBAIXADOR
+  ADMINISTRADOR
+}
+enum StatusUsuario {
+  ATIVO
+  SUSPENSO
+  BANIDO
+}
+enum StatusEvento {
+  ATIVO
+  CANCELADO
+  CONCLUIDO
+}
+enum StatusInscricao {
+  SOLICITADA
+  CONFIRMADA
+  CANCELADA
+  AUSENTE
+}
+enum StatusDenuncia {
+  ABERTA
+  EM_ANALISE
+  VALIDADA
+  REJEITADA
+  ENCERRADA
+}
+enum TipoPenalidade {
+  ADVERTENCIA
+  SUSPENSAO
+  BANIMENTO
+}
+note bottom of StatusInscricao
+  SOLICITADA = na fila de espera
+end note
+@enduml

@@ -1,0 +1,46 @@
+@startuml sequencia-autenticacao
+!include estilo.iuml
+title ChegaAí — Autenticação com JWT
+autonumber
+
+actor Usuario as "Usuário"
+participant Front as "Front-end\n(Next.js)"
+participant Filtro as "Spring Security\n(Resource Server)"
+participant AuthC as "AuthController"
+participant EventoC as "EventoController"
+participant AuthS as "AuthService"
+participant Token as "TokenService"
+database Banco as "PostgreSQL"
+
+== Login ==
+Usuario -> Front : e-mail e senha
+Front -> AuthC : POST /api/auth/login
+note right of Filtro : rota pública
+AuthC -> AuthS : login(email, senha)
+AuthS -> Banco : buscar usuário pelo e-mail
+Banco --> AuthS : usuário + senhaHash
+AuthS -> AuthS : BCrypt.matches(senha, senhaHash)
+alt senha incorreta ou e-mail inexistente
+  AuthS --> AuthC : BadCredentialsException
+  AuthC --> Front : 401 "E-mail ou senha inválidos."
+else credenciais válidas
+  AuthS -> Token : gerar(usuário)
+  Token --> AuthS : JWT HS256 (sub = id, papel, exp = 2 h)
+  AuthS --> AuthC : token + dados do usuário
+  AuthC --> Front : 200 { token, user }
+  Front -> Front : guarda o token no localStorage
+end
+
+== Requisição autenticada ==
+Usuario -> Front : publicar um comentário
+Front -> Filtro : POST /api/eventos/{id}/comentarios\nAuthorization: Bearer <token>
+Filtro -> Filtro : valida assinatura, emissor e validade
+alt token ausente, adulterado ou vencido
+  Filtro --> Front : 401
+  Front -> Front : encerra a sessão e pede novo login
+else token válido
+  Filtro -> EventoC : segue com o usuário autenticado
+  note right : o id do usuário vem do "sub" do token\n(@UsuarioAutenticado), não do cliente
+  EventoC --> Front : 201 comentário publicado
+end
+@enduml

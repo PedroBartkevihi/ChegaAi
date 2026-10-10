@@ -1,0 +1,48 @@
+@startuml sequencia-inscricao
+!include estilo.iuml
+title ChegaAí — Inscrição, fila de espera e promoção
+autonumber
+
+actor Participante
+participant Ctrl as "EventoController"
+participant Serv as "InscricaoService"
+database Banco as "PostgreSQL"
+
+== Inscrever-se ==
+Participante -> Ctrl : POST /api/eventos/{id}/inscricao (JWT)
+Ctrl -> Serv : toggleInscricao(eventoId, usuarioId)
+Serv -> Banco : buscar evento e usuário
+alt evento concluído, cancelado ou travado
+  Serv --> Ctrl : 409 "não está aberto para inscrições"
+else evento aberto
+  Serv -> Banco : eventos concluídos em que compareceu
+  Serv -> Serv : verificarAvaliacoesPendentes()
+  alt ainda há participantes para avaliar
+    Serv --> Ctrl : 409 "avaliações pendentes"
+  else honra abaixo de 3.0
+    Serv --> Ctrl : 409 "abaixo do mínimo"
+  else pode se inscrever
+    Serv -> Banco : contar inscrições CONFIRMADA
+    alt há vaga
+      Serv -> Banco : salvar inscrição CONFIRMADA
+      Serv --> Ctrl : 200 { status: "CONFIRMADO" }
+    else evento lotado
+      Serv -> Banco : salvar inscrição SOLICITADA
+      Serv --> Ctrl : 200 { status: "FILA" }
+    end
+  end
+end
+Ctrl --> Participante : resposta
+
+== Cancelar (mesma rota, segunda chamada) ==
+Participante -> Ctrl : POST /api/eventos/{id}/inscricao (JWT)
+Ctrl -> Serv : toggleInscricao(eventoId, usuarioId)
+Serv -> Banco : marcar inscrição como CANCELADA
+opt quem saiu estava confirmado
+  Serv -> Banco : primeira SOLICITADA por data de solicitação
+  Serv -> Banco : promover para CONFIRMADA
+  note right : a fila é atendida por ordem de chegada (FIFO)
+end
+Serv --> Ctrl : 200 { status: "CANCELADO" }
+Ctrl --> Participante : resposta
+@enduml

@@ -1,0 +1,21 @@
+' Estilo comum dos diagramas do ChegaAí
+skinparam backgroundColor white
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundCorner 8
+skinparam ArrowColor #44546A
+skinparam ActorBorderColor #0876B8
+skinparam UsecaseBorderColor #0876B8
+skinparam UsecaseBackgroundColor #EEF5F9
+skinparam ClassBorderColor #0876B8
+skinparam ClassBackgroundColor #FFFFFF
+skinparam ClassHeaderBackgroundColor #EEF5F9
+skinparam PackageBorderColor #9AA9B8
+skinparam NoteBackgroundColor #FFF8E6
+skinparam NoteBorderColor #D99220
+skinparam SequenceLifeLineBorderColor #9AA9B8
+skinparam ParticipantBorderColor #0876B8
+skinparam ParticipantBackgroundColor #EEF5F9
+skinparam NodeBorderColor #0876B8
+skinparam DatabaseBorderColor #0876B8

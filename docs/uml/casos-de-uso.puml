@@ -1,0 +1,69 @@
+@startuml casos-de-uso
+!pragma layout smetana
+!include estilo.iuml
+title ChegaAí — Diagrama de casos de uso
+left to right direction
+
+actor "Visitante" as Visitante
+actor "Participante" as Participante
+actor "Organizador" as Organizador
+actor "Embaixador" as Embaixador
+actor "Moderador" as Moderador
+Visitante <|-- Participante
+Participante <|-- Organizador
+Participante <|-- Embaixador
+
+rectangle "ChegaAí" {
+  usecase "Ver e filtrar o feed de rolés" as UC_Feed
+  usecase "Cadastrar-se" as UC_Cadastro
+  usecase "Entrar (login com JWT)" as UC_Login
+
+  usecase "Criar rolé\n(honra ≥ 2.0)" as UC_Criar
+  usecase "Criar rolé com até 50 vagas" as UC_CriarGrande
+  usecase "Inscrever-se em rolé\n(honra ≥ 3.0)" as UC_Inscrever
+  usecase "Verificar avaliações pendentes" as UC_Pendencias
+  usecase "Entrar na fila de espera" as UC_Fila
+  usecase "Cancelar inscrição" as UC_Cancelar
+  usecase "Promover o primeiro da fila" as UC_Promover
+  usecase "Comentar no rolé" as UC_Comentar
+  usecase "Avaliar participantes" as UC_Avaliar
+  usecase "Ver perfil e reputação" as UC_Perfil
+
+  usecase "Registrar presença" as UC_Presenca
+  usecase "Concluir rolé" as UC_Concluir
+  usecase "Penalizar ausência (−0.5 de honra)" as UC_Penalizar
+  usecase "Excluir rolé" as UC_Excluir
+}
+
+Visitante --> UC_Feed
+Visitante --> UC_Cadastro
+Visitante --> UC_Login
+
+Participante --> UC_Criar
+Participante --> UC_Inscrever
+Participante --> UC_Cancelar
+Participante --> UC_Comentar
+Participante --> UC_Avaliar
+Participante --> UC_Perfil
+
+Embaixador --> UC_CriarGrande
+UC_CriarGrande .> UC_Criar : <<extend>>
+
+UC_Inscrever .> UC_Pendencias : <<include>>
+UC_Fila .> UC_Inscrever : <<extend>>\n[rolé lotado]
+UC_Promover .> UC_Cancelar : <<extend>>\n[havia fila]
+
+Organizador --> UC_Presenca
+Organizador --> UC_Concluir
+Organizador --> UC_Excluir
+UC_Concluir .> UC_Penalizar : <<include>>
+
+Moderador --> UC_Excluir
+
+note bottom of UC_Avaliar
+  Só depois da conclusão, entre quem
+  participou do rolé. Enquanto houver
+  avaliação pendente, novas inscrições
+  são bloqueadas.
+end note
+@enduml
