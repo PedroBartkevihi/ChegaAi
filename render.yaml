@@ -1,0 +1,22 @@
+# Blueprint do Render: só o front-end, como site estático (plano gratuito; site estático
+# não dorme). A API roda no Google Cloud Run e o banco no Neon; veja o DEPLOY.md.
+services:
+  - type: web
+    name: chegaai-web
+    runtime: static
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: frontend/out
+    # Só refaz o build quando o front-end muda
+    buildFilter:
+      paths:
+        - frontend/**
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_OUTPUT
+        value: export
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      # URL pública da API no Cloud Run, terminando em /api
+      - key: NEXT_PUBLIC_API_BASE_URL
+        sync: false
