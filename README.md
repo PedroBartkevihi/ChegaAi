@@ -1,8 +1,8 @@
-# ChegAê 🚀
+# ChegaAí 🚀
 
-O **ChegAê** é uma plataforma inovadora para conectar pessoas interessadas em realizar atividades presenciais (rolés) na faculdade ou na cidade, com um forte foco em um sistema orgânico de **reputação**, **segurança**, controle rigoroso de **vagas** e gerenciamento inteligente de **lista de espera**.
+O **ChegaAí** é uma plataforma inovadora para conectar pessoas interessadas em realizar atividades presenciais (rolés) na faculdade ou na cidade, com um forte foco em um sistema orgânico de **reputação**, **segurança**, controle rigoroso de **vagas** e gerenciamento inteligente de **lista de espera**.
 
-Seja para marcar um futebol de sexta, organizar um grupo de estudos ou adotar uma trilha no fim de semana, o ChegAê garante que os organizadores sejam confiáveis e que os participantes sejam comprometidos.
+Seja para marcar um futebol de sexta, organizar um grupo de estudos ou adotar uma trilha no fim de semana, o ChegaAí garante que os organizadores sejam confiáveis e que os participantes sejam comprometidos.
 
 ---
 
@@ -51,7 +51,7 @@ Na raiz do projeto, inicialize a infraestrutura através do Docker Compose:
 ```bash
 docker compose -f infra/docker-compose.yml up -d
 ```
-*Isso criará o container do PostgreSQL mapeado para a porta 5432 com o schema `chegae`.*
+*Isso criará o container do PostgreSQL mapeado para a porta 5432 com o schema `chegaai`.*
 
 ### 3. Executando o Backend
 Abra um novo terminal na pasta `backend` e inicie a API do Spring Boot. O Flyway aplicará todas as *migrations* e o Seeder injetará os dados de demonstração automaticamente.
@@ -78,11 +78,11 @@ Para testar a plataforma e as regras de negócio em ação, utilize os e-mails p
 
 | E-mail | Perfil | Reputação |
 | --- | --- | --- |
-| `pedro@chegae.dev` | Embaixador | ⭐ 4.9 |
-| `marcos@chegae.dev` | Embaixador | ⭐ 5.0 |
-| `caio@chegae.dev` | Embaixador | ⭐ 4.9 |
-| `baixa@chegae.dev` | Participante (Bloqueado) | ⭐ 1.5 |
-| `tester.pendente@chegae.dev`| Participante (Com Pendência) | ⭐ 3.5 |
+| `pedro@chegaai.dev` | Embaixador | ⭐ 4.9 |
+| `marcos@chegaai.dev` | Embaixador | ⭐ 5.0 |
+| `caio@chegaai.dev` | Embaixador | ⭐ 4.9 |
+| `baixa@chegaai.dev` | Participante (Bloqueado) | ⭐ 1.5 |
+| `tester.pendente@chegaai.dev`| Participante (Com Pendência) | ⭐ 3.5 |
 
 ---
 
@@ -105,7 +105,7 @@ npx playwright test --headed
 
 ## 📈 Testes de Carga e SLA (k6)
 
-O ChegAê também passou por rigorosas rodadas de avaliação de performance (SLA) para garantir sua escalabilidade, suportando picos de tráfego (acessos concorrentes ao Feed e Fila de Espera).
+O ChegaAí também passou por rigorosas rodadas de avaliação de performance (SLA) para garantir sua escalabilidade, suportando picos de tráfego (acessos concorrentes ao Feed e Fila de Espera).
 
 Os scripts para os testes de carga e pico foram desenvolvidos com **k6** e ficam alocados em:
 ```text

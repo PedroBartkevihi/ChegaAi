@@ -5,7 +5,7 @@ import { makeSummary } from "./lib/report.js";
 const BASE_URL = __ENV.BASE_URL || "http://localhost:8080/api";
 const LOAD_PROFILE = __ENV.LOAD_PROFILE || "academic";
 const REPORT_DIR = __ENV.REPORT_DIR || "docs/sla/reports";
-const USER_EMAIL = __ENV.K6_USER_EMAIL || "pedro@chegae.dev";
+const USER_EMAIL = __ENV.K6_USER_EMAIL || "pedro@chegaai.dev";
 const EVENT_ID = __ENV.K6_EVENT_ID || "";
 const STAGES = {
   smoke: [

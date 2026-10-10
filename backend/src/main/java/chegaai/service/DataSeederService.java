@@ -26,7 +26,7 @@ public class DataSeederService implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        if (usuarioRepository.findByEmail("pedro@chegae.dev").isPresent()) {
+        if (usuarioRepository.findByEmail("pedro@chegaai.dev").isPresent()) {
             log.info("Dados de demonstração já existem no banco. Pulando seed.");
             return;
         }
@@ -46,27 +46,27 @@ public class DataSeederService implements CommandLineRunner {
             "Rio de Janeiro", "RJ", "S/N", "Orla de Copacabana");
         Endereco endTijuca = salvarEndereco("20550013", "Rua Conde de Bonfim", "Tijuca",
             "Rio de Janeiro", "RJ", "100", null);
-        Participante pedro = salvarParticipante("Pedro Farias", "pedro@chegae.dev",
+        Participante pedro = salvarParticipante("Pedro Farias", "pedro@chegaai.dev",
             "12345678901", "2000-03-15", BigDecimal.valueOf(4.90));
-        Participante caio = salvarParticipante("Caio Santos", "caio@chegae.dev",
+        Participante caio = salvarParticipante("Caio Santos", "caio@chegaai.dev",
             "23456789012", "1998-07-22", BigDecimal.valueOf(4.90));
-        Participante nina = salvarParticipante("Nina Oliveira", "nina@chegae.dev",
+        Participante nina = salvarParticipante("Nina Oliveira", "nina@chegaai.dev",
             "34567890123", "1999-12-05", BigDecimal.valueOf(4.70));
-        Participante marcos = salvarParticipante("Marcos Lima", "marcos@chegae.dev",
+        Participante marcos = salvarParticipante("Marcos Lima", "marcos@chegaai.dev",
             "45678901234", "1997-05-10", BigDecimal.valueOf(5.0));
-        Participante lia = salvarParticipante("Lia Costa", "lia@chegae.dev",
+        Participante lia = salvarParticipante("Lia Costa", "lia@chegaai.dev",
             "67890123456", "2000-01-20", BigDecimal.valueOf(4.50));
-        Participante rafael = salvarParticipante("Rafael Souza", "rafael@chegae.dev",
+        Participante rafael = salvarParticipante("Rafael Souza", "rafael@chegaai.dev",
             "78901234567", "1999-06-11", BigDecimal.valueOf(4.30));
-        Participante bia = salvarParticipante("Bia Martins", "bia@chegae.dev",
+        Participante bia = salvarParticipante("Bia Martins", "bia@chegaai.dev",
             "89012345678", "2001-04-25", BigDecimal.valueOf(4.60));
-        Participante paula = salvarParticipante("Paula Mendes", "paula@chegae.dev",
+        Participante paula = salvarParticipante("Paula Mendes", "paula@chegaai.dev",
             "90123456789", "1998-11-30", BigDecimal.valueOf(4.20));
-        Participante bruno = salvarParticipante("Bruno Silva", "bruno@chegae.dev",
+        Participante bruno = salvarParticipante("Bruno Silva", "bruno@chegaai.dev",
             "01234567890", "2000-08-14", BigDecimal.valueOf(4.10));
-        Participante userBaixa = salvarParticipante("Tester Baixa Honra", "baixa@chegae.dev",
+        Participante userBaixa = salvarParticipante("Tester Baixa Honra", "baixa@chegaai.dev",
             "11223344556", "2002-02-02", BigDecimal.valueOf(2.50));
-        Administrador admin = salvarAdmin("Moderador ChegAê", "moderador@chegae.dev",
+        Administrador admin = salvarAdmin("Moderador ChegaAí", "moderador@chegaai.dev",
             "99988877766", "1990-01-01");
         Evento evtFutebol = salvarEvento(caio, catFutebol, endAterro,
             "Futebol no Aterro",
@@ -125,7 +125,7 @@ public class DataSeederService implements CommandLineRunner {
         inscrever(caio, evtLotadoFifo, StatusInscricao.CONFIRMADA); 
         inscrever(lia, evtLotadoFifo, StatusInscricao.CONFIRMADA);
         inscrever(bruno, evtLotadoFifo, StatusInscricao.CONFIRMADA);
-        // Evento agora tem 3/3 vagas ocupadas. Marcos (marcos@chegae.dev) não é inscrito inicialmente.
+        // Evento agora tem 3/3 vagas ocupadas. Marcos (marcos@chegaai.dev) não é inscrito inicialmente.
 
         // 2. Evento Ativo onde Caio NÃO está inscrito (Testar bloqueio de comentários RN006)
         Evento evtComentarioBloqueado = salvarEvento(nina, catPasseio, endBotafogo,
@@ -133,10 +133,10 @@ public class DataSeederService implements CommandLineRunner {
             "Apenas confirmados e fila de espera podem comentar. Caio tentará comentar e falhará.",
             LocalDate.now().plusDays(2).toString(), "15:00", 10);
         inscrever(nina, evtComentarioBloqueado, StatusInscricao.CONFIRMADA);
-        // Caio (caio@chegae.dev) NÃO está inscrito neste evento.
+        // Caio (caio@chegaai.dev) NÃO está inscrito neste evento.
 
         // 3. Usuário tester.pendente com participação concluída e compareceu=true, mas sem avaliação (RN007)
-        Participante testerPendente = salvarParticipante("Tester Pendente", "tester.pendente@chegae.dev",
+        Participante testerPendente = salvarParticipante("Tester Pendente", "tester.pendente@chegaai.dev",
             "12312312312", "1995-05-05", BigDecimal.valueOf(5.0));
         
         Evento evtPassadoSemAvaliacao = salvarEvento(pedro, catLazer, endTijuca,

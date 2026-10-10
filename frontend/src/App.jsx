@@ -16,7 +16,7 @@ import {
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
 async function api(path, options = {}) {
-  const userId = localStorage.getItem("chegaae.userId");
+  const userId = localStorage.getItem("chegaai.userId");
   const headers = {
     "Content-Type": "application/json",
     ...(userId && { "X-User-Id": userId }),
@@ -29,7 +29,7 @@ async function api(path, options = {}) {
   }
   const text = await response.text();
   const data = text ? JSON.parse(text) : null;
-  if (data && data.email === "baixa@chegae.dev") {
+  if (data && data.email === "baixa@chegaai.dev") {
     data.honor = 1.5;
   }
   return data;
@@ -100,17 +100,17 @@ export default function App() {
     }
   }, [currentUser, loadEvents]);
   useEffect(() => {
-    const savedUser = localStorage.getItem("chegaae.user");
+    const savedUser = localStorage.getItem("chegaai.user");
     if (savedUser) {
       try {
         const parsed = JSON.parse(savedUser);
-        if (parsed && parsed.email === "baixa@chegae.dev") {
+        if (parsed && parsed.email === "baixa@chegaai.dev") {
           parsed.honor = 1.5;
         }
         setCurrentUser(parsed);
       } catch {
-        localStorage.removeItem("chegaae.user");
-        localStorage.removeItem("chegaae.userId");
+        localStorage.removeItem("chegaai.user");
+        localStorage.removeItem("chegaai.userId");
       }
     }
   }, []);
@@ -143,8 +143,8 @@ export default function App() {
         body: JSON.stringify({ email }),
       });
       setCurrentUser(user);
-      localStorage.setItem("chegaae.user", JSON.stringify(user));
-      localStorage.setItem("chegaae.userId", user.id);
+      localStorage.setItem("chegaai.user", JSON.stringify(user));
+      localStorage.setItem("chegaai.userId", user.id);
       showNotice(`Bem-vindo(a), ${user.name}!`, "success");
     } catch (err) {
       showNotice("Erro no login: " + err.message, "error");
@@ -156,8 +156,8 @@ export default function App() {
     setCurrentUser(null);
     setEvents([]);
     setEnrollments({});
-    localStorage.removeItem("chegaae.user");
-    localStorage.removeItem("chegaae.userId");
+    localStorage.removeItem("chegaai.user");
+    localStorage.removeItem("chegaai.userId");
     setView("feed");
   }
   async function createEvent(formEvent) {
@@ -197,7 +197,7 @@ export default function App() {
     }
   }
   async function toggleEnrollment(eventId) {
-    if (currentUser && currentUser.email === "tester.pendente@chegae.dev") {
+    if (currentUser && currentUser.email === "tester.pendente@chegaai.dev") {
       showNotice("Inscrição não permitida. Você possui avaliações pendentes de eventos anteriores.", "error");
       return;
     }
@@ -410,12 +410,12 @@ function LoginScreen({ onLogin, loading }) {
   const [error, setError] = useState("");
 
   const MOCK_ACCOUNTS = [
-    { email: "pedro@chegae.dev", label: "Pedro", detail: "Embaixador · Reputação 4.9" },
-    { email: "caio@chegae.dev", label: "Caio", detail: "Embaixador · Reputação 4.9" },
-    { email: "marcos@chegae.dev", label: "Marcos", detail: "Embaixador · Reputação 5.0" },
-    { email: "baixa@chegae.dev", label: "Baixa", detail: "Reputação baixa · 1.5" },
-    { email: "moderador@chegae.dev", label: "Moderador", detail: "Administrador" },
-    { email: "tester.pendente@chegae.dev", label: "Tester", detail: "Avaliações pendentes" },
+    { email: "pedro@chegaai.dev", label: "Pedro", detail: "Embaixador · Reputação 4.9" },
+    { email: "caio@chegaai.dev", label: "Caio", detail: "Embaixador · Reputação 4.9" },
+    { email: "marcos@chegaai.dev", label: "Marcos", detail: "Embaixador · Reputação 5.0" },
+    { email: "baixa@chegaai.dev", label: "Baixa", detail: "Reputação baixa · 1.5" },
+    { email: "moderador@chegaai.dev", label: "Moderador", detail: "Administrador" },
+    { email: "tester.pendente@chegaai.dev", label: "Tester", detail: "Avaliações pendentes" },
   ];
 
   const VALID_EMAILS = MOCK_ACCOUNTS.map((a) => a.email.toLowerCase());
@@ -445,9 +445,9 @@ function LoginScreen({ onLogin, loading }) {
     <main className="app-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
       <section className="login-card">
         <div className="brand" style={{ marginBottom: "1.5rem" }}>
-          <span className="brand-mark" aria-hidden="true">Cê</span>
+          <span className="brand-mark" aria-hidden="true">Aí</span>
           <div>
-            <strong>ChegAê</strong>
+            <strong>ChegaAí</strong>
             <small>Companhia para sair de casa</small>
           </div>
         </div>
@@ -540,9 +540,9 @@ function Sidebar({ view, filters, setView, updateFilter, currentUser, onLogout }
   return (
     <aside className="sidebar">
       <div className="brand">
-        <span className="brand-mark" aria-hidden="true">Cê</span>
+        <span className="brand-mark" aria-hidden="true">Aí</span>
         <div>
-          <strong>ChegAê</strong>
+          <strong>ChegaAí</strong>
           <small>Companhia para sair de casa</small>
         </div>
       </div>
@@ -643,7 +643,7 @@ function FeedView({ events, metrics, filters, enrollments, currentUser, resetFil
     <section className="view" aria-label="Feed de eventos">
       <div className="mission-panel">
         <div>
-          <span className="status-pill">Sobre o ChegAê</span>
+          <span className="status-pill">Sobre o ChegaAí</span>
           <h2>Conectando pessoas para atividades presenciais com segurança.</h2>
           <p>Nossa plataforma prioriza organizadores bem avaliados, gerencia participantes por lista de espera e centraliza os combinados do grupo.</p>
         </div>

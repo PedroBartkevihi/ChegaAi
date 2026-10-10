@@ -7,7 +7,7 @@ function getSimulatedTime(stepOffset: number): string {
   return d.toTimeString().split(' ')[0]; // HH:MM:SS
 }
 
-test.describe('ChegAê - Fluxos Principais do Sistema', () => {
+test.describe('ChegaAí - Fluxos Principais do Sistema', () => {
 
   // -----------------------------------------------------------------------
   // ISOLAMENTO: Limpa a sessão antes de cada teste
@@ -15,8 +15,8 @@ test.describe('ChegAê - Fluxos Principais do Sistema', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
     await page.evaluate(() => {
-      localStorage.removeItem('chegaae.user');
-      localStorage.removeItem('chegaae.userId');
+      localStorage.removeItem('chegaai.user');
+      localStorage.removeItem('chegaai.userId');
     });
     await page.reload();
     await expect(page.getByTestId('input-email')).toBeVisible();
@@ -29,8 +29,8 @@ test.describe('ChegAê - Fluxos Principais do Sistema', () => {
     console.log(`Running 'CT01' ${getSimulatedTime(0)}`);
     console.log(`1.open on / OK ${getSimulatedTime(1)}`);
 
-    await page.getByTestId('input-email').fill('pedro@chegae.dev');
-    console.log(`2.type on id=email with value pedro@chegae.dev OK ${getSimulatedTime(2)}`);
+    await page.getByTestId('input-email').fill('pedro@chegaai.dev');
+    console.log(`2.type on id=email with value pedro@chegaai.dev OK ${getSimulatedTime(2)}`);
 
     await page.getByTestId('input-password').fill('admin123');
     await page.getByTestId('btn-login').click();
@@ -48,8 +48,8 @@ test.describe('ChegAê - Fluxos Principais do Sistema', () => {
   test('CT02 - Criação de um evento válido no sistema', async ({ page }) => {
     console.log(`Running 'CT02' ${getSimulatedTime(0)}`);
 
-    await page.getByTestId('input-email').fill('pedro@chegae.dev');
-    console.log(`1.type on id=email with value pedro@chegae.dev OK ${getSimulatedTime(1)}`);
+    await page.getByTestId('input-email').fill('pedro@chegaai.dev');
+    console.log(`1.type on id=email with value pedro@chegaai.dev OK ${getSimulatedTime(1)}`);
 
     await page.getByTestId('input-password').fill('admin123');
     await page.getByTestId('btn-login').click();
@@ -101,8 +101,8 @@ test.describe('ChegAê - Fluxos Principais do Sistema', () => {
   test('CT03 - Restrição de criação de evento para usuários com baixa reputação', async ({ page }) => {
     console.log(`Running 'CT03' ${getSimulatedTime(0)}`);
 
-    await page.getByTestId('input-email').fill('baixa@chegae.dev');
-    console.log(`1.type on id=email with value baixa@chegae.dev OK ${getSimulatedTime(1)}`);
+    await page.getByTestId('input-email').fill('baixa@chegaai.dev');
+    console.log(`1.type on id=email with value baixa@chegaai.dev OK ${getSimulatedTime(1)}`);
 
     await page.getByTestId('input-password').fill('admin123');
     await page.getByTestId('btn-login').click();
@@ -125,8 +125,8 @@ test.describe('ChegAê - Fluxos Principais do Sistema', () => {
   test('CT04 - Inserção de comentário em um evento', async ({ page }) => {
     console.log(`Running 'CT04' ${getSimulatedTime(0)}`);
 
-    await page.getByTestId('input-email').fill('pedro@chegae.dev');
-    console.log(`1.type on id=email with value pedro@chegae.dev OK ${getSimulatedTime(1)}`);
+    await page.getByTestId('input-email').fill('pedro@chegaai.dev');
+    console.log(`1.type on id=email with value pedro@chegaai.dev OK ${getSimulatedTime(1)}`);
 
     await page.getByTestId('input-password').fill('admin123');
     await page.getByTestId('btn-login').click();
@@ -167,8 +167,8 @@ test.describe('ChegAê - Fluxos Principais do Sistema', () => {
   test('CT05 - Filtragem do feed por busca textual e categoria', async ({ page }) => {
     console.log(`Running 'CT05' ${getSimulatedTime(0)}`);
 
-    await page.getByTestId('input-email').fill('pedro@chegae.dev');
-    console.log(`1.type on id=email with value pedro@chegae.dev OK ${getSimulatedTime(1)}`);
+    await page.getByTestId('input-email').fill('pedro@chegaai.dev');
+    console.log(`1.type on id=email with value pedro@chegaai.dev OK ${getSimulatedTime(1)}`);
 
     await page.getByTestId('input-password').fill('admin123');
     await page.getByTestId('btn-login').click();
@@ -201,8 +201,8 @@ test.describe('ChegAê - Fluxos Principais do Sistema', () => {
   test('CT06 - Gerenciamento de fila de espera em eventos com capacidade esgotada', async ({ page }) => {
     console.log(`Running 'CT06' ${getSimulatedTime(0)}`);
 
-    await page.getByTestId('input-email').fill('marcos@chegae.dev');
-    console.log(`1.type on id=email with value marcos@chegae.dev OK ${getSimulatedTime(1)}`);
+    await page.getByTestId('input-email').fill('marcos@chegaai.dev');
+    console.log(`1.type on id=email with value marcos@chegaai.dev OK ${getSimulatedTime(1)}`);
 
     await page.getByTestId('input-password').fill('admin123');
     await page.getByTestId('btn-login').click();
@@ -232,8 +232,8 @@ test.describe('ChegAê - Fluxos Principais do Sistema', () => {
   test('CT07 - Bloqueio de inserção de comentários para usuários não participantes', async ({ page }) => {
     console.log(`Running 'CT07' ${getSimulatedTime(0)}`);
 
-    await page.getByTestId('input-email').fill('caio@chegae.dev');
-    console.log(`1.type on id=email with value caio@chegae.dev OK ${getSimulatedTime(1)}`);
+    await page.getByTestId('input-email').fill('caio@chegaai.dev');
+    console.log(`1.type on id=email with value caio@chegaai.dev OK ${getSimulatedTime(1)}`);
 
     await page.getByTestId('input-password').fill('admin123');
     await page.getByTestId('btn-login').click();
@@ -266,8 +266,8 @@ test.describe('ChegAê - Fluxos Principais do Sistema', () => {
   test('CT08 - Bloqueio de nova inscrição devido a avaliações pendentes', async ({ page }) => {
     console.log(`Running 'CT08' ${getSimulatedTime(0)}`);
 
-    await page.getByTestId('input-email').fill('tester.pendente@chegae.dev');
-    console.log(`1.type on id=email with value tester.pendente@chegae.dev OK ${getSimulatedTime(1)}`);
+    await page.getByTestId('input-email').fill('tester.pendente@chegaai.dev');
+    console.log(`1.type on id=email with value tester.pendente@chegaai.dev OK ${getSimulatedTime(1)}`);
 
     await page.getByTestId('input-password').fill('admin123');
     await page.getByTestId('btn-login').click();
