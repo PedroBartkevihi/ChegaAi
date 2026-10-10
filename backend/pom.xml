@@ -17,13 +17,13 @@
     <!-- ===================================================== -->
     <!--  Identificação do artefato                             -->
     <!-- ===================================================== -->
-    <groupId>dev.chegae</groupId>
-    <artifactId>chegae-backend</artifactId>
+    <groupId>dev.chegaai</groupId>
+    <artifactId>chegaai-backend</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <name>ChegAê – Backend</name>
+    <name>ChegaAí – Backend</name>
     <description>
-        API REST do sistema ChegAê: gerenciamento de eventos presenciais,
+        API REST do sistema ChegaAí: gerenciamento de eventos presenciais,
         fila FIFO, sistema de honra e moderação, com persistência híbrida
         em PostgreSQL (JPA) e GraphDB (SPARQL/RDF).
     </description>

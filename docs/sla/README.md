@@ -3,9 +3,9 @@
 ## Nome do Serviço 1: Listagem e Feed de Eventos
 * **Tipo de operações:** Leitura
 * **Arquivos envolvidos:**
-  * [`backend/src/main/java/chegae/controller/EventoController.java`](../../backend/src/main/java/chegae/controller/EventoController.java)
-  * [`backend/src/main/java/chegae/service/EventoService.java`](../../backend/src/main/java/chegae/service/EventoService.java)
-  * [`backend/src/main/java/chegae/repository/EventoRepository.java`](../../backend/src/main/java/chegae/repository/EventoRepository.java)
+  * [`backend/src/main/java/chegaai/controller/EventoController.java`](../../backend/src/main/java/chegaai/controller/EventoController.java)
+  * [`backend/src/main/java/chegaai/service/EventoService.java`](../../backend/src/main/java/chegaai/service/EventoService.java)
+  * [`backend/src/main/java/chegaai/repository/EventoRepository.java`](../../backend/src/main/java/chegaai/repository/EventoRepository.java)
 * **Arquivos com o código fonte de medição do SLA:**
   * [`tests/load/eventos-feed.js`](../../tests/load/eventos-feed.js)
 * **Descrição das configurações:**
@@ -36,9 +36,9 @@
 ## Nome do Serviço 2: Escrita e Persistência de Comentários
 * **Tipo de operações:** Inserção
 * **Arquivos envolvidos:**
-  * [`backend/src/main/java/chegae/controller/AuthController.java`](../../backend/src/main/java/chegae/controller/AuthController.java)
-  * [`backend/src/main/java/chegae/service/ComentarioService.java`](../../backend/src/main/java/chegae/service/ComentarioService.java)
-  * [`backend/src/main/java/chegae/repository/ComentarioRepository.java`](../../backend/src/main/java/chegae/repository/ComentarioRepository.java)
+  * [`backend/src/main/java/chegaai/controller/AuthController.java`](../../backend/src/main/java/chegaai/controller/AuthController.java)
+  * [`backend/src/main/java/chegaai/service/ComentarioService.java`](../../backend/src/main/java/chegaai/service/ComentarioService.java)
+  * [`backend/src/main/java/chegaai/repository/ComentarioRepository.java`](../../backend/src/main/java/chegaai/repository/ComentarioRepository.java)
 * **Arquivos com o código fonte de medição do SLA:**
   * [`tests/load/comentarios-write.js`](../../tests/load/comentarios-write.js)
 * **Descrição das configurações:** Idênticas ao Serviço 1 (Migração do ambiente host Windows 11 para Fedora Linux nativo e compactação total do ecossistema de código).
