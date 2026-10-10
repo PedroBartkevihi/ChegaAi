@@ -540,6 +540,15 @@ h3 {
   justify-content: space-between;
 }
 
+.event-card-header > div {
+  min-width: 0;
+}
+
+.event-card-header .enrollment-badge {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .event-card h3 {
   margin: 8px 0 0;
   font-size: 1.08rem;

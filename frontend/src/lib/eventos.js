@@ -8,6 +8,7 @@ export const initialFilters = {
 export function getEnrollmentActionLabel(event, enrollment) {
   if (event.status === "TRAVADO") return "Suspenso";
   if (event.status === "CANCELADO") return "Cancelado";
+  if (event.status === "CONCLUIDO") return "Concluído";
   if (enrollment === "CONFIRMADO") return "Cancelar presença";
   if (enrollment === "FILA") return "Sair da lista de espera";
   return event.confirmed.length >= event.capacity ? "Entrar na lista de espera" : "Quero participar";

@@ -146,9 +146,10 @@ test.describe('ChegaAí - Fluxos Principais do Sistema', () => {
     await page.getByTestId('btn-login').click();
     console.log(`2.click on css=button[data-testid="btn-login"] OK ${getSimulatedTime(2)}`);
 
-    const primeiroCard = page.locator('article.event-card').first();
-    await expect(primeiroCard).toBeVisible();
-    await primeiroCard.getByRole('button', { name: /detalhes/i }).click();
+    // um rolé aberto conhecido do seed (o primeiro card pode ser um evento já concluído)
+    const cardAberto = page.locator('article.event-card:has-text("Futebol no Aterro")');
+    await expect(cardAberto).toBeVisible();
+    await cardAberto.getByRole('button', { name: /detalhes/i }).click();
     console.log(`3.click on css=article.event-card button:has-text("Detalhes") OK ${getSimulatedTime(3)}`);
 
     const modal = page.locator('[role="dialog"]');
@@ -287,9 +288,10 @@ test.describe('ChegaAí - Fluxos Principais do Sistema', () => {
     await page.getByTestId('btn-login').click();
     console.log(`2.click on css=button[data-testid="btn-login"] OK ${getSimulatedTime(2)}`);
 
-    const primeiroCard = page.locator('article.event-card').first();
-    await expect(primeiroCard).toBeVisible();
-    await primeiroCard.getByRole('button', { name: /detalhes/i }).click();
+    // um rolé aberto conhecido do seed (o primeiro card pode ser um evento já concluído)
+    const cardAberto = page.locator('article.event-card:has-text("Futebol no Aterro")');
+    await expect(cardAberto).toBeVisible();
+    await cardAberto.getByRole('button', { name: /detalhes/i }).click();
     console.log(`3.click on css=article.event-card button:has-text("Detalhes") OK ${getSimulatedTime(3)}`);
 
     const modal = page.locator('[role="dialog"]');

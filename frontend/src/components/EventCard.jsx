@@ -64,6 +64,7 @@ export default function EventCard({ event, enrollment, currentUser, openEvent, t
 function EnrollmentBadge({ event, enrollment }) {
   if (event.status === "TRAVADO") return <span className="enrollment-badge locked">Suspenso</span>;
   if (event.status === "CANCELADO") return <span className="enrollment-badge locked">Cancelado</span>;
+  if (event.status === "CONCLUIDO") return <span className="enrollment-badge locked">Concluído</span>;
   if (enrollment === "CONFIRMADO") return <span className="enrollment-badge confirmed">Confirmado</span>;
   if (enrollment === "FILA") return <span className="enrollment-badge waiting">Lista de Espera</span>;
   if (event.confirmed.length >= event.capacity) return <span className="enrollment-badge waiting">Esgotado</span>;
