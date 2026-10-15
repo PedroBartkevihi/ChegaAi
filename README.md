@@ -50,10 +50,11 @@ Os limites ficam em `application.properties` (`chegaai.regras.*`) e podem ser aj
 | Regra | Como funciona |
 |---|---|
 | Honra inicial | Quem se cadastra começa com honra **3.0** |
-| Criar rolé | Exige honra **≥ 2.0** |
+| Criar rolé | Exige honra **≥ 2.0** e data/hora no futuro |
 | Inscrever-se | Exige honra **≥ 3.0** e nenhuma avaliação pendente |
 | Embaixador | Honra **≥ 4.8**: rolés em destaque no feed e limite de **50** vagas (os demais, **20**) |
 | Fila de espera | Rolé lotado coloca a inscrição na fila; vagas liberadas vão para o primeiro da fila (FIFO) |
+| Concluir rolé | Só o organizador, e só depois da data/hora marcada |
 | Ausência | Ao concluir o rolé, confirmado sem presença registrada perde **0.5** de honra |
 | Avaliação obrigatória | Após um rolé concluído, quem compareceu precisa avaliar os demais participantes antes de se inscrever em outro |
 | Honra | Média das notas recebidas nas avaliações |

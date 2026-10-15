@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +60,17 @@ class InscricaoIT extends IntegracaoBase {
         criarEvento(organizador.token(), "Pe", 10)
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message", containsString("título")));
+    }
+    @Test
+    @DisplayName("evento com data que já passou devolve 400 e não é criado")
+    void eventoNoPassadoDevolve400() throws Exception {
+        UsuarioTeste organizador = cadastrar("Org");
+        String titulo = "Pelada de ontem " + organizador.primeiroNome();
+        criarEvento(organizador.token(), titulo, 10, LocalDate.now().minusDays(1))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("A data de realização deve ser uma data futura."));
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM evento WHERE titulo = ?", Long.class, titulo))
+            .isZero();
     }
     private ResultActions comentar(UsuarioTeste autor, UUID eventoId, String texto)
             throws Exception {

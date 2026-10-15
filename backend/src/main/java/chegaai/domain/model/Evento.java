@@ -55,8 +55,9 @@ public class Evento {
 	@Size(min = 10, max = 3000, message = "A descrição deve ter entre 10 e 3000 caracteres.")
 	@Column(name = "descricao", nullable = false, columnDefinition = "text")
 	private String descricao;
+	// Sem @Future: o Hibernate revalida a entidade a cada UPDATE, e um evento que já aconteceu
+	// precisa continuar podendo ser concluído. A data futura é exigida só na criação (EventoService).
 	@NotNull(message = "A data e hora de realização são obrigatórias.")
-	@Future(message = "A data de realização deve ser uma data futura.")
 	@Column(name = "data_hora_realizacao", nullable = false,
 			columnDefinition = "timestamptz")
 	private OffsetDateTime dataHoraRealizacao;
@@ -105,10 +106,15 @@ public class Evento {
 				.count();
 		return confirmadosSemOrganizador >= quorumMinimo;
 	}
-	public void concluir() {
+	public void concluir(OffsetDateTime agora) {
 		if (statusEvento != StatusEvento.ATIVO) {
 			throw new IllegalStateException(
 				"Apenas eventos ATIVO podem ser concluídos. Status atual: " + statusEvento
+			);
+		}
+		if (agora.isBefore(dataHoraRealizacao)) {
+			throw new IllegalStateException(
+				"O evento só pode ser concluído depois da data e hora de realização."
 			);
 		}
 		this.statusEvento = StatusEvento.CONCLUIDO;

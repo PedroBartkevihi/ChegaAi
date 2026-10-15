@@ -63,6 +63,12 @@ public class EventoService {
     }
     @Transactional
     public EventoResponseDTO criarEvento(EventoRequestDTO dto, UUID usuarioId) {
+        LocalDate data = LocalDate.parse(dto.date());
+        LocalTime hora = LocalTime.parse(dto.time());
+        OffsetDateTime dataHora = fusoHorario.instante(data, hora);
+        if (!dataHora.isAfter(OffsetDateTime.now())) {
+            throw new IllegalArgumentException("A data de realização deve ser uma data futura.");
+        }
         Usuario organizador = usuarioRepository.findById(usuarioId)
             .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + usuarioId));
         if (organizador.getHonraMedia().compareTo(BigDecimal.valueOf(honraMinimaCriacao)) < 0) {
@@ -74,9 +80,6 @@ public class EventoService {
             .orElseThrow(() -> new NoSuchElementException("Categoria não encontrada: " + dto.category()));
         Endereco endereco = montarEndereco(dto);
         endereco = enderecoRepository.save(endereco);
-        LocalDate data = LocalDate.parse(dto.date());
-        LocalTime hora = LocalTime.parse(dto.time());
-        OffsetDateTime dataHora = fusoHorario.instante(data, hora);
         int limiteMax = organizador.getHonraMedia().compareTo(BigDecimal.valueOf(4.8)) >= 0 ? 50 : 20;
         int capacidade = Math.min(dto.capacity(), limiteMax);
         Evento evento = new Evento();
@@ -123,7 +126,7 @@ public class EventoService {
             throw new IllegalStateException(
                 "Apenas o organizador pode concluir o evento.");
         }
-        evento.concluir();
+        evento.concluir(OffsetDateTime.now());
         eventoRepository.save(evento);
         List<Inscricao> confirmadas = inscricaoRepository
             .findByEventoIdAndStatusInscricao(eventoId, StatusInscricao.CONFIRMADA);
