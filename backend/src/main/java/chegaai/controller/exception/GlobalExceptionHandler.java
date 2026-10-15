@@ -16,6 +16,7 @@ import java.util.NoSuchElementException;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+    static final String ERRO_INTERNO = "Erro interno do servidor. Tente novamente em instantes.";
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(NoSuchElementException ex) {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
@@ -55,8 +56,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex) {
         log.error("Erro inesperado ao processar requisição", ex);
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR,
-            "Erro interno do servidor: " + ex.getMessage());
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ERRO_INTERNO);
     }
     private ResponseEntity<Map<String, Object>> buildResponse(HttpStatus status, String message) {
         Map<String, Object> body = new LinkedHashMap<>();
