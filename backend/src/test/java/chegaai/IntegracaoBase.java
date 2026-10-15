@@ -65,6 +65,16 @@ public abstract class IntegracaoBase {
             .get("token").asText();
     }
     protected ResultActions criarEvento(String token, String titulo, int capacidade) throws Exception {
+        return criarEvento(token, corpoDeEvento(titulo, capacidade));
+    }
+    protected ResultActions criarEvento(String token, Map<String, Object> corpo) throws Exception {
+        return mockMvc.perform(post("/eventos")
+            .header("Authorization", bearer(token))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(corpo)));
+    }
+    /** Corpo válido de criação de evento; o teste pode trocar qualquer campo antes de enviar. */
+    protected static Map<String, Object> corpoDeEvento(String titulo, int capacidade) {
         Map<String, Object> corpo = new LinkedHashMap<>();
         corpo.put("title", titulo);
         corpo.put("category", "Futebol");
@@ -75,10 +85,7 @@ public abstract class IntegracaoBase {
         corpo.put("capacity", capacidade);
         corpo.put("distance", 3);
         corpo.put("description", "Evento criado pelo teste de integração.");
-        return mockMvc.perform(post("/eventos")
-            .header("Authorization", bearer(token))
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(corpo)));
+        return corpo;
     }
     protected UUID criarEventoValido(UsuarioTeste organizador, int capacidade) throws Exception {
         JsonNode evento = json(criarEvento(organizador.token(), "Pelada de " + organizador.primeiroNome(), capacidade)

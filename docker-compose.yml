@@ -29,6 +29,9 @@ services:
     environment:
       CHEGAAI_DB_URL: jdbc:postgresql://db:5432/chegaai
       CHEGAAI_GRAPHDB_URL: http://graphdb:7200
+      # Vazio: a API gera uma chave aleatória a cada inicialização (os logins caem quando ela reinicia).
+      # Para manter os tokens entre reinícios, defina CHEGAAI_JWT_SECRET no shell ou num arquivo .env.
+      CHEGAAI_JWT_SECRET: ${CHEGAAI_JWT_SECRET:-}
     ports:
       - "8080:8080"
 
