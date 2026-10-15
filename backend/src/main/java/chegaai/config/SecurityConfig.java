@@ -1,6 +1,7 @@
 package chegaai.config;
 import chegaai.service.TokenService;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,10 +24,15 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.List;
 @Configuration
 @EnableWebSecurity
+@Slf4j
 public class SecurityConfig {
+    private static final int TAMANHO_MINIMO_CHAVE = 32;
+    /** Foi o padrão do application.properties: está no histórico do Git, então não protege nada. */
+    private static final String SEGREDO_PUBLICO_ANTIGO = "chave-de-desenvolvimento-local-nao-usar-em-producao";
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, CorsConfigurationSource corsConfigurationSource)
             throws Exception {
@@ -48,10 +54,25 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+    /**
+     * Chave HMAC dos tokens. Sem CHEGAAI_JWT_SECRET, gera uma chave aleatória a cada inicialização:
+     * nada no repositório assina tokens válidos, mas todos são deslogados quando a API reinicia.
+     */
     @Bean
-    public SecretKey jwtSecretKey(@Value("${chegaai.jwt.secret}") String secret) {
+    public SecretKey jwtSecretKey(@Value("${chegaai.jwt.secret:}") String secret) {
+        if (secret.isBlank()) {
+            log.warn("CHEGAAI_JWT_SECRET não definido: usando uma chave aleatória gerada nesta inicialização. "
+                + "Os tokens emitidos deixam de valer quando a API reinicia.");
+            byte[] aleatoria = new byte[TAMANHO_MINIMO_CHAVE];
+            new SecureRandom().nextBytes(aleatoria);
+            return new SecretKeySpec(aleatoria, "HmacSHA256");
+        }
+        if (secret.equals(SEGREDO_PUBLICO_ANTIGO)) {
+            throw new IllegalStateException("CHEGAAI_JWT_SECRET usa a chave que já foi o padrão do repositório "
+                + "e é pública. Gere outra (veja o DEPLOY.md).");
+        }
         byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
-        if (bytes.length < 32) {
+        if (bytes.length < TAMANHO_MINIMO_CHAVE) {
             throw new IllegalStateException("chegaai.jwt.secret precisa ter pelo menos 32 bytes para o HS256.");
         }
         return new SecretKeySpec(bytes, "HmacSHA256");
