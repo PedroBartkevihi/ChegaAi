@@ -6,6 +6,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -39,6 +40,8 @@ public abstract class IntegracaoBase {
     protected MockMvc mockMvc;
     @Autowired
     protected ObjectMapper objectMapper;
+    @Autowired
+    protected JdbcTemplate jdbcTemplate;
     protected record UsuarioTeste(UUID id, String primeiroNome, String email, String token) {}
     protected UsuarioTeste cadastrar(String prefixoNome) throws Exception {
         int n = SEQUENCIA.incrementAndGet();
@@ -66,6 +69,12 @@ public abstract class IntegracaoBase {
     }
     protected ResultActions criarEvento(String token, String titulo, int capacidade) throws Exception {
         return criarEvento(token, corpoDeEvento(titulo, capacidade));
+    }
+    protected ResultActions criarEvento(String token, String titulo, int capacidade, LocalDate data)
+            throws Exception {
+        Map<String, Object> corpo = corpoDeEvento(titulo, capacidade);
+        corpo.put("date", data.toString());
+        return criarEvento(token, corpo);
     }
     protected ResultActions criarEvento(String token, Map<String, Object> corpo) throws Exception {
         return mockMvc.perform(post("/eventos")
@@ -95,6 +104,25 @@ public abstract class IntegracaoBase {
     protected ResultActions alternarInscricao(UsuarioTeste usuario, UUID eventoId) throws Exception {
         return mockMvc.perform(post("/eventos/{id}/inscricao", eventoId)
             .header("Authorization", bearer(usuario.token())));
+    }
+    /**
+     * A API só aceita criar eventos futuros e só deixa concluir depois do horário do rolé:
+     * os testes criam o evento normalmente e depois o levam para duas horas atrás.
+     */
+    protected void moverParaOPassado(UUID eventoId) {
+        jdbcTemplate.update(
+            "UPDATE evento SET data_hora_realizacao = now() - interval '2 hours' WHERE id_evento = ?", eventoId);
+    }
+    protected ResultActions registrarPresenca(UsuarioTeste organizador, UUID eventoId, UsuarioTeste participante)
+            throws Exception {
+        return mockMvc.perform(post("/eventos/{id}/presencas", eventoId)
+            .header("Authorization", bearer(organizador.token()))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(Map.of("participanteId", participante.id()))));
+    }
+    protected ResultActions concluir(UsuarioTeste organizador, UUID eventoId) throws Exception {
+        return mockMvc.perform(post("/eventos/{id}/concluir", eventoId)
+            .header("Authorization", bearer(organizador.token())));
     }
     protected JsonNode buscarEvento(UUID eventoId) throws Exception {
         return json(mockMvc.perform(get("/eventos/{id}", eventoId)).andExpect(status().isOk()));

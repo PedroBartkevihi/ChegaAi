@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 import java.util.Map;
@@ -15,8 +14,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class DemonstracaoIT extends IntegracaoBase {
     @Autowired
     private DataSeederService dataSeederService;
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
     @Autowired
     private NamedParameterJdbcTemplate namedJdbc;
     @Test

@@ -22,6 +22,7 @@ class AvaliacaoIT extends IntegracaoBase {
         alternarInscricao(bravo, eventoId).andExpect(status().isOk());
         registrarPresenca(organizador, eventoId, alfa).andExpect(status().isNoContent());
         registrarPresenca(organizador, eventoId, bravo).andExpect(status().isNoContent());
+        moverParaOPassado(eventoId);
         concluir(organizador, eventoId).andExpect(jsonPath("$.status").value("CONCLUIDO"));
         UUID proximoEvento = criarEventoValido(cadastrar("OutroOrg"), 10);
         alternarInscricao(alfa, proximoEvento)
@@ -52,6 +53,7 @@ class AvaliacaoIT extends IntegracaoBase {
         avaliar(alfa, eventoId, bravo, 5)
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.message", containsString("após a conclusão")));
+        moverParaOPassado(eventoId);
         concluir(organizador, eventoId).andExpect(status().isOk());
         avaliar(alfa, eventoId, naoInscrito, 3)
             .andExpect(status().isConflict())
@@ -78,22 +80,12 @@ class AvaliacaoIT extends IntegracaoBase {
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.message", containsString("Apenas o organizador")));
         registrarPresenca(organizador, eventoId, naoInscrito).andExpect(status().isNotFound());
+        moverParaOPassado(eventoId);
         concluir(organizador, eventoId).andExpect(status().isOk());
         registrarPresenca(organizador, eventoId, alfa)
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.message", containsString("antes de concluir")));
         assertThat(usuarioAtual(organizador).get("honor").asDouble()).isEqualTo(3.0);
-    }
-    private ResultActions registrarPresenca(UsuarioTeste organizador, UUID eventoId, UsuarioTeste participante)
-            throws Exception {
-        return mockMvc.perform(post("/eventos/{id}/presencas", eventoId)
-            .header("Authorization", bearer(organizador.token()))
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(Map.of("participanteId", participante.id()))));
-    }
-    private ResultActions concluir(UsuarioTeste organizador, UUID eventoId) throws Exception {
-        return mockMvc.perform(post("/eventos/{id}/concluir", eventoId)
-            .header("Authorization", bearer(organizador.token())));
     }
     private ResultActions avaliar(UsuarioTeste avaliador, UUID eventoId, UsuarioTeste avaliado, int nota)
             throws Exception {

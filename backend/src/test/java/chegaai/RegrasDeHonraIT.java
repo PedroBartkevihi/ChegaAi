@@ -8,7 +8,6 @@ import java.math.BigDecimal;
 import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 class RegrasDeHonraIT extends IntegracaoBase {
@@ -50,8 +49,8 @@ class RegrasDeHonraIT extends IntegracaoBase {
         UsuarioTeste faltou = cadastrar("Faltou");
         UUID eventoId = criarEventoValido(organizador, 10);
         alternarInscricao(faltou, eventoId).andExpect(status().isOk());
-        mockMvc.perform(post("/eventos/{id}/concluir", eventoId).header("Authorization", bearer(organizador.token())))
-            .andExpect(status().isOk());
+        moverParaOPassado(eventoId);
+        concluir(organizador, eventoId).andExpect(status().isOk());
         assertThat(usuarioAtual(faltou).get("honor").asDouble()).isEqualTo(2.5);
     }
     @Test
@@ -60,8 +59,10 @@ class RegrasDeHonraIT extends IntegracaoBase {
         UsuarioTeste organizador = cadastrar("Org");
         UsuarioTeste outro = cadastrar("Outro");
         UUID eventoId = criarEventoValido(organizador, 10);
-        mockMvc.perform(post("/eventos/{id}/concluir", eventoId).header("Authorization", bearer(outro.token())))
-            .andExpect(status().isConflict());
+        moverParaOPassado(eventoId);
+        concluir(outro, eventoId)
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.message", containsString("Apenas o organizador")));
     }
     private void definirHonra(UsuarioTeste usuarioTeste, String honra) {
         Usuario usuario = usuarioRepository.findById(usuarioTeste.id()).orElseThrow();
