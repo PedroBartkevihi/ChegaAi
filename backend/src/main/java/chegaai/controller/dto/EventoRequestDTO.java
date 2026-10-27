@@ -9,9 +9,9 @@ public record EventoRequestDTO(
     String title,
     @NotBlank
     String category,
-    @NotBlank @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$")
+    @NotBlank @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "a data deve estar no formato AAAA-MM-DD")
     String date,
-    @NotBlank @Pattern(regexp = "^\\d{2}:\\d{2}$")
+    @NotBlank @Pattern(regexp = "^\\d{2}:\\d{2}$", message = "o horário deve estar no formato HH:MM")
     String time,
     @Size(max = 9)
     String cep,

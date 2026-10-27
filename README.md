@@ -127,6 +127,18 @@ npm run dev
 
 O Flyway cria as tabelas e o seed carrega os dados de demonstração na primeira execução.
 
+### Segredo do JWT
+
+Os tokens são assinados com a variável `CHEGAAI_JWT_SECRET` (pelo menos 32 caracteres).
+Sem ela, a API gera uma chave aleatória a cada inicialização e avisa no log: tudo funciona,
+mas quem estava logado precisa entrar de novo quando a API reinicia. Para manter os logins
+entre reinícios, e sempre em produção, defina a variável (o Docker Compose a repassa do
+shell ou de um arquivo `.env`):
+
+```bash
+export CHEGAAI_JWT_SECRET=$(node -e "console.log(require('node:crypto').randomBytes(48).toString('base64url'))")
+```
+
 ### Contas de demonstração
 
 Todas usam a senha `admin123`.
@@ -162,8 +174,8 @@ Rotas autenticadas recebem o token no cabeçalho `Authorization: Bearer <token>`
 
 | Tipo | Quantidade | Como rodar |
 |---|---|---|
-| Unitários (JUnit + Mockito) | 23 | `cd backend && ./mvnw test` |
-| Integração (PostgreSQL real com Testcontainers; precisa do Docker) | 23 | `cd backend && ./mvnw verify` |
+| Unitários (JUnit + Mockito) | 28 | `cd backend && ./mvnw test` |
+| Integração (PostgreSQL real com Testcontainers; precisa do Docker) | 31 | `cd backend && ./mvnw verify` |
 | Ponta a ponta (Playwright; precisa da API rodando) | 11 | `cd frontend && npx playwright test` |
 
 O GitHub Actions roda os testes do back-end e os ponta a ponta (com o build de produção do Next.js) a cada push.

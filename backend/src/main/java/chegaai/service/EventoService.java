@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -72,11 +73,9 @@ public class EventoService {
         }
         Categoria categoria = categoriaRepository.findByNome(dto.category())
             .orElseThrow(() -> new NoSuchElementException("Categoria não encontrada: " + dto.category()));
+        OffsetDateTime dataHora = fusoHorario.instante(lerData(dto.date()), lerHorario(dto.time()));
         Endereco endereco = montarEndereco(dto);
         endereco = enderecoRepository.save(endereco);
-        LocalDate data = LocalDate.parse(dto.date());
-        LocalTime hora = LocalTime.parse(dto.time());
-        OffsetDateTime dataHora = fusoHorario.instante(data, hora);
         int limiteMax = organizador.getHonraMedia().compareTo(BigDecimal.valueOf(4.8)) >= 0 ? 50 : 20;
         int capacidade = Math.min(dto.capacity(), limiteMax);
         Evento evento = new Evento();
@@ -233,6 +232,23 @@ public class EventoService {
             .orElse(false);
     }
 
+    // O DTO já garante o formato (AAAA-MM-DD e HH:MM); aqui se recusa o que não existe, como 30/02 ou 25:99.
+    private static LocalDate lerData(String data) {
+        try {
+            return LocalDate.parse(data);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException(
+                "Data inválida: " + data + ". Informe uma data que exista no calendário, no formato AAAA-MM-DD.");
+        }
+    }
+    private static LocalTime lerHorario(String horario) {
+        try {
+            return LocalTime.parse(horario);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException(
+                "Horário inválido: " + horario + ". Informe um horário entre 00:00 e 23:59.");
+        }
+    }
     private Endereco montarEndereco(EventoRequestDTO dto) {
         Endereco endereco = new Endereco();
         String cepLimpo = (dto.cep() != null) ? dto.cep().replaceAll("[^0-9]", "") : "";

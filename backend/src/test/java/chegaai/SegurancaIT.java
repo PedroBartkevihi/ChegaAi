@@ -1,14 +1,27 @@
 package chegaai;
+import chegaai.service.TokenService;
+import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.UUID;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -41,6 +54,18 @@ class SegurancaIT extends IntegracaoBase {
         String adulterado = ana.token().substring(0, ana.token().length() - 2) + "xx";
         mockMvc.perform(get("/auth/me").header("Authorization", bearer(adulterado)))
             .andExpect(status().isUnauthorized());
+    }
+    @Test
+    @DisplayName("token assinado com a antiga chave padrão do repositório devolve 401")
+    void tokenForjadoComChavePadraoAntigaDevolve401() throws Exception {
+        UsuarioTeste ana = cadastrar("Ana");
+        // A chave era o padrão do application.properties: com ela, qualquer pessoa assinava um token
+        // para o id de um organizador, que aparece em GET /eventos.
+        String forjado = assinar("chave-de-desenvolvimento-local-nao-usar-em-producao", ana.id());
+        mockMvc.perform(get("/auth/me").header("Authorization", bearer(forjado)))
+            .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/auth/me").header("Authorization", bearer(ana.token())))
+            .andExpect(status().isOk());
     }
     @Test
     @DisplayName("contas de demonstração entram com a senha documentada e recusam senha errada")
@@ -103,5 +128,46 @@ class SegurancaIT extends IntegracaoBase {
                 .header("Origin", "https://site-qualquer.example")
                 .header("Access-Control-Request-Method", "POST"))
             .andExpect(status().isForbidden());
+    }
+    @Test
+    @DisplayName("id de evento que não é UUID devolve 400 sem detalhes internos")
+    void idQueNaoEhUuidDevolve400() throws Exception {
+        mockMvc.perform(get("/eventos/nao-e-uuid"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Valor inválido para o parâmetro 'id'."));
+    }
+    @Test
+    @DisplayName("rota inexistente devolve 404")
+    void rotaInexistenteDevolve404() throws Exception {
+        UsuarioTeste ana = cadastrar("Ana");
+        mockMvc.perform(get("/rota-que-nao-existe").header("Authorization", bearer(ana.token())))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Rota não encontrada."));
+        // GET em /eventos/** é público: sem token, a requisição também chega ao Spring MVC
+        mockMvc.perform(get("/eventos/{id}/rota-que-nao-existe", UUID.randomUUID()))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Rota não encontrada."));
+    }
+    @Test
+    @DisplayName("método não suportado na rota devolve 405 com o cabeçalho Allow")
+    void metodoNaoSuportadoDevolve405() throws Exception {
+        UsuarioTeste ana = cadastrar("Ana");
+        mockMvc.perform(put("/eventos").header("Authorization", bearer(ana.token())))
+            .andExpect(status().isMethodNotAllowed())
+            .andExpect(header().string("Allow", allOf(containsString("GET"), containsString("POST"))))
+            .andExpect(jsonPath("$.message").value("Método PUT não é aceito nesta rota."));
+    }
+    private static String assinar(String segredo, UUID usuarioId) {
+        Instant agora = Instant.now();
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+            .issuer(TokenService.EMISSOR)
+            .subject(usuarioId.toString())
+            .issuedAt(agora)
+            .expiresAt(agora.plus(1, ChronoUnit.HOURS))
+            .build();
+        SecretKeySpec chave = new SecretKeySpec(segredo.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        return new NimbusJwtEncoder(new ImmutableSecret<>(chave))
+            .encode(JwtEncoderParameters.from(JwsHeader.with(MacAlgorithm.HS256).build(), claims))
+            .getTokenValue();
     }
 }
