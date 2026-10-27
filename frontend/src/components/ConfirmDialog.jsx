@@ -1,13 +1,14 @@
 import { AlertTriangle } from "lucide-react";
 import { useEffect, useId, useRef } from "react";
+import { returnFocus } from "../lib/foco";
 const FOCUSABLE = "button:not([disabled])";
 // Diálogo de confirmação no estilo do site, no lugar do window.confirm. Pode abrir por cima do detalhe
 // do rolé: ouve o teclado na fase de captura e para a propagação, para só ele tratar Esc e Tab.
 export default function ConfirmDialog({ title, message, confirmLabel, cancelLabel = "Voltar", tone = "primary", onConfirm, onCancel }) {
   const dialogRef = useRef(null);
   const cancelRef = useRef(null);
-  const handlers = useRef({ onConfirm, onCancel });
-  handlers.current = { onConfirm, onCancel };
+  const onCancelRef = useRef(onCancel);
+  onCancelRef.current = onCancel;
   const titleId = useId();
   const messageId = useId();
   useEffect(() => {
@@ -17,7 +18,7 @@ export default function ConfirmDialog({ title, message, confirmLabel, cancelLabe
       if (keyEvent.key === "Escape") {
         keyEvent.preventDefault();
         keyEvent.stopPropagation();
-        handlers.current.onCancel();
+        onCancelRef.current();
         return;
       }
       if (keyEvent.key !== "Tab" || !dialogRef.current) return;
@@ -36,8 +37,7 @@ export default function ConfirmDialog({ title, message, confirmLabel, cancelLabe
     document.addEventListener("keydown", handleKeyDown, true);
     return () => {
       document.removeEventListener("keydown", handleKeyDown, true);
-      if (opener instanceof HTMLElement && opener.isConnected && opener !== document.body) opener.focus();
-      else document.getElementById("roles-disponiveis")?.focus();
+      returnFocus(opener);
     };
   }, []);
   return (

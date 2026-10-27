@@ -14,6 +14,7 @@ import CategoryIcon from "./CategoryIcon";
 import Notice from "./Notice";
 import { getEnrollmentActionLabel, formatEventDateLong, categorySlug } from "../lib/eventos";
 import { downloadIcs, mapUrl } from "../lib/agenda";
+import { returnFocus } from "../lib/foco";
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 export default function EventModal({ event, enrollment, pending = {}, close, notice, onCloseNotice, toggleEnrollment, addComment, deleteEvent, reportEvent, currentUser }) {
   const [comment, setComment] = useState("");
@@ -30,8 +31,7 @@ export default function EventModal({ event, enrollment, pending = {}, close, not
   const deleting = Boolean(pending[`exclusao:${event.id}`]);
   const commenting = Boolean(pending[`comentario:${event.id}`]);
   // Ao abrir, o foco vai para o botão de fechar; Esc fecha; Tab circula só dentro do diálogo;
-  // ao fechar, o foco volta para o botão que abriu o diálogo ou, se ele sumiu (rolé excluído,
-  // formulário de criação desmontado), para o título da lista de rolés.
+  // ao fechar, o foco volta para quem abriu o diálogo (ver returnFocus).
   useEffect(() => {
     const opener = document.activeElement;
     closeRef.current?.focus();
@@ -57,15 +57,16 @@ export default function EventModal({ event, enrollment, pending = {}, close, not
     document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
-      if (opener instanceof HTMLElement && opener.isConnected && opener !== document.body) opener.focus();
-      else document.getElementById("roles-disponiveis")?.focus();
+      returnFocus(opener);
     };
   }, []);
-  // O texto só é apagado depois que a API aceitou o comentário; se falhar, continua no campo.
+  // O texto só é apagado depois que a API aceitou o comentário (se falhar, continua no campo), e só
+  // se ainda for o que foi enviado; durante o envio o campo fica só para leitura.
   async function submitComment(formEvent) {
     formEvent.preventDefault();
     if (commenting) return;
-    if (await addComment(event.id, comment)) setComment("");
+    const sent = comment;
+    if (await addComment(event.id, sent)) setComment((current) => (current === sent ? "" : current));
   }
   return (
     <div className="modal-backdrop" role="presentation">
@@ -77,7 +78,8 @@ export default function EventModal({ event, enrollment, pending = {}, close, not
           <button ref={closeRef} className="icon-button" type="button" aria-label="Fechar" onClick={close}><X size={18} aria-hidden="true" /></button>
         </header>
         <div className="dialog-body">
-          {notice && <Notice alert={notice} onClose={onCloseNotice} />}
+          {/* Fixo no topo da área que rola, para o aviso aparecer mesmo com o detalhe rolado. */}
+          {notice && <div className="dialog-notice"><Notice alert={notice} onClose={onCloseNotice} /></div>}
           <p>{event.description}</p>
           <div className="dialog-stats">
             <div>
@@ -134,7 +136,7 @@ export default function EventModal({ event, enrollment, pending = {}, close, not
               <form className="comment-form" onSubmit={submitComment}>
                 <label>
                   Novo comentário
-                  <textarea value={comment} onChange={(event) => setComment(event.target.value)} required maxLength="180" rows="3" placeholder="Escreva seu comentário para o grupo..." />
+                  <textarea value={comment} readOnly={commenting} onChange={(event) => setComment(event.target.value)} required maxLength="180" rows="3" placeholder="Escreva seu comentário para o grupo..." />
                 </label>
                 <button className="secondary-action" type="submit" aria-disabled={commenting || undefined}>
                   {commenting ? "Enviando..." : "Enviar comentário"}

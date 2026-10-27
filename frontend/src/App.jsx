@@ -12,6 +12,12 @@ import EventModal from "./components/EventModal";
 import ConfirmDialog from "./components/ConfirmDialog";
 import { api, cleanErrorMessage, TOKEN_KEY, USER_KEY, SESSION_EXPIRED_EVENT } from "./lib/api";
 import { categories, initialFilters, isAmbassador, createId, sortByDate } from "./lib/eventos";
+// A API não diz se a pessoa está inscrita: a lista traz só os primeiros nomes de confirmados e da fila.
+function enrollmentFor(event, user) {
+  if (event.confirmed.includes(user.name)) return "CONFIRMADO";
+  if (event.waitlist.includes(user.name)) return "FILA";
+  return null;
+}
 import { useDemora } from "./lib/useDemora";
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -41,11 +47,8 @@ export default function App() {
       if (currentUser) {
         const newEnrollments = {};
         data.forEach((event) => {
-          if (event.confirmed.includes(currentUser.name)) {
-            newEnrollments[event.id] = "CONFIRMADO";
-          } else if (event.waitlist.includes(currentUser.name)) {
-            newEnrollments[event.id] = "FILA";
-          }
+          const status = enrollmentFor(event, currentUser);
+          if (status) newEnrollments[event.id] = status;
         });
         setEnrollments(newEnrollments);
       }
@@ -200,6 +203,7 @@ export default function App() {
       // O rolé já existe: entra na lista com o que a API devolveu, mesmo que a atualização falhe,
       // para ninguém achar que a criação falhou e criar de novo.
       setEvents((current) => [...current.filter((event) => event.id !== criado.id), criado]);
+      setEnrollments((current) => setEnrollment(current, criado.id, enrollmentFor(criado, currentUser)));
       formElement.reset();
       setView("feed");
       setSelectedEventId(criado.id);
@@ -237,11 +241,20 @@ export default function App() {
         showNotice("Não foi possível realizar a inscrição: " + err.message, "error");
         return;
       }
+      // A situação devolvida vale já: se a atualização da lista falhar, o botão não pode continuar
+      // oferecendo a ação antiga (um novo clique desfaria a inscrição sem confirmação).
+      setEnrollments((current) => setEnrollment(current, eventId, result.status === "CANCELADO" ? null : result.status));
       showNotice(result.message, "success");
       if (!(await loadEvents())) {
         showNotice(`${result.message} Não foi possível atualizar a lista agora; recarregue a página para ver as vagas atualizadas.`, "info");
       }
     });
+  }
+  function setEnrollment(current, eventId, status) {
+    const next = { ...current };
+    if (status) next[eventId] = status;
+    else delete next[eventId];
+    return next;
   }
   async function addComment(eventId, text) {
     if (!text.trim()) return false;
@@ -300,11 +313,7 @@ export default function App() {
         return;
       }
       setEvents((current) => current.filter((item) => item.id !== eventId));
-      setEnrollments((current) => {
-        const next = { ...current };
-        delete next[eventId];
-        return next;
-      });
+      setEnrollments((current) => setEnrollment(current, eventId, null));
       setSelectedEventId(null);
       showNotice("Rolé excluído com sucesso.", "success");
     });

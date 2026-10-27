@@ -183,10 +183,10 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* Ação em andamento: o botão continua focável (aria-disabled), mas não aceita outro clique. */
+/* Ação em andamento: o botão continua focável (aria-disabled), mas não aceita outro clique. O texto
+   ("Enviando...") mostra o estado; sem opacidade, para não derrubar o contraste. */
 [aria-disabled="true"] {
   cursor: progress;
-  opacity: 0.75;
 }
 
 ::placeholder {
@@ -1342,6 +1342,18 @@ legend {
 
 .past-toggle[aria-expanded="true"] svg {
   transform: rotate(180deg);
+}
+
+.dialog-notice {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  align-self: start;
+}
+
+.dialog-notice .notice {
+  margin: 0;
+  box-shadow: var(--shadow-sm);
 }
 
 .dialog-links {
