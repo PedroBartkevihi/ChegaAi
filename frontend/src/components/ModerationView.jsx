@@ -4,15 +4,13 @@ export default function ModerationView({ reports, resolveReport }) {
   const pendingReports = reports.filter((report) => report.status === "PENDENTE");
   return (
     <section className="view" aria-label="Painel de moderação">
-      <div className="section-heading">
-        <div>
-          <span className="status-pill">Controle de Moderação</span>
-          <h2>Denúncias e travas</h2>
-        </div>
+      <div className="page-heading">
+        <p className="eyebrow">Moderação</p>
+        <h1>Denúncias e travas</h1>
       </div>
       <div className="moderation-grid">
         <section>
-          <h3>Denúncias pendentes</h3>
+          <h2>Denúncias pendentes</h2>
           <div className="stack-list">
             {pendingReports.length ? (
               pendingReports.map((report) => (
@@ -32,7 +30,7 @@ export default function ModerationView({ reports, resolveReport }) {
           </div>
         </section>
         <section>
-          <h3>Categorias ativas</h3>
+          <h2>Categorias ativas</h2>
           <div className="stack-list">
             {categories.map((category) => <StackItem key={category} title={category} body="Categoria ativa no feed." />)}
           </div>

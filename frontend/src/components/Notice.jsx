@@ -12,10 +12,10 @@ export default function Notice({ alert, onClose }) {
       : Info;
   return (
     <div className={`notice alert-${alert.type}`} role="status" aria-live="polite">
-      <Icon size={20} />
+      <Icon size={20} aria-hidden="true" />
       <div>{alert.message}</div>
       <button className="notice-close" type="button" aria-label="Fechar alerta" onClick={onClose}>
-        <X size={18} />
+        <X size={18} aria-hidden="true" />
       </button>
     </div>
   );
