@@ -297,7 +297,8 @@ export default function App() {
         onLogout={handleLogout}
       />
       <main className="content">
-        {alert && <Notice alert={alert} onClose={() => setAlert(null)} />}
+        {/* Com o detalhe de um rolé aberto, o aviso aparece dentro dele, onde está o foco. */}
+        {alert && !selectedEvent && <Notice alert={alert} onClose={() => setAlert(null)} />}
         {loading && <div className="notice loading-notice">{loadingSlow ? AVISO_SERVIDOR_ACORDANDO : "Carregando..."}</div>}
         {view === "feed" && (
           <FeedView
@@ -323,6 +324,8 @@ export default function App() {
           event={selectedEvent}
           enrollment={enrollments[selectedEvent.id]}
           close={() => setSelectedEventId(null)}
+          notice={alert}
+          onCloseNotice={() => setAlert(null)}
           toggleEnrollment={toggleEnrollment}
           addComment={addComment}
           deleteEvent={deleteEvent}

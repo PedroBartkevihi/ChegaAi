@@ -31,7 +31,7 @@ export default function FeedView({ events, metrics, filters, updateFilter, enrol
       </dl>
       <div className="section-heading">
         <div>
-          <h2>Rolés disponíveis</h2>
+          <h2 id="roles-disponiveis" tabIndex={-1}>Rolés disponíveis</h2>
           <span>{buildFilterSummary(filters)}</span>
         </div>
         <button className="secondary-action" type="button" onClick={resetFilters}>

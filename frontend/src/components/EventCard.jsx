@@ -18,8 +18,8 @@ export default function EventCard({ event, enrollment, currentUser, openEvent, t
       <div className="event-card-body">
         <h3>{event.title}</h3>
         <ul className="event-meta">
-          <li><CalendarDays size={16} aria-hidden="true" />{formatDate(event.date)} às {event.time}</li>
-          <li><MapPin size={16} aria-hidden="true" />{event.place}{event.distance > 0 ? ` - ${event.distance} km` : ""}</li>
+          <li><CalendarDays size={16} aria-hidden="true" /><span>{formatDate(event.date)} às {event.time}</span></li>
+          <li><MapPin size={16} aria-hidden="true" /><span>{event.place}{event.distance > 0 ? ` - ${event.distance} km` : ""}</span></li>
           {event.confirmed.length >= event.capacity ? (
             <li>
               <span className="waitlist-pill">
@@ -27,7 +27,7 @@ export default function EventCard({ event, enrollment, currentUser, openEvent, t
               </span>
             </li>
           ) : (
-            <li><UsersRound size={16} aria-hidden="true" />{event.confirmed.length}/{event.capacity} confirmados · {seats} vaga(s) restante(s)</li>
+            <li><UsersRound size={16} aria-hidden="true" /><span>{event.confirmed.length}/{event.capacity} confirmados · {seats} vaga(s) restante(s)</span></li>
           )}
         </ul>
         <div className="progress-track" aria-hidden="true">

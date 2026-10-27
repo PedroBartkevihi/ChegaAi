@@ -9,9 +9,10 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import CategoryIcon from "./CategoryIcon";
+import Notice from "./Notice";
 import { getEnrollmentActionLabel, formatDate, categorySlug } from "../lib/eventos";
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-export default function EventModal({ event, enrollment, close, toggleEnrollment, addComment, deleteEvent, reportEvent, currentUser }) {
+export default function EventModal({ event, enrollment, close, notice, onCloseNotice, toggleEnrollment, addComment, deleteEvent, reportEvent, currentUser }) {
   const [comment, setComment] = useState("");
   const dialogRef = useRef(null);
   const closeRef = useRef(null);
@@ -23,7 +24,8 @@ export default function EventModal({ event, enrollment, close, toggleEnrollment,
   const canManage = currentUser?.isModerator || event.organizer.id === currentUser?.id;
   const slug = categorySlug(event.category);
   // Ao abrir, o foco vai para o botão de fechar; Esc fecha; Tab circula só dentro do diálogo;
-  // ao fechar, o foco volta para o botão que abriu o diálogo.
+  // ao fechar, o foco volta para o botão que abriu o diálogo ou, se ele sumiu (rolé excluído,
+  // formulário de criação desmontado), para o título da lista de rolés.
   useEffect(() => {
     const opener = document.activeElement;
     closeRef.current?.focus();
@@ -49,7 +51,8 @@ export default function EventModal({ event, enrollment, close, toggleEnrollment,
     document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
-      if (opener instanceof HTMLElement && opener.isConnected) opener.focus();
+      if (opener instanceof HTMLElement && opener.isConnected && opener !== document.body) opener.focus();
+      else document.getElementById("roles-disponiveis")?.focus();
     };
   }, []);
   function submitComment(formEvent) {
@@ -67,6 +70,7 @@ export default function EventModal({ event, enrollment, close, toggleEnrollment,
           <button ref={closeRef} className="icon-button" type="button" aria-label="Fechar" onClick={close}><X size={18} aria-hidden="true" /></button>
         </header>
         <div className="dialog-body">
+          {notice && <Notice alert={notice} onClose={onCloseNotice} />}
           <p>{event.description}</p>
           <div className="dialog-stats">
             <div><CalendarDays size={18} aria-hidden="true" /><strong>{formatDate(event.date)}</strong><span>{event.time}</span></div>
