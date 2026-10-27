@@ -1,6 +1,7 @@
 import { CalendarPlus, Compass, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import { isAmbassador } from "../lib/eventos";
 import Brand from "./Brand";
+import ThemeSelect from "./ThemeSelect";
 export default function SiteHeader({ view, setView, currentUser, onLogout }) {
   const tabs = [
     ["feed", "Feed", Compass],
@@ -34,9 +35,10 @@ export default function SiteHeader({ view, setView, currentUser, onLogout }) {
               {isAmbassador(currentUser.honor) ? "Embaixador" : "Participante"} · reputação {currentUser.honor.toFixed(1)}
             </small>
           </div>
+          <ThemeSelect />
           <button className="ghost-action" type="button" onClick={onLogout}>
             <LogOut size={16} aria-hidden="true" />
-            Sair
+            <span className="ghost-label">Sair</span>
           </button>
         </section>
       </div>

@@ -1,8 +1,9 @@
-import { AlertTriangle, LogIn, Mail, UserPlus } from "lucide-react";
-import { useState } from "react";
+import { AlertTriangle, Eye, EyeOff, LogIn, Mail, UserPlus } from "lucide-react";
+import { useId, useState } from "react";
 import Notice from "./Notice";
 import Brand from "./Brand";
 import Landscape from "./Landscape";
+import ThemeSelect from "./ThemeSelect";
 import { cleanErrorMessage } from "../lib/api";
 import { useDemora, AVISO_SERVIDOR_ACORDANDO } from "../lib/useDemora";
 const DEMO_PASSWORD = "admin123";
@@ -73,7 +74,10 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
         <Landscape className="login-art" />
       </section>
       <section className="login-card">
-        <Brand />
+        <div className="login-card-top">
+          <Brand />
+          <ThemeSelect />
+        </div>
         {notice && <Notice alert={notice} onClose={onCloseNotice} />}
 
         {mode === "login" ? (
@@ -87,6 +91,7 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
                 <input
                   data-testid="input-email"
                   type="email"
+                  autoComplete="username"
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setError(""); }}
                   placeholder="seu@email.com"
@@ -95,17 +100,15 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
               </span>
             </label>
 
-            <label>
-              Senha
-              <input
-                data-testid="input-password"
-                type="password"
-                value={password}
-                onChange={(e) => { setPassword(e.target.value); setError(""); }}
-                placeholder="••••••••"
-                required
-              />
-            </label>
+            <PasswordField
+              label="Senha"
+              data-testid="input-password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); setError(""); }}
+              placeholder="••••••••"
+              required
+            />
 
             <div className="login-links">
               <button data-testid="link-cadastro" type="button" className="login-link" onClick={() => switchMode("register")}>
@@ -124,11 +127,11 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
 
             <label>
               Nome completo
-              <input data-testid="input-nome" name="name" required minLength="2" maxLength="120" placeholder="Seu nome" />
+              <input data-testid="input-nome" name="name" autoComplete="name" required minLength="2" maxLength="120" placeholder="Seu nome" />
             </label>
             <label>
               E-mail
-              <input data-testid="input-email-cadastro" name="email" type="email" required maxLength="254" placeholder="seu@email.com" />
+              <input data-testid="input-email-cadastro" name="email" type="email" autoComplete="email" required maxLength="254" placeholder="seu@email.com" />
             </label>
             <label>
               CPF
@@ -136,12 +139,18 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
             </label>
             <label>
               Data de nascimento
-              <input data-testid="input-nascimento" name="birthDate" type="date" required />
+              <input data-testid="input-nascimento" name="birthDate" type="date" autoComplete="bday" required />
             </label>
-            <label>
-              Senha
-              <input data-testid="input-senha-cadastro" name="password" type="password" required minLength="8" maxLength="72" placeholder="Mínimo de 8 caracteres" />
-            </label>
+            <PasswordField
+              label="Senha"
+              hint="Entre 8 e 72 caracteres."
+              data-testid="input-senha-cadastro"
+              name="password"
+              autoComplete="new-password"
+              required
+              minLength="8"
+              maxLength="72"
+            />
 
             <div className="login-links">
               <button type="button" className="login-link" onClick={() => switchMode("login")}>
@@ -186,6 +195,25 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
         )}
       </section>
     </main>
+  );
+}
+// Campo de senha com botão de mostrar/ocultar. O botão fica fora do <label>, para não entrar no nome do campo.
+function PasswordField({ label, hint, ...inputProps }) {
+  const [visible, setVisible] = useState(false);
+  const id = useId();
+  const hintId = useId();
+  return (
+    <div className="field">
+      <label htmlFor={id}>{label}</label>
+      <span className="input-with-action">
+        <input id={id} type={visible ? "text" : "password"} aria-describedby={hint ? hintId : undefined} {...inputProps} />
+        <button type="button" className="input-action" aria-pressed={visible} onClick={() => setVisible((current) => !current)}>
+          {visible ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+          Mostrar<span className="sr-only"> senha</span>
+        </button>
+      </span>
+      {hint && <small id={hintId} className="field-hint">{hint}</small>}
+    </div>
   );
 }
 function LoginError({ message }) {

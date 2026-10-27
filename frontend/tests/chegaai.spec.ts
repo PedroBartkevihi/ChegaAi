@@ -199,7 +199,9 @@ test.describe('ChegaAí - Fluxos Principais do Sistema', () => {
       await expect(cards.first()).toBeVisible();
     }
 
-    const selectCategoria = page.locator('select').first();
+    // pelo rótulo (o seletor de tema do cabeçalho também é um select); o nome acessível
+    // inclui a opção escolhida ("Categoria Todas"), daí a busca pelo começo
+    const selectCategoria = page.getByRole('combobox', { name: /^Categoria/ });
     await selectCategoria.selectOption({ label: 'Futebol' });
     console.log(`4.select on css=select with value Futebol OK ${getSimulatedTime(4)}`);
 

@@ -11,7 +11,7 @@ export default function Notice({ alert, onClose }) {
       ? CheckCircle2
       : Info;
   return (
-    <div className={`notice alert-${alert.type}`} role="status" aria-live="polite">
+    <div className={`notice alert-${alert.type}`} role={alert.type === "error" ? "alert" : "status"}>
       <Icon size={20} aria-hidden="true" />
       <div>{alert.message}</div>
       <button className="notice-close" type="button" aria-label="Fechar alerta" onClick={onClose}>

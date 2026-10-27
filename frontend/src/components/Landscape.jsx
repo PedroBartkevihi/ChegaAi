@@ -2,7 +2,7 @@ import { useId } from "react";
 
 // Ilustração decorativa da orla: céu, sol, pipa, morros (com o Pão de Açúcar), mar, areia e o
 // calçadão de ondas. O lado esquerdo fica baixo de propósito, para o texto do destaque ficar sobre o céu.
-// As cores vêm dos tokens do globals.css, pelas classes ls-*.
+// As cores vêm dos tokens do globals.css, pelas classes ls-*; no tema escuro o sol vira lua e aparecem estrelas.
 export default function Landscape({ className = "" }) {
   const waves = `calcadao-${useId().replace(/:/g, "")}`;
   return (
@@ -19,7 +19,17 @@ export default function Landscape({ className = "" }) {
         </pattern>
       </defs>
       <rect className="ls-sky" width="1200" height="360" />
-      <circle className="ls-sun" cx="960" cy="100" r="74" opacity="0.28" />
+      <g className="ls-stars">
+        <circle cx="640" cy="40" r="2" />
+        <circle cx="700" cy="96" r="1.5" />
+        <circle cx="780" cy="30" r="1.5" />
+        <circle cx="870" cy="60" r="2" />
+        <circle cx="1060" cy="40" r="1.5" />
+        <circle cx="1110" cy="110" r="2" />
+        <circle cx="1160" cy="66" r="1.5" />
+        <circle cx="900" cy="170" r="1.5" />
+      </g>
+      <circle className="ls-halo" cx="960" cy="100" r="74" />
       <circle className="ls-sun" cx="960" cy="100" r="46" />
       <g className="ls-cloud">
         <path d="M1090 52 C1092 34 1118 30 1128 42 C1138 26 1170 30 1172 50 C1188 50 1192 68 1176 70 L1098 70 C1082 70 1080 54 1090 52 Z" />

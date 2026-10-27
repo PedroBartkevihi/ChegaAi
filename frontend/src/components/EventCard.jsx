@@ -1,15 +1,17 @@
 import { Award, CalendarDays, MapPin, Star, Trash2, UsersRound } from "lucide-react";
 import CategoryIcon from "./CategoryIcon";
-import { getEnrollmentActionLabel, isAmbassador, formatDate, categorySlug } from "../lib/eventos";
-export default function EventCard({ event, enrollment, currentUser, openEvent, toggleEnrollment, deleteEvent }) {
+import { getEnrollmentActionLabel, isAmbassador, formatEventDay, categorySlug } from "../lib/eventos";
+export default function EventCard({ event, enrollment, pending = {}, currentUser, openEvent, toggleEnrollment, deleteEvent }) {
   const seats = Math.max(event.capacity - event.confirmed.length, 0);
   const percent = Math.min((event.confirmed.length / event.capacity) * 100, 100);
   const featured = isAmbassador(event.organizer.honor);
   const locked = event.status !== "ABERTO";
   const canManage = currentUser?.isModerator || event.organizer.id === currentUser?.id;
   const slug = categorySlug(event.category);
+  const enrolling = Boolean(pending[`inscricao:${event.id}`]);
+  const deleting = Boolean(pending[`exclusao:${event.id}`]);
   return (
-    <article data-testid={`event-card-${event.id}`} className={`event-card cat-${slug} ${featured ? "featured" : ""}`}>
+    <article data-testid={`event-card-${event.id}`} className={`event-card cat-${slug} ${featured ? "featured" : ""}`} aria-busy={enrolling || deleting}>
       <div className="event-card-band">
         <span className="event-type"><CategoryIcon slug={slug} size={15} />{event.category}</span>
         <EnrollmentBadge event={event} enrollment={enrollment} />
@@ -18,7 +20,10 @@ export default function EventCard({ event, enrollment, currentUser, openEvent, t
       <div className="event-card-body">
         <h3>{event.title}</h3>
         <ul className="event-meta">
-          <li><CalendarDays size={16} aria-hidden="true" /><span>{formatDate(event.date)} às {event.time}</span></li>
+          <li>
+            <CalendarDays size={16} aria-hidden="true" />
+            <span><time dateTime={`${event.date}T${event.time}`}>{formatEventDay(event.date)} · {event.time}</time></span>
+          </li>
           <li><MapPin size={16} aria-hidden="true" /><span>{event.place}{event.distance > 0 ? ` - ${event.distance} km` : ""}</span></li>
           {event.confirmed.length >= event.capacity ? (
             <li>
@@ -45,13 +50,13 @@ export default function EventCard({ event, enrollment, currentUser, openEvent, t
         </div>
         <div className="card-actions">
           <button className="secondary-action" type="button" onClick={() => openEvent(event.id)}>Detalhes</button>
-          <button className={locked ? "secondary-action" : "primary-action"} type="button" disabled={locked} onClick={() => toggleEnrollment(event.id)}>
-            {getEnrollmentActionLabel(event, enrollment)}
+          <button className={locked ? "secondary-action" : "primary-action"} type="button" disabled={locked} aria-disabled={enrolling || undefined} onClick={() => toggleEnrollment(event.id)}>
+            {enrolling ? "Enviando..." : getEnrollmentActionLabel(event, enrollment)}
           </button>
           {canManage && (
-            <button className="danger-action" type="button" onClick={() => deleteEvent(event.id)}>
+            <button className="danger-action" type="button" aria-disabled={deleting || undefined} onClick={() => deleteEvent(event.id)}>
               <Trash2 size={16} aria-hidden="true" />
-              Excluir
+              {deleting ? "Excluindo..." : "Excluir"}
             </button>
           )}
         </div>

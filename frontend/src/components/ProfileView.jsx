@@ -1,11 +1,16 @@
 import { Award } from "lucide-react";
 import StackItem from "./StackItem";
-import { isAmbassador, formatDate } from "../lib/eventos";
+import { isAmbassador, formatEventDay, eventTimestamp, sortByDate } from "../lib/eventos";
 const STATUS_LABELS = { CONFIRMADO: "Confirmado", FILA: "Lista de espera" };
-export default function ProfileView({ events, enrollments, currentUser }) {
-  const myEnrollments = Object.entries(enrollments)
-    .map(([eventId, status]) => ({ event: events.find((item) => item.id === eventId), status }))
-    .filter((item) => item.event);
+export default function ProfileView({ events, enrollments, currentUser, openEvent }) {
+  const now = Date.now();
+  const myEnrollments = sortByDate(
+    Object.keys(enrollments)
+      .map((eventId) => events.find((item) => item.id === eventId))
+      .filter(Boolean)
+  );
+  const upcoming = myEnrollments.filter((event) => eventTimestamp(event) >= now);
+  const past = myEnrollments.filter((event) => eventTimestamp(event) < now).reverse();
   const ambassador = isAmbassador(currentUser.honor);
   return (
     <section className="view" aria-label="Perfil e honra">
@@ -29,17 +34,43 @@ export default function ProfileView({ events, enrollments, currentUser }) {
         <article className="profile-panel">
           <span className="status-pill">Minhas inscrições</span>
           <h2>Confirmados e lista de espera</h2>
-          <div className="pending-list">
-            {myEnrollments.length ? (
-              myEnrollments.map(({ event, status }) => (
-                <StackItem key={event.id} title={event.title} body={`${STATUS_LABELS[status] || status} - ${formatDate(event.date)} às ${event.time}`} />
-              ))
-            ) : (
-              <StackItem title="Sem inscrições" body="Quando você participar de um rolé, ele aparecerá aqui." />
-            )}
-          </div>
+          {myEnrollments.length ? (
+            <>
+              <EnrollmentList title="Próximos" events={upcoming} enrollments={enrollments} openEvent={openEvent} empty="Nenhum rolé marcado daqui para a frente." />
+              {past.length > 0 && <EnrollmentList title="Anteriores" events={past} enrollments={enrollments} openEvent={openEvent} />}
+            </>
+          ) : (
+            <StackItem title="Sem inscrições" body="Quando você participar de um rolé, ele aparecerá aqui." />
+          )}
         </article>
       </div>
+    </section>
+  );
+}
+function EnrollmentList({ title, events, enrollments, openEvent, empty }) {
+  return (
+    <section className="enrollment-list" aria-label={title}>
+      <h3>{title}</h3>
+      {events.length ? (
+        <ul className="pending-list">
+          {events.map((event) => (
+            <li key={event.id} className="stack-item enrollment-item">
+              <div>
+                <strong>{event.title}</strong>
+                <p>
+                  {STATUS_LABELS[enrollments[event.id]] || enrollments[event.id]} ·{" "}
+                  <time dateTime={`${event.date}T${event.time}`}>{formatEventDay(event.date)} · {event.time}</time>
+                </p>
+              </div>
+              <button className="secondary-action" type="button" onClick={() => openEvent(event.id)}>
+                Ver detalhes<span className="sr-only"> de {event.title}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted">{empty}</p>
+      )}
     </section>
   );
 }
