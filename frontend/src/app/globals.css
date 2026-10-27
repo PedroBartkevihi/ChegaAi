@@ -1961,6 +1961,12 @@ legend {
 }
 
 @media (max-width: 860px) {
+  /* O topo e a barra de abas ficam fixos: o foco por teclado rola a página para fora deles. */
+  html {
+    scroll-padding-top: 72px;
+    scroll-padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
+
   .app-shell {
     display: block;
     padding-bottom: calc(68px + env(safe-area-inset-bottom));
