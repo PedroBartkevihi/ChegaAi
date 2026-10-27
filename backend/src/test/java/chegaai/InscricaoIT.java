@@ -17,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.ResultActions;
+import java.time.LocalDate;
 import org.springframework.transaction.support.TransactionTemplate;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -177,6 +178,17 @@ class InscricaoIT extends IntegracaoBase {
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message", containsString(mensagem)))
             .andExpect(jsonPath("$.message", containsString(valor)));
+    }
+    @Test
+    @DisplayName("evento com data que já passou devolve 400 e não é criado")
+    void eventoNoPassadoDevolve400() throws Exception {
+        UsuarioTeste organizador = cadastrar("Org");
+        String titulo = "Pelada de ontem " + organizador.primeiroNome();
+        criarEvento(organizador.token(), titulo, 10, LocalDate.now().minusDays(1))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("A data de realização deve ser uma data futura."));
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM evento WHERE titulo = ?", Long.class, titulo))
+            .isZero();
     }
     private ResultActions comentar(UsuarioTeste autor, UUID eventoId, String texto)
             throws Exception {
