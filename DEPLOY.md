@@ -65,6 +65,12 @@ No console do Cloud Run, crie um serviço com **implantação contínua a partir
    node -e "console.log(require('node:crypto').randomBytes(48).toString('base64url'))"
    ```
 
+   Não deixe o `CHEGAAI_JWT_SECRET` de fora: sem ele, a API gera uma chave aleatória a
+   cada inicialização e todo mundo é deslogado sempre que a instância reinicia (no Cloud Run,
+   a cada vez que ela acorda). A API se recusa a subir com
+   `chave-de-desenvolvimento-local-nao-usar-em-producao`, que já foi o padrão do repositório
+   e é pública: com ela, qualquer pessoa assinaria tokens válidos.
+
    Senha do banco e segredo do JWT também podem ir para o Secret Manager e ser
    referenciados no serviço, em vez de ficarem como variáveis de texto.
 
@@ -104,5 +110,14 @@ docker compose up --build
 - API: `http://localhost:8080/api` (Swagger em `/api/swagger-ui.html`)
 - Banco: PostgreSQL no volume `chegaai_pgdata`
 
-O Compose usa o segredo JWT padrão de desenvolvimento. Para expor a aplicação fora
-da sua máquina, defina `CHEGAAI_JWT_SECRET` e troque a senha do banco.
+Sem `CHEGAAI_JWT_SECRET`, a API gera uma chave JWT aleatória a cada inicialização: funciona,
+mas os logins caem sempre que o contêiner da API reinicia. Para mantê-los, defina a variável
+no shell ou num arquivo `.env` ao lado do `docker-compose.yml` (ignorado pelo Git), que o
+Compose repassa para a API:
+
+```bash
+echo "CHEGAAI_JWT_SECRET=$(node -e "console.log(require('node:crypto').randomBytes(48).toString('base64url'))")" >> .env
+docker compose up --build
+```
+
+Para expor a aplicação fora da sua máquina, defina o segredo dessa forma e troque a senha do banco.

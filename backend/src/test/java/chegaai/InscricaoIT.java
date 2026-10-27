@@ -2,6 +2,8 @@ package chegaai;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 import java.time.LocalDate;
@@ -60,6 +62,23 @@ class InscricaoIT extends IntegracaoBase {
         criarEvento(organizador.token(), "Pe", 10)
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message", containsString("título")));
+    }
+    @ParameterizedTest(name = "{0} = {1}")
+    @CsvSource({
+        "date, 2026-02-30, Data inválida",
+        "date, 2026-13-01, Data inválida",
+        "time, 25:99, Horário inválido",
+        "time, 18:60, Horário inválido"
+    })
+    @DisplayName("data ou horário que não existem devolvem 400 com mensagem clara, não 500")
+    void dataOuHorarioInexistenteDevolve400(String campo, String valor, String mensagem) throws Exception {
+        UsuarioTeste organizador = cadastrar("Org");
+        Map<String, Object> corpo = corpoDeEvento("Pelada fora do calendário", 10);
+        corpo.put(campo, valor);
+        criarEvento(organizador.token(), corpo)
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message", containsString(mensagem)))
+            .andExpect(jsonPath("$.message", containsString(valor)));
     }
     @Test
     @DisplayName("evento com data que já passou devolve 400 e não é criado")
