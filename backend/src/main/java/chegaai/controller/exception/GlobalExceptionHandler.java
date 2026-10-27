@@ -3,6 +3,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -56,6 +57,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             .orElse("Requisição inválida.");
         return buildResponse(HttpStatus.BAD_REQUEST, message);
     }
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrity(DataIntegrityViolationException ex) {
+        if (violouConstraint(ex, "uk_inscricao_usuario_evento")) {
+            log.warn("Inscrição duplicada barrada pelo banco: {}", ex.getMostSpecificCause().getMessage());
+            return buildResponse(HttpStatus.CONFLICT,
+                "Você já tem uma inscrição neste evento. Atualize a página para ver a situação atual.");
+        }
+        return handleGeneral(ex);
+    }
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex) {
         log.error("Erro inesperado ao processar requisição", ex);
@@ -100,6 +110,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             return "Envie o corpo da requisição como application/json.";
         }
         return "Requisição inválida.";
+    }
+    private static boolean violouConstraint(Throwable ex, String constraint) {
+        for (Throwable causa = ex; causa != null; causa = causa.getCause()) {
+            if (causa instanceof org.hibernate.exception.ConstraintViolationException violacao) {
+                return constraint.equalsIgnoreCase(violacao.getConstraintName());
+            }
+        }
+        return false;
     }
     private ResponseEntity<Map<String, Object>> buildResponse(HttpStatus status, String message) {
         return ResponseEntity.status(status).body(buildBody(status, message));

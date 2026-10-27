@@ -29,7 +29,10 @@ public class InscricaoService {
     private double honraMinimaInscricao;
     @Transactional
     public InscricaoResponseDTO toggleInscricao(UUID eventoId, UUID usuarioId) {
-        Evento evento = eventoRepository.findById(eventoId)
+        // Trava o evento até o commit: pedidos simultâneos no mesmo evento passam um por vez, então a
+        // contagem de vagas (realizarNovaInscricao) e a promoção da fila (cancelarInscricao) sempre
+        // enxergam o que o pedido anterior gravou.
+        Evento evento = eventoRepository.findByIdForUpdate(eventoId)
             .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + eventoId));
         Usuario usuario = usuarioRepository.findById(usuarioId)
             .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + usuarioId));
