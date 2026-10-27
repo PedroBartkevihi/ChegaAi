@@ -1,8 +1,8 @@
-import { Award } from "lucide-react";
+import { Award, LogOut } from "lucide-react";
 import StackItem from "./StackItem";
 import { isAmbassador, formatEventDay, eventTimestamp, sortByDate } from "../lib/eventos";
 const STATUS_LABELS = { CONFIRMADO: "Confirmado", FILA: "Lista de espera" };
-export default function ProfileView({ events, enrollments, currentUser, openEvent }) {
+export default function ProfileView({ events, enrollments, currentUser, openEvent, onLogout }) {
   const now = Date.now();
   const myEnrollments = sortByDate(
     Object.keys(enrollments)
@@ -17,6 +17,11 @@ export default function ProfileView({ events, enrollments, currentUser, openEven
       <div className="page-heading">
         <p className="eyebrow">Meu perfil</p>
         <h1>{currentUser.fullName}</h1>
+        {/* No celular a barra lateral vira barra de abas, sem o "Sair": ele fica aqui. */}
+        <button className="ghost-action mobile-only" type="button" onClick={onLogout}>
+          <LogOut size={16} aria-hidden="true" />
+          Sair da conta
+        </button>
       </div>
       <div className="profile-grid">
         <article className="profile-panel honor-panel">

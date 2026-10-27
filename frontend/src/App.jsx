@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Notice from "./components/Notice";
 import LoginScreen from "./components/LoginScreen";
-import SiteHeader from "./components/SiteHeader";
+import Sidebar from "./components/Sidebar";
+import Brand from "./components/Brand";
+import ThemeToggle from "./components/ThemeToggle";
 import FeedView from "./components/FeedView";
 import CreateView from "./components/CreateView";
 import ProfileView from "./components/ProfileView";
@@ -370,37 +372,44 @@ export default function App() {
   return (
     <div className="app-shell">
       <a className="skip-link" href="#conteudo">Pular para o conteúdo</a>
-      <SiteHeader
+      <Sidebar
         view={view}
         setView={handleSetView}
         currentUser={currentUser}
         onLogout={handleLogout}
       />
-      <main id="conteudo" className="content" tabIndex={-1}>
-        {view === "feed" && (
-          <FeedView
-            events={filteredEvents}
-            totalEvents={events.length}
-            loadState={loadState}
-            loadingSlow={loadingSlow}
-            retryLoad={() => loadEvents({ initial: true })}
-            metrics={metrics}
-            filters={filters}
-            updateFilter={updateFilter}
-            enrollments={enrollments}
-            pending={pending}
-            currentUser={currentUser}
-            resetFilters={() => setFilters(initialFilters)}
-            openEvent={setSelectedEventId}
-            toggleEnrollment={toggleEnrollment}
-            deleteEvent={deleteEvent}
-            onCreate={() => handleSetView("create")}
-          />
-        )}
-        {view === "create" && <CreateView categoryOptions={categories} capacityLimit={capacityLimit} onSubmit={createEvent} submitting={Boolean(pending.criacao)} />}
-        {view === "profile" && <ProfileView events={events} enrollments={enrollments} currentUser={currentUser} openEvent={setSelectedEventId} />}
-        {view === "moderation" && currentUser.isModerator && <ModerationView reports={reports} resolveReport={resolveReport} />}
-      </main>
+      <div className="main-column">
+        {/* Chave de tema no canto superior direito; no celular, o topo também mostra a marca. */}
+        <div className="topbar">
+          <div className="topbar-brand"><Brand /></div>
+          <ThemeToggle />
+        </div>
+        <main id="conteudo" className="content" tabIndex={-1}>
+          {view === "feed" && (
+            <FeedView
+              events={filteredEvents}
+              totalEvents={events.length}
+              loadState={loadState}
+              loadingSlow={loadingSlow}
+              retryLoad={() => loadEvents({ initial: true })}
+              metrics={metrics}
+              filters={filters}
+              updateFilter={updateFilter}
+              enrollments={enrollments}
+              pending={pending}
+              currentUser={currentUser}
+              resetFilters={() => setFilters(initialFilters)}
+              openEvent={setSelectedEventId}
+              toggleEnrollment={toggleEnrollment}
+              deleteEvent={deleteEvent}
+              onCreate={() => handleSetView("create")}
+            />
+          )}
+          {view === "create" && <CreateView categoryOptions={categories} capacityLimit={capacityLimit} onSubmit={createEvent} submitting={Boolean(pending.criacao)} />}
+          {view === "profile" && <ProfileView events={events} enrollments={enrollments} currentUser={currentUser} openEvent={setSelectedEventId} onLogout={handleLogout} />}
+          {view === "moderation" && currentUser.isModerator && <ModerationView reports={reports} resolveReport={resolveReport} />}
+        </main>
+      </div>
       {/* Avisos flutuam na tela para aparecerem onde a pessoa estiver; com o detalhe de um rolé
           aberto, aparecem dentro dele, onde está o foco. */}
       {alert && !selectedEvent && (

@@ -3,7 +3,7 @@ import { useId, useState } from "react";
 import Notice from "./Notice";
 import Brand from "./Brand";
 import Landscape from "./Landscape";
-import ThemeSelect from "./ThemeSelect";
+import ThemeToggle from "./ThemeToggle";
 import { cleanErrorMessage } from "../lib/api";
 import { useDemora, AVISO_SERVIDOR_ACORDANDO } from "../lib/useDemora";
 const DEMO_PASSWORD = "admin123";
@@ -65,6 +65,7 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
 
   return (
     <main className="login-shell">
+      <div className="login-theme"><ThemeToggle /></div>
       <section className="login-intro" aria-label="Sobre o ChegaAí">
         <div className="login-intro-copy">
           <p className="eyebrow">Rolés ao ar livre no Rio</p>
@@ -74,10 +75,7 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
         <Landscape className="login-art" />
       </section>
       <section className="login-card">
-        <div className="login-card-top">
-          <Brand />
-          <ThemeSelect />
-        </div>
+        <Brand />
         {notice && <Notice alert={notice} onClose={onCloseNotice} />}
 
         {mode === "login" ? (
