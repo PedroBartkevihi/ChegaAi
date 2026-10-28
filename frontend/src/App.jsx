@@ -180,7 +180,7 @@ export default function App() {
     formEvent.preventDefault();
     const formElement = formEvent.currentTarget;
     if (!currentUser.canCreateEvents) {
-      showNotice("Ação Não Permitida. Sua reputação atual está abaixo do limite mínimo necessário para criar novos rolés.", "error");
+      showNotice("Sua conta não pode criar rolés no momento. Confira sua reputação ou aguarde o fim da suspensão.", "error");
       return;
     }
     const form = new FormData(formElement);
