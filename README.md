@@ -65,7 +65,7 @@ Os limites ficam em `application.properties` (`chegaai.regras.*`) e podem ser aj
 
 | Camada | Tecnologias |
 |---|---|
-| Back-end | Java 17, Spring Boot 3.3, Spring Security (JWT, BCrypt), Spring Data JPA / Hibernate, Flyway, springdoc-openapi |
+| Back-end | Java 17, Spring Boot 4.1, Spring Security (JWT, BCrypt), Spring Data JPA / Hibernate, Flyway, springdoc-openapi |
 | Front-end | React 19, Next.js 16 (App Router) |
 | Banco de dados | PostgreSQL 15 (GraphDB opcional para recomendações em SPARQL) |
 | Testes | JUnit 5, Mockito, Testcontainers, Playwright, k6 |
@@ -176,8 +176,8 @@ Rotas autenticadas recebem o token no cabeçalho `Authorization: Bearer <token>`
 
 | Tipo | Quantidade | Como rodar |
 |---|---|---|
-| Unitários (JUnit + Mockito) | 28 | `cd backend && ./mvnw test` |
-| Integração (PostgreSQL real com Testcontainers; precisa do Docker) | 31 | `cd backend && ./mvnw verify` |
+| Unitários (JUnit + Mockito) | 33 | `cd backend && ./mvnw test` |
+| Integração (PostgreSQL real com Testcontainers; precisa do Docker) | 41 | `cd backend && ./mvnw verify` |
 | Ponta a ponta (Playwright; precisa da API rodando) | 11 | `cd frontend && npx playwright test` |
 
 O GitHub Actions roda os testes do back-end e os ponta a ponta (com o build de produção do Next.js) a cada push.
