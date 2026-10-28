@@ -1,6 +1,8 @@
-import { AlertTriangle, LogIn, Search, UserPlus } from "lucide-react";
+import { AlertTriangle, LogIn, Mail, UserPlus } from "lucide-react";
 import { useState } from "react";
 import Notice from "./Notice";
+import Brand from "./Brand";
+import Landscape from "./Landscape";
 import { cleanErrorMessage } from "../lib/api";
 import { useDemora, AVISO_SERVIDOR_ACORDANDO } from "../lib/useDemora";
 const DEMO_PASSWORD = "admin123";
@@ -61,16 +63,17 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
   }
 
   return (
-    <main className="app-shell" style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-      <section className="login-card">
-        <div className="brand" style={{ marginBottom: "1.5rem" }}>
-          <span className="brand-mark" aria-hidden="true">Aí</span>
-          <div>
-            <strong>ChegaAí</strong>
-            <small>Companhia para sair de casa</small>
-          </div>
+    <main className="login-shell">
+      <section className="login-intro" aria-label="Sobre o ChegaAí">
+        <div className="login-intro-copy">
+          <p className="eyebrow">Rolés ao ar livre no Rio</p>
+          <h1>O próximo rolé começa lá fora.</h1>
+          <p>Futebol no Aterro, patinação na orla ou passeio com os pets: encontre companhia, confira a reputação de quem organiza e participe.</p>
         </div>
-
+        <Landscape className="login-art" />
+      </section>
+      <section className="login-card">
+        <Brand />
         {notice && <Notice alert={notice} onClose={onCloseNotice} />}
 
         {mode === "login" ? (
@@ -80,7 +83,7 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
             <label>
               E-mail
               <span className="input-with-icon">
-                <Search size={16} />
+                <Mail size={16} aria-hidden="true" />
                 <input
                   data-testid="input-email"
                   type="email"
@@ -111,7 +114,7 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
             </div>
 
             <button data-testid="btn-login" className="primary-action" type="submit" disabled={submitting}>
-              <LogIn size={18} />
+              <LogIn size={18} aria-hidden="true" />
               {submitting ? "Entrando..." : "Entrar"}
             </button>
           </form>
@@ -147,7 +150,7 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
             </div>
 
             <button data-testid="btn-cadastrar" className="primary-action" type="submit" disabled={submitting}>
-              <UserPlus size={18} />
+              <UserPlus size={18} aria-hidden="true" />
               {submitting ? "Criando conta..." : "Criar conta"}
             </button>
           </form>
@@ -188,7 +191,7 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
 function LoginError({ message }) {
   return (
     <div className="login-error" role="alert">
-      <AlertTriangle size={16} />
+      <AlertTriangle size={16} aria-hidden="true" />
       <span>{message}</span>
     </div>
   );

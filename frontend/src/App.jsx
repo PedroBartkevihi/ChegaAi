@@ -1,10 +1,9 @@
 "use client";
 
-import { Plus } from "lucide-react";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import Notice from "./components/Notice";
 import LoginScreen from "./components/LoginScreen";
-import Sidebar from "./components/Sidebar";
+import SiteHeader from "./components/SiteHeader";
 import FeedView from "./components/FeedView";
 import CreateView from "./components/CreateView";
 import ProfileView from "./components/ProfileView";
@@ -290,62 +289,43 @@ export default function App() {
     return <LoginScreen onLogin={handleLogin} onRegister={handleRegister} notice={alert} onCloseNotice={() => setAlert(null)} />;
   }
   return (
-    <main className="app-shell">
-      <Sidebar
+    <div className="app-shell">
+      <SiteHeader
         view={view}
-        filters={filters}
         setView={handleSetView}
-        updateFilter={updateFilter}
         currentUser={currentUser}
         onLogout={handleLogout}
       />
-      <section className="content">
-        <header className="topbar">
-          <div>
-            <p className="eyebrow">Conexões reais e seguras</p>
-            <h1>Encontre companhia confiável para rolés presenciais.</h1>
-          </div>
-          <button 
-            data-testid="btn-criar-role" 
-            className="primary-action" 
-            type="button" 
-            onClick={(e) => {
-              if (currentUser.honor < 2.0) {
-                e.preventDefault();
-                showNotice("Ação Não Permitida. Sua reputação/honra atual é inferior a 2.0", "error");
-              } else {
-                setView("create");
-              }
-            }}
-          >
-            <Plus size={18} />
-            Criar rolé
-          </button>
-        </header>
-        {alert && <Notice alert={alert} onClose={() => setAlert(null)} />}
+      <main className="content">
+        {/* Com o detalhe de um rolé aberto, o aviso aparece dentro dele, onde está o foco. */}
+        {alert && !selectedEvent && <Notice alert={alert} onClose={() => setAlert(null)} />}
         {loading && <div className="notice loading-notice">{loadingSlow ? AVISO_SERVIDOR_ACORDANDO : "Carregando..."}</div>}
         {view === "feed" && (
           <FeedView
             events={filteredEvents}
             metrics={metrics}
             filters={filters}
+            updateFilter={updateFilter}
             enrollments={enrollments}
             currentUser={currentUser}
             resetFilters={() => setFilters(initialFilters)}
             openEvent={setSelectedEventId}
             toggleEnrollment={toggleEnrollment}
             deleteEvent={deleteEvent}
+            onCreate={() => handleSetView("create")}
           />
         )}
         {view === "create" && <CreateView categoryOptions={categories} capacityLimit={capacityLimit} onSubmit={createEvent} />}
         {view === "profile" && <ProfileView events={events} enrollments={enrollments} currentUser={currentUser} />}
         {view === "moderation" && currentUser.isModerator && <ModerationView reports={reports} resolveReport={resolveReport} />}
-      </section>
+      </main>
       {selectedEvent && (
         <EventModal
           event={selectedEvent}
           enrollment={enrollments[selectedEvent.id]}
           close={() => setSelectedEventId(null)}
+          notice={alert}
+          onCloseNotice={() => setAlert(null)}
           toggleEnrollment={toggleEnrollment}
           addComment={addComment}
           deleteEvent={deleteEvent}
@@ -353,6 +333,6 @@ export default function App() {
           currentUser={currentUser}
         />
       )}
-    </main>
+    </div>
   );
 }

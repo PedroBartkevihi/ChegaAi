@@ -26,7 +26,8 @@ Pedro Farias continuou o projeto neste repositório:
 - correção de horários exibidos 3 horas adiantados (UTC) e de erros de validação que viravam erro 500;
 - **testes unitários e de integração** com PostgreSQL real (Testcontainers) e integração contínua no GitHub Actions;
 - **Docker**, Docker Compose e deploy da versão online;
-- **diagramas UML** gerados a partir do código.
+- **diagramas UML** gerados a partir do código;
+- **novo visual** pensado para rolés ao ar livre: paleta de areia e verde, ilustração própria da orla, cores por categoria e navegação por cabeçalho, com foco visível e o detalhe do rolé operável pelo teclado.
 
 ## Funcionalidades
 

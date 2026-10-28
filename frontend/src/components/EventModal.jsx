@@ -1,15 +1,60 @@
 import {
+  CalendarDays,
   Flag,
   MapPin,
+  Star,
   Trash2,
+  UsersRound,
   X,
 } from "lucide-react";
-import { useState } from "react";
-import { getEnrollmentActionLabel, formatDate } from "../lib/eventos";
-export default function EventModal({ event, enrollment, close, toggleEnrollment, addComment, deleteEvent, reportEvent, currentUser }) {
+import { useEffect, useRef, useState } from "react";
+import CategoryIcon from "./CategoryIcon";
+import Notice from "./Notice";
+import { getEnrollmentActionLabel, formatDate, categorySlug } from "../lib/eventos";
+const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+export default function EventModal({ event, enrollment, close, notice, onCloseNotice, toggleEnrollment, addComment, deleteEvent, reportEvent, currentUser }) {
   const [comment, setComment] = useState("");
+  const dialogRef = useRef(null);
+  const closeRef = useRef(null);
+  // O App recria a função close a cada renderização; guardá-la num ref evita refazer o efeito
+  // abaixo (e devolver o foco ao botão de fechar) toda vez que a lista de eventos atualiza.
+  const onCloseRef = useRef(close);
+  onCloseRef.current = close;
   const canComment = enrollment === "CONFIRMADO" || enrollment === "FILA";
   const canManage = currentUser?.isModerator || event.organizer.id === currentUser?.id;
+  const slug = categorySlug(event.category);
+  // Ao abrir, o foco vai para o botão de fechar; Esc fecha; Tab circula só dentro do diálogo;
+  // ao fechar, o foco volta para o botão que abriu o diálogo ou, se ele sumiu (rolé excluído,
+  // formulário de criação desmontado), para o título da lista de rolés.
+  useEffect(() => {
+    const opener = document.activeElement;
+    closeRef.current?.focus();
+    function handleKeyDown(keyEvent) {
+      if (keyEvent.key === "Escape") {
+        keyEvent.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (keyEvent.key !== "Tab" || !dialogRef.current) return;
+      const focusable = [...dialogRef.current.querySelectorAll(FOCUSABLE)];
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (keyEvent.shiftKey && document.activeElement === first) {
+        keyEvent.preventDefault();
+        last.focus();
+      } else if (!keyEvent.shiftKey && document.activeElement === last) {
+        keyEvent.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      if (opener instanceof HTMLElement && opener.isConnected && opener !== document.body) opener.focus();
+      else document.getElementById("roles-disponiveis")?.focus();
+    };
+  }, []);
   function submitComment(formEvent) {
     formEvent.preventDefault();
     addComment(event.id, comment);
@@ -17,34 +62,36 @@ export default function EventModal({ event, enrollment, close, toggleEnrollment,
   }
   return (
     <div className="modal-backdrop" role="presentation">
-      <section className="event-dialog" role="dialog" aria-modal="true" aria-label={event.title}>
-        <button className="icon-button" type="button" aria-label="Fechar" onClick={close}><X size={18} /></button>
+      <section ref={dialogRef} className={`event-dialog cat-${slug}`} role="dialog" aria-modal="true" aria-label={event.title}>
+        <header className="dialog-header">
+          <CategoryIcon slug={slug} size={96} className="dialog-header-art" />
+          <span className="event-type"><CategoryIcon slug={slug} size={15} />{event.category}</span>
+          <h2>{event.title}</h2>
+          <button ref={closeRef} className="icon-button" type="button" aria-label="Fechar" onClick={close}><X size={18} aria-hidden="true" /></button>
+        </header>
         <div className="dialog-body">
-          <div className="dialog-title">
-            <span className="event-type">{event.category}</span>
-            <h2>{event.title}</h2>
-          </div>
+          {notice && <Notice alert={notice} onClose={onCloseNotice} />}
           <p>{event.description}</p>
           <div className="dialog-stats">
-            <div><strong>{formatDate(event.date)}</strong><span>{event.time}</span></div>
-            <div><strong>{event.confirmed.length}/{event.capacity}</strong><span>confirmados</span></div>
-            <div><strong>{event.waitlist.length}</strong><span>na lista de espera</span></div>
+            <div><CalendarDays size={18} aria-hidden="true" /><strong>{formatDate(event.date)}</strong><span>{event.time}</span></div>
+            <div><UsersRound size={18} aria-hidden="true" /><strong>{event.confirmed.length}/{event.capacity}</strong><span>confirmados</span></div>
+            <div><UsersRound size={18} aria-hidden="true" /><strong>{event.waitlist.length}</strong><span>na lista de espera</span></div>
           </div>
           <div className="organizer-line">
-            <span><MapPin size={15} /> {event.place} - CEP {event.cep || "não informado"}</span>
-            <span>Reputação {event.organizer.honor.toFixed(1)}</span>
+            <span><MapPin size={15} aria-hidden="true" /> {event.place} - CEP {event.cep || "não informado"}</span>
+            <span className="organizer-rating"><Star size={14} aria-hidden="true" />Reputação {event.organizer.honor.toFixed(1)}</span>
           </div>
           <div className="card-actions">
             <button className="primary-action" type="button" disabled={event.status !== "ABERTO"} onClick={() => toggleEnrollment(event.id)}>
               {getEnrollmentActionLabel(event, enrollment)}
             </button>
             <button className="secondary-action" type="button" onClick={() => reportEvent(event.id)}>
-              <Flag size={16} />
+              <Flag size={16} aria-hidden="true" />
               Denunciar
             </button>
             {canManage && (
               <button className="danger-action" type="button" onClick={() => deleteEvent(event.id)}>
-                <Trash2 size={16} />
+                <Trash2 size={16} aria-hidden="true" />
                 Excluir
               </button>
             )}

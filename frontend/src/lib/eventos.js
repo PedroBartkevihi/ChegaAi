@@ -21,6 +21,14 @@ export function buildFilterSummary(filters) {
   if (filters.search) parts.push(`busca "${filters.search}"`);
   return parts.length ? parts.join(" · ") : "Todos os rolés";
 }
+// "Patinação" -> "patinacao": vira a classe .cat-patinacao, que define as cores da categoria.
+export function categorySlug(category) {
+  return (category || "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-");
+}
 export function isAmbassador(honor) {
   return honor >= 4.8;
 }
