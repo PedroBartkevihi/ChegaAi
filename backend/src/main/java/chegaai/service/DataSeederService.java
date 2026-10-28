@@ -30,6 +30,9 @@ public class DataSeederService implements CommandLineRunner {
         "pedro@chegaai.dev", "caio@chegaai.dev", "nina@chegaai.dev", "marcos@chegaai.dev",
         "lia@chegaai.dev", "rafael@chegaai.dev", "bia@chegaai.dev", "paula@chegaai.dev",
         "bruno@chegaai.dev", "baixa@chegaai.dev", "moderador@chegaai.dev", "tester.pendente@chegaai.dev");
+    public static boolean ehContaDeDemonstracao(String email) {
+        return email != null && EMAILS_DEMO.contains(email);
+    }
     private final CategoriaRepository categoriaRepository;
     private final EnderecoRepository enderecoRepository;
     private final UsuarioRepository usuarioRepository;

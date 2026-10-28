@@ -38,7 +38,7 @@ Pedro Farias continuou o projeto neste repositório:
 - Comentários restritos a confirmados e a quem está na fila.
 - Presença registrada pelo organizador, conclusão do rolé e **avaliação entre participantes** (notas de 1 a 5).
 - Perfil com a reputação atual e as inscrições.
-- Moderação: o moderador pode excluir qualquer rolé.
+- Moderação: o moderador pode excluir qualquer rolé; o moderador de demonstração, só os rolés das contas de demonstração.
 
 | Detalhes de um rolé | Tela de entrada |
 |---|---|
@@ -152,7 +152,7 @@ Todas usam a senha `admin123`.
 | `caio@chegaai.dev` | Embaixador (honra 4.9) |
 | `baixa@chegaai.dev` | Honra 1.5: não cria rolés nem se inscreve |
 | `tester.pendente@chegaai.dev` | Tem avaliação pendente: inscrições bloqueadas |
-| `moderador@chegaai.dev` | Moderador: exclui qualquer rolé |
+| `moderador@chegaai.dev` | Moderador: exclui os rolés das contas de demonstração |
 
 ## API
 

@@ -13,6 +13,7 @@ import chegaai.service.external.ViaCEPService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
@@ -114,6 +115,12 @@ public class EventoService {
         boolean moderador = usuario.getPapelSistema() == PapelSistema.ADMINISTRADOR;
         if (!organizador && !moderador) {
             throw new IllegalStateException("Apenas o organizador ou um moderador pode excluir este rolé.");
+        }
+        // O moderador de demonstração tem a senha publicada na tela de entrada: ele só modera os
+        // rolés da demonstração, para nenhum visitante apagar o que outras pessoas criaram.
+        if (!organizador && DataSeederService.ehContaDeDemonstracao(usuario.getEmail())
+                && !DataSeederService.ehContaDeDemonstracao(evento.getOrganizador().getEmail())) {
+            throw new AccessDeniedException("O moderador de demonstração só exclui rolés das contas de demonstração.");
         }
         eventoRepository.delete(evento);
     }

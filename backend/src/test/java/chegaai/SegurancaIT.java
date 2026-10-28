@@ -111,10 +111,26 @@ class SegurancaIT extends IntegracaoBase {
         mockMvc.perform(delete("/eventos/{id}", eventoId).header("Authorization", bearer(outro.token())))
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.message", containsString("organizador ou um moderador")));
-        String moderador = login("moderador@chegaai.dev", "admin123");
-        mockMvc.perform(delete("/eventos/{id}", eventoId).header("Authorization", bearer(moderador)))
+        UsuarioTeste moderadora = cadastrar("Fabi");
+        jdbcTemplate.update("UPDATE usuario SET papel_sistema = 'ADMINISTRADOR' WHERE id_usuario = ?", moderadora.id());
+        mockMvc.perform(delete("/eventos/{id}", eventoId).header("Authorization", bearer(moderadora.token())))
             .andExpect(status().isNoContent());
         mockMvc.perform(get("/eventos/{id}", eventoId)).andExpect(status().isNotFound());
+    }
+    @Test
+    @DisplayName("o moderador de demonstração, de senha pública, só exclui rolés da demonstração")
+    void moderadorDeDemonstracaoSoExcluiRolesDaDemonstracao() throws Exception {
+        UUID eventoDeVisitante = criarEventoValido(cadastrar("Gabi"), 10);
+        String caio = login("caio@chegaai.dev", "admin123");
+        UUID eventoDaDemonstracao = UUID.fromString(json(criarEvento(caio, "Rolé da demonstração", 10)
+            .andExpect(status().isCreated())).get("id").asText());
+        String moderador = login("moderador@chegaai.dev", "admin123");
+        mockMvc.perform(delete("/eventos/{id}", eventoDeVisitante).header("Authorization", bearer(moderador)))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.message", containsString("contas de demonstração")));
+        mockMvc.perform(get("/eventos/{id}", eventoDeVisitante)).andExpect(status().isOk());
+        mockMvc.perform(delete("/eventos/{id}", eventoDaDemonstracao).header("Authorization", bearer(moderador)))
+            .andExpect(status().isNoContent());
     }
     @Test
     @DisplayName("CORS libera só as origens configuradas")
