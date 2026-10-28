@@ -78,6 +78,17 @@ class SegurancaIT extends IntegracaoBase {
             .andExpect(status().isUnauthorized());
     }
     @Test
+    @DisplayName("o actuator só expõe health e info, sem detalhes, mesmo para quem está logado")
+    void actuatorSemMetricasNemDetalhes() throws Exception {
+        UsuarioTeste ivo = cadastrar("Ivo");
+        mockMvc.perform(get("/actuator/metrics").header("Authorization", bearer(ivo.token())))
+            .andExpect(status().isNotFound());
+        mockMvc.perform(get("/actuator/health").header("Authorization", bearer(ivo.token())))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("UP"))
+            .andExpect(jsonPath("$.components").doesNotExist());
+    }
+    @Test
     @DisplayName("contas de demonstração entram com a senha documentada e recusam senha errada")
     void loginDasContasDeDemonstracao() throws Exception {
         String token = login("pedro@chegaai.dev", "admin123");
