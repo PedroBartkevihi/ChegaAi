@@ -23,7 +23,8 @@ export function hasActiveFilters(filters) {
 export function buildFilterSummary(filters) {
   const parts = [];
   if (filters.category !== "todos") parts.push(filters.category);
-  if (filters.honor !== "0") parts.push(`honra ${filters.honor}+`);
+  if (filters.honor === "ambassador") parts.push("Embaixadores");
+  else if (filters.honor !== "0") parts.push(`honra ${filters.honor}+`);
   if (filters.search) parts.push(`busca "${filters.search}"`);
   return parts.length ? parts.join(" · ") : "Todos os rolés";
 }
@@ -34,9 +35,6 @@ export function categorySlug(category) {
     .replace(/\p{Diacritic}/gu, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-");
-}
-export function isAmbassador(honor) {
-  return honor >= 4.8;
 }
 export function createId() {
   if (crypto.randomUUID) return crypto.randomUUID();

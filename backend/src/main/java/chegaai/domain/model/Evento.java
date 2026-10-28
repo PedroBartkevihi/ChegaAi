@@ -63,7 +63,6 @@ public class Evento {
 	private OffsetDateTime dataHoraRealizacao;
 	@NotNull(message = "O limite de participantes é obrigatório.")
 	@Min(value = 3, message = "O evento deve ter no mínimo 3 participantes.")
-	@Max(value = 50, message = "O limite máximo de participantes é 50 (Embaixadores).")
 	@Column(name = "limite_participantes", nullable = false)
 	private Integer limiteParticipantes;
 	@NotNull(message = "O status do evento é obrigatório.")

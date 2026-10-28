@@ -12,7 +12,6 @@ import chegaai.repository.*;
 import chegaai.service.external.ViaCEPService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,8 +45,7 @@ public class EventoService {
     private final ContaService contaService;
     private final CoordenacaoDemonstracaoService coordenacaoDemonstracao;
     private final HonraService honraService;
-    @Value("${chegaai.regras.honra-minima-criacao:2.0}")
-    private double honraMinimaCriacao;
+    private final RegrasEventoService regrasEventoService;
     @Transactional(readOnly = true)
     public List<EventoResponseDTO> listarTodos() {
         List<Evento> eventos = eventoRepository.findAllWithRelations();
@@ -86,7 +84,7 @@ public class EventoService {
         Usuario organizador = organizadorApto(usuarioId);
         Categoria categoria = categoriaPorNome(dto.category());
         Endereco enderecoSalvo = enderecoRepository.save(endereco);
-        int limiteMax = organizador.getHonraMedia().compareTo(BigDecimal.valueOf(4.8)) >= 0 ? 50 : 20;
+        int limiteMax = regrasEventoService.limiteVagas(organizador);
         int capacidade = Math.min(dto.capacity(), limiteMax);
         Evento evento = new Evento();
         evento.setOrganizador(organizador);
@@ -240,7 +238,8 @@ public class EventoService {
         Usuario organizador = usuarioRepository.findById(usuarioId)
             .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + usuarioId));
         organizador.exigirContaAtiva(OffsetDateTime.now());
-        if (organizador.getHonraMedia().compareTo(BigDecimal.valueOf(honraMinimaCriacao)) < 0) {
+        BigDecimal honraMinimaCriacao = regrasEventoService.honraMinimaCriacao();
+        if (organizador.getHonraMedia().compareTo(honraMinimaCriacao) < 0) {
             throw new IllegalStateException(
                 "Sua honra está abaixo de " + honraMinimaCriacao +
                 ". Pelo RN004, você não pode criar novos rolés.");
@@ -359,7 +358,8 @@ public class EventoService {
         EventoResponseDTO.OrganizerDTO organizerDTO = new EventoResponseDTO.OrganizerDTO(
             org.getId(),
             org.getNome().split(" ")[0],
-            org.getHonraMedia().doubleValue()
+            org.getHonraMedia().doubleValue(),
+            regrasEventoService.ehEmbaixador(org)
         );
         return new EventoResponseDTO(
             evento.getId(),

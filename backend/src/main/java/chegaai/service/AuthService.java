@@ -27,6 +27,7 @@ public class AuthService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
+    private final RegrasEventoService regrasEventoService;
     @Value("${chegaai.regras.honra-inicial:3.0}")
     private double honraInicial;
     @Transactional(readOnly = true)
@@ -63,12 +64,12 @@ public class AuthService {
     @Transactional(readOnly = true)
     public UsuarioResponseDTO buscarUsuario(UUID usuarioId) {
         return usuarioRepository.findById(usuarioId)
-            .map(UsuarioResponseDTO::de)
+            .map(regrasEventoService::respostaDoUsuario)
             .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + usuarioId));
     }
     private AuthResponseDTO gerarResposta(Usuario usuario) {
         TokenService.TokenGerado token = tokenService.gerar(usuario);
-        return new AuthResponseDTO(token.valor(), "Bearer", token.expiraEm(), UsuarioResponseDTO.de(usuario));
+        return new AuthResponseDTO(token.valor(), "Bearer", token.expiraEm(), regrasEventoService.respostaDoUsuario(usuario));
     }
     private String normalizarEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);

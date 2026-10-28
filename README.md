@@ -50,7 +50,7 @@ Pedro Farias continuou o projeto neste repositório:
 
 ## Regras de negócio
 
-Os limites ficam em `application.properties` (`chegaai.regras.*`) e podem ser ajustados sem mudar o código.
+Os limites ficam em `application.properties` (`chegaai.regras.*`) e podem ser ajustados sem mudar o código. A API informa o selo Embaixador, a capacidade permitida e a permissão para criar rolés; a interface usa esses dados. Os valores da tabela abaixo são os padrões. Banimento automático por honra ou denúncias não está habilitado; o bloqueio por status da conta pertence à moderação.
 
 | Regra | Como funciona |
 |---|---|

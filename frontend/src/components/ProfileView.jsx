@@ -1,6 +1,6 @@
 import { Award, LogOut } from "lucide-react";
 import StackItem from "./StackItem";
-import { isAmbassador, formatEventDay, eventTimestamp, sortByDate } from "../lib/eventos";
+import { formatEventDay, eventTimestamp, sortByDate } from "../lib/eventos";
 const STATUS_LABELS = { CONFIRMADO: "Confirmado", FILA: "Lista de espera" };
 export default function ProfileView({ events, enrollments, currentUser, openEvent, onLogout }) {
   const now = Date.now();
@@ -11,7 +11,7 @@ export default function ProfileView({ events, enrollments, currentUser, openEven
   );
   const upcoming = myEnrollments.filter((event) => eventTimestamp(event) >= now);
   const past = myEnrollments.filter((event) => eventTimestamp(event) < now).reverse();
-  const ambassador = isAmbassador(currentUser.honor);
+  const ambassador = currentUser.isAmbassador;
   return (
     <section className="view" aria-label="Perfil e honra">
       <div className="page-heading">
