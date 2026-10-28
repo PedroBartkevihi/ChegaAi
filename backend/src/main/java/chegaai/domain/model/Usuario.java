@@ -65,6 +65,8 @@ public abstract class Usuario {
     @Enumerated(EnumType.STRING)
     @Column(name = "status_usuario", nullable = false, length = 20)
     private StatusUsuario statusUsuario = StatusUsuario.ATIVO;
+    @Column(name = "suspenso_ate", columnDefinition = "timestamptz")
+    private OffsetDateTime suspensoAte;
     @Min(value = 0, message = "A quantidade de denúncias não pode ser negativa.")
     @Column(name = "qtd_denuncias_validadas", nullable = false)
     private Integer qtdDenunciasValidadas = 0;
@@ -90,12 +92,25 @@ public abstract class Usuario {
     @OneToMany(mappedBy = "usuarioPenalizado", fetch = FetchType.LAZY)
     private List<Penalidade> penalidades = new ArrayList<>();
     public abstract PapelSistema getPapelSistema();
-    public boolean podeCriarEvento(BigDecimal honraMinimaParaCriacao) {
+    /** Suspensões manuais sem prazo continuam bloqueadas; só as temporárias vencem. */
+    public boolean estaAtivo(OffsetDateTime agora) {
         return statusUsuario == StatusUsuario.ATIVO
+            || (statusUsuario == StatusUsuario.SUSPENSO && suspensoAte != null
+                && !agora.isBefore(suspensoAte));
+    }
+    public void exigirContaAtiva(OffsetDateTime agora) {
+        if (!estaAtivo(agora)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                statusUsuario == StatusUsuario.BANIDO ? "Esta conta foi banida pela moderação."
+                    : "Esta conta está suspensa." + (suspensoAte == null ? "" : " Tente novamente após " + suspensoAte + "."));
+        }
+    }
+    public boolean podeCriarEvento(BigDecimal honraMinimaParaCriacao) {
+        return estaAtivo(OffsetDateTime.now())
                && honraMedia.compareTo(honraMinimaParaCriacao) >= 0;
     }
     public boolean podeSeInscrever() {
-        return statusUsuario == StatusUsuario.ATIVO;
+        return estaAtivo(OffsetDateTime.now());
     }
     public int registrarDenunciaValidada() {
         this.qtdDenunciasValidadas++;

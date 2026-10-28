@@ -1,11 +1,11 @@
 import { Award, CalendarDays, MapPin, Star, Trash2, UsersRound } from "lucide-react";
 import CategoryIcon from "./CategoryIcon";
-import { getEnrollmentActionLabel, isAmbassador, formatEventDay, categorySlug } from "../lib/eventos";
+import { getEnrollmentActionLabel, isAmbassador, formatEventDay, categorySlug, eventTimestamp } from "../lib/eventos";
 export default function EventCard({ event, enrollment, pending = {}, currentUser, openEvent, toggleEnrollment, deleteEvent }) {
   const seats = Math.max(event.capacity - event.confirmed.length, 0);
   const percent = Math.min((event.confirmed.length / event.capacity) * 100, 100);
   const featured = isAmbassador(event.organizer.honor);
-  const locked = event.status !== "ABERTO";
+  const locked = event.status !== "ABERTO" || eventTimestamp(event) <= Date.now();
   const canManage = currentUser?.isModerator || event.organizer.id === currentUser?.id;
   const slug = categorySlug(event.category);
   const enrolling = Boolean(pending[`inscricao:${event.id}`]);
@@ -53,7 +53,7 @@ export default function EventCard({ event, enrollment, pending = {}, currentUser
           <button className={locked ? "secondary-action" : "primary-action"} type="button" disabled={locked} aria-disabled={enrolling || undefined} onClick={() => toggleEnrollment(event.id)}>
             {enrolling ? "Enviando..." : getEnrollmentActionLabel(event, enrollment)}
           </button>
-          {canManage && (
+          {canManage && event.status !== "CONCLUIDO" && (
             <button className="danger-action" type="button" aria-disabled={deleting || undefined} onClick={() => deleteEvent(event.id)}>
               <Trash2 size={16} aria-hidden="true" />
               {deleting ? "Excluindo..." : "Excluir"}

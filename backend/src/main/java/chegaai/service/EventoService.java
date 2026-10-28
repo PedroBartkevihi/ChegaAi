@@ -43,6 +43,7 @@ public class EventoService {
     private final ViaCEPService viaCEPService;
     private final FusoHorario fusoHorario;
     private final TransactionTemplate transacao;
+    private final ContaService contaService;
     @Value("${chegaai.regras.honra-minima-criacao:2.0}")
     private double honraMinimaCriacao;
     @Value("${chegaai.regras.deducao-honra-ausencia:0.5}")
@@ -80,6 +81,7 @@ public class EventoService {
     }
     private EventoResponseDTO criarEventoNoBanco(EventoRequestDTO dto, UUID usuarioId,
                                                  OffsetDateTime dataHora, Endereco endereco) {
+        contaService.travarAtivo(usuarioId);
         Usuario organizador = organizadorApto(usuarioId);
         Categoria categoria = categoriaPorNome(dto.category());
         Endereco enderecoSalvo = enderecoRepository.save(endereco);
@@ -110,10 +112,9 @@ public class EventoService {
     }
     @Transactional
     public void excluirEvento(UUID eventoId, UUID usuarioId) {
-        Evento evento = eventoRepository.findByIdWithRelations(eventoId)
+        Evento evento = eventoRepository.findByIdForUpdate(eventoId)
             .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + eventoId));
-        Usuario usuario = usuarioRepository.findById(usuarioId)
-            .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + usuarioId));
+        Usuario usuario = contaService.travarAtivo(usuarioId);
         boolean organizador = evento.getOrganizador().getId().equals(usuarioId);
         boolean moderador = usuario.getPapelSistema() == PapelSistema.ADMINISTRADOR;
         if (!organizador && !moderador) {
@@ -125,16 +126,20 @@ public class EventoService {
                 && !DataSeederService.ehContaDeDemonstracao(evento.getOrganizador().getEmail())) {
             throw new AccessDeniedException("O moderador de demonstração só exclui rolés das contas de demonstração.");
         }
+        if (evento.getStatusEvento() == StatusEvento.CONCLUIDO) {
+            throw new IllegalStateException("Rolés concluídos não podem ser excluídos: o histórico de presença e avaliações é preservado.");
+        }
         eventoRepository.delete(evento);
     }
     @Transactional
     public EventoResponseDTO concluirEvento(UUID eventoId, UUID usuarioId) {
-        Evento evento = eventoRepository.findByIdWithRelations(eventoId)
+        Evento evento = eventoRepository.findByIdForUpdate(eventoId)
             .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + eventoId));
         if (!evento.getOrganizador().getId().equals(usuarioId)) {
             throw new IllegalStateException(
                 "Apenas o organizador pode concluir o evento.");
         }
+        contaService.travar(usuarioId);
         evento.concluir(OffsetDateTime.now());
         eventoRepository.save(evento);
         List<Inscricao> confirmadas = inscricaoRepository
@@ -178,7 +183,7 @@ public class EventoService {
     @Transactional
     public AvaliacaoResponseDTO avaliarParticipante(UUID eventoId, UUID avaliadorId,
                                                      AvaliacaoRequestDTO dto) {
-        Evento evento = eventoRepository.findByIdWithRelations(eventoId)
+        Evento evento = eventoRepository.findByIdForUpdate(eventoId)
             .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + eventoId));
 
         if (evento.getStatusEvento() != StatusEvento.CONCLUIDO) {
@@ -194,6 +199,7 @@ public class EventoService {
             .orElseThrow(() -> new NoSuchElementException(
                 "Usuário avaliado não encontrado: " + dto.avaliadoId()));
 
+        avaliador.exigirContaAtiva(OffsetDateTime.now());
         if (avaliadorId.equals(dto.avaliadoId())) {
             throw new IllegalArgumentException("Um usuário não pode avaliar a si mesmo.");
         }
@@ -242,6 +248,7 @@ public class EventoService {
     private Usuario organizadorApto(UUID usuarioId) {
         Usuario organizador = usuarioRepository.findById(usuarioId)
             .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + usuarioId));
+        organizador.exigirContaAtiva(OffsetDateTime.now());
         if (organizador.getHonraMedia().compareTo(BigDecimal.valueOf(honraMinimaCriacao)) < 0) {
             throw new IllegalStateException(
                 "Sua honra está abaixo de " + honraMinimaCriacao +
