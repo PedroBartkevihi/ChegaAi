@@ -8,8 +8,10 @@ export class ApiError extends Error {
     this.status = status;
   }
 }
-export async function api(path, options = {}) {
-  const token = localStorage.getItem(TOKEN_KEY);
+// semToken: login e cadastro vão sem o token guardado. Um token antigo (de conta apagada) faria a API
+// responder 401 antes mesmo de olhar e-mail e senha.
+export async function api(path, { semToken = false, ...options } = {}) {
+  const token = semToken ? null : localStorage.getItem(TOKEN_KEY);
   const headers = {
     "Content-Type": "application/json",
     ...(token && { Authorization: `Bearer ${token}` }),

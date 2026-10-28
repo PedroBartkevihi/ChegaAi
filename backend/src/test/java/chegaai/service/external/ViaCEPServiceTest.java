@@ -23,6 +23,10 @@ class ViaCEPServiceTest {
         servidor = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         servidor.createContext("/22250040/json/", troca -> responder(troca, ENDERECO));
         servidor.createContext("/99999999/json/", troca -> responder(troca, "{\"erro\": \"true\"}"));
+        servidor.createContext("/50000000/json/", troca -> {
+            troca.sendResponseHeaders(500, -1);
+            troca.close();
+        });
         servidor.createContext("/11111111/json/", troca -> {
             try {
                 Thread.sleep(2000);
@@ -51,6 +55,11 @@ class ViaCEPServiceTest {
     @DisplayName("CEP inexistente ({\"erro\": \"true\"}) não devolve endereço")
     void cepInexistente() {
         assertThat(service.buscarEnderecoPorCep("99999-999")).isEmpty();
+    }
+    @Test
+    @DisplayName("erro HTTP do ViaCEP cai no preenchimento manual")
+    void erroHttp() {
+        assertThat(service.buscarEnderecoPorCep("50000-000")).isEmpty();
     }
     @Test
     @DisplayName("ViaCEP lento cai no preenchimento manual dentro do tempo limite")

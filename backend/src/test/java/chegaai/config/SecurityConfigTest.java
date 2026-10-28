@@ -1,10 +1,20 @@
 package chegaai.config;
+import chegaai.repository.UsuarioRepository;
+import chegaai.service.TokenService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.Jwt;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.UUID;
+import static java.time.temporal.ChronoUnit.HOURS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 class SecurityConfigTest {
     private final SecurityConfig config = new SecurityConfig();
     @Test
@@ -34,5 +44,41 @@ class SecurityConfigTest {
         assertThatThrownBy(() -> config.jwtSecretKey("curto-demais"))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("32 bytes");
+    }
+    @Test
+    @DisplayName("token vencido ou de outro emissor é recusado sem consultar o banco")
+    void tokenVencidoOuDeOutroEmissorNaoConsultaOBanco() {
+        UsuarioRepository repositorio = mock(UsuarioRepository.class);
+        OAuth2TokenValidator<Jwt> validador = SecurityConfig.validadorDeToken(repositorio);
+        String id = UUID.randomUUID().toString();
+        Instant agora = Instant.now();
+        assertThat(validador.validate(jwt(TokenService.EMISSOR, id, agora.minus(3, HOURS), agora.minus(2, HOURS)))
+            .hasErrors()).isTrue();
+        assertThat(validador.validate(jwt("outro-emissor", id, agora, agora.plus(1, HOURS))).hasErrors()).isTrue();
+        verifyNoInteractions(repositorio);
+    }
+    @Test
+    @DisplayName("token com sub que não é UUID, ou de conta que não existe mais, é recusado")
+    void tokenComSubInvalidoOuDeContaInexistente() {
+        UsuarioRepository repositorio = mock(UsuarioRepository.class);
+        UUID existente = UUID.randomUUID();
+        when(repositorio.existsById(existente)).thenReturn(true);
+        OAuth2TokenValidator<Jwt> validador = SecurityConfig.validadorDeToken(repositorio);
+        Instant agora = Instant.now();
+        assertThat(validador.validate(jwt(TokenService.EMISSOR, existente.toString(), agora, agora.plus(1, HOURS)))
+            .hasErrors()).isFalse();
+        assertThat(validador.validate(jwt(TokenService.EMISSOR, UUID.randomUUID().toString(), agora, agora.plus(1, HOURS)))
+            .hasErrors()).isTrue();
+        assertThat(validador.validate(jwt(TokenService.EMISSOR, "nao-e-uuid", agora, agora.plus(1, HOURS)))
+            .hasErrors()).isTrue();
+    }
+    private static Jwt jwt(String emissor, String subject, Instant emitidoEm, Instant expiraEm) {
+        return Jwt.withTokenValue("token")
+            .header("alg", "HS256")
+            .issuer(emissor)
+            .subject(subject)
+            .issuedAt(emitidoEm)
+            .expiresAt(expiraEm)
+            .build();
     }
 }

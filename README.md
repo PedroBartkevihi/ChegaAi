@@ -176,8 +176,8 @@ Rotas autenticadas recebem o token no cabeçalho `Authorization: Bearer <token>`
 
 | Tipo | Quantidade | Como rodar |
 |---|---|---|
-| Unitários (JUnit + Mockito) | 33 | `cd backend && ./mvnw test` |
-| Integração (PostgreSQL real com Testcontainers; precisa do Docker) | 41 | `cd backend && ./mvnw verify` |
+| Unitários (JUnit + Mockito) | 37 | `cd backend && ./mvnw test` |
+| Integração (PostgreSQL real com Testcontainers; precisa do Docker) | 42 | `cd backend && ./mvnw verify` |
 | Ponta a ponta (Playwright; precisa da API rodando) | 11 | `cd frontend && npx playwright test` |
 
 O GitHub Actions roda os testes do back-end e os ponta a ponta (com o build de produção do Next.js) a cada push.

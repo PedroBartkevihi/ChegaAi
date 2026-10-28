@@ -87,6 +87,17 @@ class SegurancaIT extends IntegracaoBase {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("UP"))
             .andExpect(jsonPath("$.components").doesNotExist());
+        mockMvc.perform(get("/actuator/health"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.components").doesNotExist());
+    }
+    @Test
+    @DisplayName("a documentação OpenAPI continua pública e gerada")
+    void documentacaoOpenApi() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.openapi").exists())
+            .andExpect(jsonPath("$.paths['/eventos']").exists());
     }
     @Test
     @DisplayName("contas de demonstração entram com a senha documentada e recusam senha errada")
@@ -133,6 +144,13 @@ class SegurancaIT extends IntegracaoBase {
                     "birthDate", "1998-08-08", "password", SENHA))))
             .andExpect(status().isCreated());
         login("jade@teste.chegaai.dev", SENHA);
+        // um segundo cadastro sem CPF (o campo nem vai) não esbarra no primeiro
+        mockMvc.perform(post("/auth/cadastro")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of(
+                    "name", "Ian Sem Cpf", "email", "ian@teste.chegaai.dev",
+                    "birthDate", "1995-05-05", "password", SENHA))))
+            .andExpect(status().isCreated());
         String cpf = cpfValido();
         Map<String, Object> primeiro = Map.of("name", "Kai Teste", "email", "kai@teste.chegaai.dev", "cpf", cpf,
             "birthDate", "1997-07-07", "password", SENHA);
@@ -160,6 +178,9 @@ class SegurancaIT extends IntegracaoBase {
         mockMvc.perform(delete("/eventos/{id}", eventoId).header("Authorization", bearer(moderadora.token())))
             .andExpect(status().isNoContent());
         mockMvc.perform(get("/eventos/{id}", eventoId)).andExpect(status().isNotFound());
+        UUID proprio = criarEventoValido(organizador, 10);
+        mockMvc.perform(delete("/eventos/{id}", proprio).header("Authorization", bearer(organizador.token())))
+            .andExpect(status().isNoContent());
     }
     @Test
     @DisplayName("o moderador de demonstração, de senha pública, só exclui rolés da demonstração")

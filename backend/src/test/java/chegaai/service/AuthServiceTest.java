@@ -120,7 +120,7 @@ class AuthServiceTest {
         verify(usuarioRepository, never()).save(any());
     }
     @Test
-    @DisplayName("cadastro sem CPF (vazio ou ausente) é aceito e não consulta CPF")
+    @DisplayName("cadastro sem CPF (vazio, só espaços ou ausente) é aceito e não consulta CPF")
     void cadastroSemCpf() {
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocacao -> {
             Usuario salvo = invocacao.getArgument(0);
@@ -129,9 +129,10 @@ class AuthServiceTest {
         });
         when(tokenService.gerar(any())).thenReturn(new TokenService.TokenGerado("token-jwt", Instant.now()));
         authService.cadastrar(cadastro("ana@exemplo.com", ""));
-        authService.cadastrar(cadastro("bia@exemplo.com", null));
+        authService.cadastrar(cadastro("bia@exemplo.com", "   "));
+        authService.cadastrar(cadastro("cris@exemplo.com", null));
         ArgumentCaptor<Usuario> captor = ArgumentCaptor.forClass(Usuario.class);
-        verify(usuarioRepository, org.mockito.Mockito.times(2)).save(captor.capture());
+        verify(usuarioRepository, org.mockito.Mockito.times(3)).save(captor.capture());
         assertThat(captor.getAllValues()).extracting(Usuario::getCpf).containsOnlyNulls();
         verify(usuarioRepository, never()).existsByCpf(any());
     }

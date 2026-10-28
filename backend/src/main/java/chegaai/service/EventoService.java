@@ -72,20 +72,16 @@ public class EventoService {
         if (!dataHora.isAfter(OffsetDateTime.now())) {
             throw new IllegalArgumentException("A data de realização deve ser uma data futura.");
         }
+        // Recusa antes do ViaCEP o que já se sabe que vai falhar; a transação confere de novo.
+        organizadorApto(usuarioId);
+        categoriaPorNome(dto.category());
         Endereco endereco = montarEndereco(dto);
         return transacao.execute(status -> criarEventoNoBanco(dto, usuarioId, dataHora, endereco));
     }
     private EventoResponseDTO criarEventoNoBanco(EventoRequestDTO dto, UUID usuarioId,
                                                  OffsetDateTime dataHora, Endereco endereco) {
-        Usuario organizador = usuarioRepository.findById(usuarioId)
-            .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + usuarioId));
-        if (organizador.getHonraMedia().compareTo(BigDecimal.valueOf(honraMinimaCriacao)) < 0) {
-            throw new IllegalStateException(
-                "Sua honra está abaixo de " + honraMinimaCriacao +
-                ". Pelo RN004, você não pode criar novos rolés.");
-        }
-        Categoria categoria = categoriaRepository.findByNome(dto.category())
-            .orElseThrow(() -> new NoSuchElementException("Categoria não encontrada: " + dto.category()));
+        Usuario organizador = organizadorApto(usuarioId);
+        Categoria categoria = categoriaPorNome(dto.category());
         Endereco enderecoSalvo = enderecoRepository.save(endereco);
         int limiteMax = organizador.getHonraMedia().compareTo(BigDecimal.valueOf(4.8)) >= 0 ? 50 : 20;
         int capacidade = Math.min(dto.capacity(), limiteMax);
@@ -243,6 +239,20 @@ public class EventoService {
         );
     }
 
+    private Usuario organizadorApto(UUID usuarioId) {
+        Usuario organizador = usuarioRepository.findById(usuarioId)
+            .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + usuarioId));
+        if (organizador.getHonraMedia().compareTo(BigDecimal.valueOf(honraMinimaCriacao)) < 0) {
+            throw new IllegalStateException(
+                "Sua honra está abaixo de " + honraMinimaCriacao +
+                ". Pelo RN004, você não pode criar novos rolés.");
+        }
+        return organizador;
+    }
+    private Categoria categoriaPorNome(String nome) {
+        return categoriaRepository.findByNome(nome)
+            .orElseThrow(() -> new NoSuchElementException("Categoria não encontrada: " + nome));
+    }
     private boolean participouDoEvento(UUID usuarioId, UUID eventoId) {
         return inscricaoRepository.findByUsuarioIdAndEventoId(usuarioId, eventoId)
             .map(i -> i.getStatusInscricao() == StatusInscricao.CONFIRMADA)
