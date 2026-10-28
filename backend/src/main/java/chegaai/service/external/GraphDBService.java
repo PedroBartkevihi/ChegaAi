@@ -1,18 +1,17 @@
 package chegaai.service.external;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 import java.time.Duration;
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class GraphDBService {
-    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(5);
-    private final WebClient.Builder webClientBuilder;
+    private static final Duration TEMPO_CONEXAO = Duration.ofSeconds(2);
+    private static final Duration TEMPO_RESPOSTA = Duration.ofSeconds(5);
     @Value("${chegaai.graphdb.url}")
     private String graphDbUrl;
     @Value("${chegaai.graphdb.repositorio}")
@@ -24,12 +23,11 @@ public class GraphDBService {
     }
     public boolean isAvailable() {
         try {
-            webClient()
+            restClient()
                 .get()
                 .uri("/rest/repositories/{repository}", repository)
                 .retrieve()
-                .toBodilessEntity()
-                .block(REQUEST_TIMEOUT);
+                .toBodilessEntity();
             return true;
         } catch (RuntimeException ex) {
             log.debug("GraphDB indisponível em {} para o repositório '{}': {}",
@@ -40,25 +38,26 @@ public class GraphDBService {
     public String buscarEventosPorTexto(String termo) {
         String query = montarQueryEventos(termo);
         try {
-            String result = webClient()
+            // A consulta vai como variável da URI: assim ela é codificada inteira, e as chaves
+            // do SPARQL não são confundidas com variáveis do modelo da URI.
+            String result = restClient()
                 .get()
-                .uri(uriBuilder -> uriBuilder
-                    .path("/repositories/{repository}")
-                    .queryParam("query", query)
-                    .build(repository))
+                .uri("/repositories/{repository}?query={query}", repository, query)
                 .accept(MediaType.valueOf("application/sparql-results+json"))
                 .retrieve()
-                .bodyToMono(String.class)
-                .block(REQUEST_TIMEOUT);
+                .body(String.class);
             return result == null || result.isBlank() ? emptySparqlResult() : result;
-        } catch (WebClientResponseException ex) {
+        } catch (RestClientResponseException ex) {
             throw new IllegalStateException("GraphDB respondeu com erro " + ex.getStatusCode().value(), ex);
         } catch (RuntimeException ex) {
             throw new IllegalStateException("Não foi possível consultar o GraphDB.", ex);
         }
     }
-    private WebClient webClient() {
-        return webClientBuilder.baseUrl(graphDbUrl).build();
+    private RestClient restClient() {
+        SimpleClientHttpRequestFactory fabrica = new SimpleClientHttpRequestFactory();
+        fabrica.setConnectTimeout(TEMPO_CONEXAO);
+        fabrica.setReadTimeout(TEMPO_RESPOSTA);
+        return RestClient.builder().baseUrl(graphDbUrl).requestFactory(fabrica).build();
     }
     private String montarQueryEventos(String termo) {
         String filtro = termo == null ? "" : termo.trim().toLowerCase();

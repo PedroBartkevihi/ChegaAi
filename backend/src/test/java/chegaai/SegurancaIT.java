@@ -68,6 +68,38 @@ class SegurancaIT extends IntegracaoBase {
             .andExpect(status().isOk());
     }
     @Test
+    @DisplayName("token de uma conta que não existe mais devolve 401, inclusive em rota pública")
+    void tokenDeContaApagadaDevolve401() throws Exception {
+        UsuarioTeste helo = cadastrar("Helo");
+        jdbcTemplate.update("DELETE FROM usuario WHERE id_usuario = ?", helo.id());
+        mockMvc.perform(get("/auth/me").header("Authorization", bearer(helo.token())))
+            .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/eventos").header("Authorization", bearer(helo.token())))
+            .andExpect(status().isUnauthorized());
+    }
+    @Test
+    @DisplayName("o actuator só expõe health e info, sem detalhes, mesmo para quem está logado")
+    void actuatorSemMetricasNemDetalhes() throws Exception {
+        UsuarioTeste ivo = cadastrar("Ivo");
+        mockMvc.perform(get("/actuator/metrics").header("Authorization", bearer(ivo.token())))
+            .andExpect(status().isNotFound());
+        mockMvc.perform(get("/actuator/health").header("Authorization", bearer(ivo.token())))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("UP"))
+            .andExpect(jsonPath("$.components").doesNotExist());
+        mockMvc.perform(get("/actuator/health"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.components").doesNotExist());
+    }
+    @Test
+    @DisplayName("a documentação OpenAPI continua pública e gerada")
+    void documentacaoOpenApi() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.openapi").exists())
+            .andExpect(jsonPath("$.paths['/eventos']").exists());
+    }
+    @Test
     @DisplayName("contas de demonstração entram com a senha documentada e recusam senha errada")
     void loginDasContasDeDemonstracao() throws Exception {
         String token = login("pedro@chegaai.dev", "admin123");
@@ -103,6 +135,36 @@ class SegurancaIT extends IntegracaoBase {
             .andExpect(jsonPath("$.message", containsString("e-mail")));
     }
     @Test
+    @DisplayName("cadastro sem CPF funciona, e CPF repetido recebe mensagem genérica")
+    void cadastroComCpfOpcional() throws Exception {
+        mockMvc.perform(post("/auth/cadastro")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of(
+                    "name", "Jade Sem Cpf", "email", "jade@teste.chegaai.dev", "cpf", "",
+                    "birthDate", "1998-08-08", "password", SENHA))))
+            .andExpect(status().isCreated());
+        login("jade@teste.chegaai.dev", SENHA);
+        // um segundo cadastro sem CPF (o campo nem vai) não esbarra no primeiro
+        mockMvc.perform(post("/auth/cadastro")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of(
+                    "name", "Ian Sem Cpf", "email", "ian@teste.chegaai.dev",
+                    "birthDate", "1995-05-05", "password", SENHA))))
+            .andExpect(status().isCreated());
+        String cpf = cpfValido();
+        Map<String, Object> primeiro = Map.of("name", "Kai Teste", "email", "kai@teste.chegaai.dev", "cpf", cpf,
+            "birthDate", "1997-07-07", "password", SENHA);
+        mockMvc.perform(post("/auth/cadastro").contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(primeiro)))
+            .andExpect(status().isCreated());
+        Map<String, Object> segundo = Map.of("name", "Lu Teste", "email", "lu@teste.chegaai.dev", "cpf", cpf,
+            "birthDate", "1996-06-06", "password", SENHA);
+        mockMvc.perform(post("/auth/cadastro").contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(segundo)))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.message", containsString("Não foi possível concluir o cadastro")));
+    }
+    @Test
     @DisplayName("só o organizador ou a moderação excluem um evento")
     void exclusaoDeEventoRespeitaPermissoes() throws Exception {
         UsuarioTeste organizador = cadastrar("Dani");
@@ -111,10 +173,29 @@ class SegurancaIT extends IntegracaoBase {
         mockMvc.perform(delete("/eventos/{id}", eventoId).header("Authorization", bearer(outro.token())))
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.message", containsString("organizador ou um moderador")));
-        String moderador = login("moderador@chegaai.dev", "admin123");
-        mockMvc.perform(delete("/eventos/{id}", eventoId).header("Authorization", bearer(moderador)))
+        UsuarioTeste moderadora = cadastrar("Fabi");
+        jdbcTemplate.update("UPDATE usuario SET papel_sistema = 'ADMINISTRADOR' WHERE id_usuario = ?", moderadora.id());
+        mockMvc.perform(delete("/eventos/{id}", eventoId).header("Authorization", bearer(moderadora.token())))
             .andExpect(status().isNoContent());
         mockMvc.perform(get("/eventos/{id}", eventoId)).andExpect(status().isNotFound());
+        UUID proprio = criarEventoValido(organizador, 10);
+        mockMvc.perform(delete("/eventos/{id}", proprio).header("Authorization", bearer(organizador.token())))
+            .andExpect(status().isNoContent());
+    }
+    @Test
+    @DisplayName("o moderador de demonstração, de senha pública, só exclui rolés da demonstração")
+    void moderadorDeDemonstracaoSoExcluiRolesDaDemonstracao() throws Exception {
+        UUID eventoDeVisitante = criarEventoValido(cadastrar("Gabi"), 10);
+        String caio = login("caio@chegaai.dev", "admin123");
+        UUID eventoDaDemonstracao = UUID.fromString(json(criarEvento(caio, "Rolé da demonstração", 10)
+            .andExpect(status().isCreated())).get("id").asText());
+        String moderador = login("moderador@chegaai.dev", "admin123");
+        mockMvc.perform(delete("/eventos/{id}", eventoDeVisitante).header("Authorization", bearer(moderador)))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.message", containsString("contas de demonstração")));
+        mockMvc.perform(get("/eventos/{id}", eventoDeVisitante)).andExpect(status().isOk());
+        mockMvc.perform(delete("/eventos/{id}", eventoDaDemonstracao).header("Authorization", bearer(moderador)))
+            .andExpect(status().isNoContent());
     }
     @Test
     @DisplayName("CORS libera só as origens configuradas")

@@ -44,9 +44,9 @@ public abstract class Usuario {
     @Size(max = 254, message = "O e-mail deve ter no máximo 254 caracteres.")
     @Column(name = "email", nullable = false, unique = true, length = 254)
     private String email;
-    @NotBlank(message = "O CPF é obrigatório.")
+    // Opcional desde a V7; quando informado, tem 11 dígitos e é único.
     @Pattern(regexp = "^[0-9]{11}$", message = "O CPF deve conter exatamente 11 dígitos numéricos.")
-    @Column(name = "cpf", nullable = false, unique = true, length = 11)
+    @Column(name = "cpf", unique = true, length = 11)
     private String cpf;
     @NotBlank(message = "A senha hash é obrigatória.")
     @Column(name = "senha_hash", nullable = false, columnDefinition = "text")

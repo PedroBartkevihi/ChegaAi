@@ -13,8 +13,10 @@ import chegaai.service.external.ViaCEPService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
@@ -38,8 +40,9 @@ public class EventoService {
     private final InscricaoRepository inscricaoRepository;
     private final ComentarioRepository comentarioRepository;
     private final AvaliacaoRepository avaliacaoRepository;
-    private final ViaCEPService viaCEPService;   
+    private final ViaCEPService viaCEPService;
     private final FusoHorario fusoHorario;
+    private final TransactionTemplate transacao;
     @Value("${chegaai.regras.honra-minima-criacao:2.0}")
     private double honraMinimaCriacao;
     @Value("${chegaai.regras.deducao-honra-ausencia:0.5}")
@@ -62,29 +65,30 @@ public class EventoService {
             .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + id));
         return toResponseDTO(evento);
     }
-    @Transactional
+    // Sem @Transactional: o ViaCEP é consultado antes, fora da transação, para uma demora dele não
+    // prender uma conexão do banco (são só 5 na versão online). A parte do banco roda numa transação só.
     public EventoResponseDTO criarEvento(EventoRequestDTO dto, UUID usuarioId) {
         OffsetDateTime dataHora = fusoHorario.instante(lerData(dto.date()), lerHorario(dto.time()));
         if (!dataHora.isAfter(OffsetDateTime.now())) {
             throw new IllegalArgumentException("A data de realização deve ser uma data futura.");
         }
-        Usuario organizador = usuarioRepository.findById(usuarioId)
-            .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + usuarioId));
-        if (organizador.getHonraMedia().compareTo(BigDecimal.valueOf(honraMinimaCriacao)) < 0) {
-            throw new IllegalStateException(
-                "Sua honra está abaixo de " + honraMinimaCriacao +
-                ". Pelo RN004, você não pode criar novos rolés.");
-        }
-        Categoria categoria = categoriaRepository.findByNome(dto.category())
-            .orElseThrow(() -> new NoSuchElementException("Categoria não encontrada: " + dto.category()));
+        // Recusa antes do ViaCEP o que já se sabe que vai falhar; a transação confere de novo.
+        organizadorApto(usuarioId);
+        categoriaPorNome(dto.category());
         Endereco endereco = montarEndereco(dto);
-        endereco = enderecoRepository.save(endereco);
+        return transacao.execute(status -> criarEventoNoBanco(dto, usuarioId, dataHora, endereco));
+    }
+    private EventoResponseDTO criarEventoNoBanco(EventoRequestDTO dto, UUID usuarioId,
+                                                 OffsetDateTime dataHora, Endereco endereco) {
+        Usuario organizador = organizadorApto(usuarioId);
+        Categoria categoria = categoriaPorNome(dto.category());
+        Endereco enderecoSalvo = enderecoRepository.save(endereco);
         int limiteMax = organizador.getHonraMedia().compareTo(BigDecimal.valueOf(4.8)) >= 0 ? 50 : 20;
         int capacidade = Math.min(dto.capacity(), limiteMax);
         Evento evento = new Evento();
         evento.setOrganizador(organizador);
         evento.setCategoria(categoria);
-        evento.setEndereco(endereco);
+        evento.setEndereco(enderecoSalvo);
         evento.setTitulo(dto.title());
         evento.setDescricao(dto.description());
         evento.setDataHoraRealizacao(dataHora);
@@ -114,6 +118,12 @@ public class EventoService {
         boolean moderador = usuario.getPapelSistema() == PapelSistema.ADMINISTRADOR;
         if (!organizador && !moderador) {
             throw new IllegalStateException("Apenas o organizador ou um moderador pode excluir este rolé.");
+        }
+        // O moderador de demonstração tem a senha publicada na tela de entrada: ele só modera os
+        // rolés da demonstração, para nenhum visitante apagar o que outras pessoas criaram.
+        if (!organizador && DataSeederService.ehContaDeDemonstracao(usuario.getEmail())
+                && !DataSeederService.ehContaDeDemonstracao(evento.getOrganizador().getEmail())) {
+            throw new AccessDeniedException("O moderador de demonstração só exclui rolés das contas de demonstração.");
         }
         eventoRepository.delete(evento);
     }
@@ -229,6 +239,20 @@ public class EventoService {
         );
     }
 
+    private Usuario organizadorApto(UUID usuarioId) {
+        Usuario organizador = usuarioRepository.findById(usuarioId)
+            .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + usuarioId));
+        if (organizador.getHonraMedia().compareTo(BigDecimal.valueOf(honraMinimaCriacao)) < 0) {
+            throw new IllegalStateException(
+                "Sua honra está abaixo de " + honraMinimaCriacao +
+                ". Pelo RN004, você não pode criar novos rolés.");
+        }
+        return organizador;
+    }
+    private Categoria categoriaPorNome(String nome) {
+        return categoriaRepository.findByNome(nome)
+            .orElseThrow(() -> new NoSuchElementException("Categoria não encontrada: " + nome));
+    }
     private boolean participouDoEvento(UUID usuarioId, UUID eventoId) {
         return inscricaoRepository.findByUsuarioIdAndEventoId(usuarioId, eventoId)
             .map(i -> i.getStatusInscricao() == StatusInscricao.CONFIRMADA)

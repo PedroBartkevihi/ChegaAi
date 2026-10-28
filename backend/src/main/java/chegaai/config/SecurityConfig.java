@@ -1,6 +1,8 @@
 package chegaai.config;
+import chegaai.repository.UsuarioRepository;
 import chegaai.service.TokenService;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import jakarta.servlet.DispatcherType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -11,7 +13,12 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
@@ -26,6 +33,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.List;
+import java.util.UUID;
 @Configuration
 @EnableWebSecurity
 @Slf4j
@@ -41,6 +49,9 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // O despacho de erro do contêiner (/error) não exige login: sem isso, uma falha interna durante
+                // a autenticação (o banco fora do ar, por exemplo) viraria 401, e o site deslogaria a pessoa.
+                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/cadastro").permitAll()
                 .requestMatchers(HttpMethod.GET, "/eventos", "/eventos/**", "/recomendacoes/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
@@ -82,12 +93,37 @@ public class SecurityConfig {
         return new NimbusJwtEncoder(new ImmutableSecret<>(jwtSecretKey));
     }
     @Bean
-    public JwtDecoder jwtDecoder(SecretKey jwtSecretKey) {
+    public JwtDecoder jwtDecoder(SecretKey jwtSecretKey, UsuarioRepository usuarioRepository) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(jwtSecretKey)
             .macAlgorithm(MacAlgorithm.HS256)
             .build();
-        decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(TokenService.EMISSOR));
+        decoder.setJwtValidator(validadorDeToken(usuarioRepository));
         return decoder;
+    }
+    /**
+     * Além do emissor e da validade, exige que a conta do token ainda exista. Uma conta apagada deixaria
+     * tokens assinados apontando para ninguém; assim a API responde 401, e o site encerra a sessão.
+     */
+    static OAuth2TokenValidator<Jwt> validadorDeToken(UsuarioRepository usuarioRepository) {
+        OAuth2TokenValidator<Jwt> padrao = JwtValidators.createDefaultWithIssuer(TokenService.EMISSOR);
+        OAuth2Error contaInexistente = new OAuth2Error(OAuth2ErrorCodes.INVALID_TOKEN,
+            "A conta deste token não existe mais.", null);
+        return jwt -> {
+            OAuth2TokenValidatorResult resultado = padrao.validate(jwt);
+            if (resultado.hasErrors()) {
+                return resultado;
+            }
+            return contaExiste(usuarioRepository, jwt.getSubject())
+                ? OAuth2TokenValidatorResult.success()
+                : OAuth2TokenValidatorResult.failure(contaInexistente);
+        };
+    }
+    private static boolean contaExiste(UsuarioRepository usuarioRepository, String subject) {
+        try {
+            return subject != null && usuarioRepository.existsById(UUID.fromString(subject));
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
     @Bean
     public CorsConfigurationSource corsConfigurationSource(@Value("${chegaai.cors.origens}") List<String> origens) {

@@ -142,6 +142,7 @@ export default function App() {
   }
   async function handleLogin(email, password) {
     const session = await api("/auth/login", {
+      semToken: true,
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
@@ -149,6 +150,7 @@ export default function App() {
   }
   async function handleRegister(account) {
     const session = await api("/auth/cadastro", {
+      semToken: true,
       method: "POST",
       body: JSON.stringify(account),
     });

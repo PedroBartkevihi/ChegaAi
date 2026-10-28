@@ -38,7 +38,7 @@ Pedro Farias continuou o projeto neste repositório:
 - Comentários restritos a confirmados e a quem está na fila.
 - Presença registrada pelo organizador, conclusão do rolé e **avaliação entre participantes** (notas de 1 a 5).
 - Perfil com a reputação atual e as inscrições.
-- Moderação: o moderador pode excluir qualquer rolé.
+- Moderação: o moderador pode excluir qualquer rolé; o moderador de demonstração, só os rolés das contas de demonstração.
 
 | Detalhes de um rolé | Tela de entrada |
 |---|---|
@@ -65,7 +65,7 @@ Os limites ficam em `application.properties` (`chegaai.regras.*`) e podem ser aj
 
 | Camada | Tecnologias |
 |---|---|
-| Back-end | Java 17, Spring Boot 3.3, Spring Security (JWT, BCrypt), Spring Data JPA / Hibernate, Flyway, springdoc-openapi |
+| Back-end | Java 17, Spring Boot 4.1, Spring Security (JWT, BCrypt), Spring Data JPA / Hibernate, Flyway, springdoc-openapi |
 | Front-end | React 19, Next.js 16 (App Router) |
 | Banco de dados | PostgreSQL 15 (GraphDB opcional para recomendações em SPARQL) |
 | Testes | JUnit 5, Mockito, Testcontainers, Playwright, k6 |
@@ -152,7 +152,7 @@ Todas usam a senha `admin123`.
 | `caio@chegaai.dev` | Embaixador (honra 4.9) |
 | `baixa@chegaai.dev` | Honra 1.5: não cria rolés nem se inscreve |
 | `tester.pendente@chegaai.dev` | Tem avaliação pendente: inscrições bloqueadas |
-| `moderador@chegaai.dev` | Moderador: exclui qualquer rolé |
+| `moderador@chegaai.dev` | Moderador: exclui os rolés das contas de demonstração |
 
 ## API
 
@@ -176,8 +176,8 @@ Rotas autenticadas recebem o token no cabeçalho `Authorization: Bearer <token>`
 
 | Tipo | Quantidade | Como rodar |
 |---|---|---|
-| Unitários (JUnit + Mockito) | 28 | `cd backend && ./mvnw test` |
-| Integração (PostgreSQL real com Testcontainers; precisa do Docker) | 31 | `cd backend && ./mvnw verify` |
+| Unitários (JUnit + Mockito) | 38 | `cd backend && ./mvnw test` |
+| Integração (PostgreSQL real com Testcontainers; precisa do Docker) | 43 | `cd backend && ./mvnw verify` |
 | Ponta a ponta (Playwright; precisa da API rodando) | 11 | `cd frontend && npx playwright test` |
 
 O GitHub Actions roda os testes do back-end e os ponta a ponta (com o build de produção do Next.js) a cada push.

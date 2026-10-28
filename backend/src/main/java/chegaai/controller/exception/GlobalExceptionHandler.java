@@ -1,4 +1,5 @@
 package chegaai.controller.exception;
+import chegaai.service.AuthService;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -41,6 +43,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleUnauthorized(AuthenticationException ex) {
         return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleForbidden(AccessDeniedException ex) {
+        return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, Object>> handleConflict(IllegalStateException ex) {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
@@ -63,6 +69,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             log.warn("Inscrição duplicada barrada pelo banco: {}", ex.getMostSpecificCause().getMessage());
             return buildResponse(HttpStatus.CONFLICT,
                 "Você já tem uma inscrição neste evento. Atualize a página para ver a situação atual.");
+        }
+        // Cadastros simultâneos passam juntos pela checagem do serviço e só o banco barra o segundo.
+        if (violouConstraint(ex, "uk_usuario_email")) {
+            return buildResponse(HttpStatus.CONFLICT, AuthService.EMAIL_EM_USO);
+        }
+        if (violouConstraint(ex, "uk_usuario_cpf")) {
+            return buildResponse(HttpStatus.CONFLICT, AuthService.CADASTRO_RECUSADO);
         }
         return handleGeneral(ex);
     }

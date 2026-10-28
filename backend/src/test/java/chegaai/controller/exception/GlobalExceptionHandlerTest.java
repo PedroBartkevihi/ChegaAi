@@ -1,4 +1,8 @@
 package chegaai.controller.exception;
+import chegaai.service.AuthService;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
+import java.sql.SQLException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,11 +35,34 @@ class GlobalExceptionHandlerTest {
             .andExpect(content().string(not(containsString("password"))));
         assertThat(log.getOut()).contains("Erro inesperado ao processar requisição").contains(DETALHE_INTERNO);
     }
+    @Test
+    @DisplayName("cadastro simultâneo barrado pelo banco vira 409, sem confirmar o CPF")
+    void unicidadeDoCadastroBarradaPeloBancoViraConflito() throws Exception {
+        mockMvc.perform(get("/cpf-repetido"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.message").value(AuthService.CADASTRO_RECUSADO));
+        mockMvc.perform(get("/email-repetido"))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.message").value(AuthService.EMAIL_EM_USO));
+    }
     @RestController
     static class RotaQueFalha {
         @GetMapping("/falha")
         String falhar() {
             throw new RuntimeException(DETALHE_INTERNO);
+        }
+        @GetMapping("/cpf-repetido")
+        String cpfRepetido() {
+            throw violacao("uk_usuario_cpf");
+        }
+        @GetMapping("/email-repetido")
+        String emailRepetido() {
+            throw violacao("uk_usuario_email");
+        }
+        private static DataIntegrityViolationException violacao(String constraint) {
+            return new DataIntegrityViolationException("duplicate key", new ConstraintViolationException(
+                "duplicate key", new SQLException("duplicate key value violates unique constraint", "23505"),
+                constraint));
         }
     }
 }

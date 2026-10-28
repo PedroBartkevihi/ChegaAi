@@ -7,11 +7,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
@@ -30,6 +32,9 @@ public class DataSeederService implements CommandLineRunner {
         "pedro@chegaai.dev", "caio@chegaai.dev", "nina@chegaai.dev", "marcos@chegaai.dev",
         "lia@chegaai.dev", "rafael@chegaai.dev", "bia@chegaai.dev", "paula@chegaai.dev",
         "bruno@chegaai.dev", "baixa@chegaai.dev", "moderador@chegaai.dev", "tester.pendente@chegaai.dev");
+    public static boolean ehContaDeDemonstracao(String email) {
+        return email != null && EMAILS_DEMO.contains(email);
+    }
     private final CategoriaRepository categoriaRepository;
     private final EnderecoRepository enderecoRepository;
     private final UsuarioRepository usuarioRepository;
@@ -225,23 +230,38 @@ public class DataSeederService implements CommandLineRunner {
         end.setComplemento(complemento);
         return enderecoRepository.save(end);
     }
+    /**
+     * Id fixo de cada conta de demonstração, derivado do e-mail. Recriar a demonstração (a cada
+     * inicialização, na versão online) mantém os ids, e quem já tinha entrado continua com um token válido.
+     */
+    static UUID idDeDemonstracao(String email) {
+        return UUID.nameUUIDFromBytes(("chegaai-demo:" + email).getBytes(StandardCharsets.UTF_8));
+    }
     private Participante salvarParticipante(String nome, String email, String cpf,
                                              String dataNascimento, BigDecimal honra) {
-        Participante p = new Participante(nome, email, cpf,
-            senhaDemoHash, LocalDate.parse(dataNascimento));
-        p.setHonraMedia(honra);
-        return usuarioRepository.save(p);
+        return (Participante) salvarConta("PARTICIPANTE", nome, email, cpf, dataNascimento, honra);
     }
     private Administrador salvarAdmin(String nome, String email, String cpf,
                                        String dataNascimento) {
-        Administrador a = new Administrador();
-        a.setNome(nome);
-        a.setEmail(email);
-        a.setCpf(cpf);
-        a.setSenhaHash(senhaDemoHash);
-        a.setDataNascimento(LocalDate.parse(dataNascimento));
-        a.setHonraMedia(BigDecimal.valueOf(5.0));
-        return usuarioRepository.save(a);
+        return (Administrador) salvarConta("ADMINISTRADOR", nome, email, cpf, dataNascimento, BigDecimal.valueOf(5.0));
+    }
+    // Por SQL porque o JPA gera o id sozinho (@GeneratedValue) e não aceita o id fixo.
+    private Usuario salvarConta(String papel, String nome, String email, String cpf,
+                                String dataNascimento, BigDecimal honra) {
+        UUID id = idDeDemonstracao(email);
+        jdbc.update("INSERT INTO usuario (id_usuario, nome, email, cpf, senha_hash, data_nascimento, honra_media, "
+                + "status_usuario, papel_sistema) "
+                + "VALUES (:id, :nome, :email, :cpf, :senha, :nascimento, :honra, 'ATIVO', :papel)",
+            new MapSqlParameterSource()
+                .addValue("id", id)
+                .addValue("nome", nome)
+                .addValue("email", email)
+                .addValue("cpf", cpf)
+                .addValue("senha", senhaDemoHash)
+                .addValue("nascimento", LocalDate.parse(dataNascimento))
+                .addValue("honra", honra)
+                .addValue("papel", papel));
+        return usuarioRepository.findById(id).orElseThrow();
     }
     private Evento salvarEvento(Usuario organizador, Categoria categoria,
                                  Endereco endereco, String titulo, String descricao,
