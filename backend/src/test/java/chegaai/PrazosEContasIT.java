@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.MediaType;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +56,34 @@ class PrazosEContasIT extends IntegracaoBase {
         jdbcTemplate.update("UPDATE usuario SET suspenso_ate=now()-interval '1 second' WHERE id_usuario=?", pessoa.id());
         assertThat(usuarioAtual(pessoa).get("id").asText()).isEqualTo(pessoa.id().toString());
         login(pessoa.email(), SENHA);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"indefinida", "prazoMaior"})
+    void cancelamentoNaoEncurtaSuspensaoExistente(String tipo) throws Exception {
+        var org = cadastrar("SuspensaoOrg");
+        var pessoa = cadastrar("SuspensaoPessoa");
+        UUID evento = criarEventoValido(org, 10);
+        alternarInscricao(pessoa, evento).andExpect(status().isOk());
+        aproximarInicio(evento);
+        for (int i = 0; i < 2; i++) {
+            jdbcTemplate.update("INSERT INTO cancelamento_tardio VALUES (?,?,null,now()-interval '1 day')",
+                UUID.randomUUID(), pessoa.id());
+        }
+        jdbcTemplate.update("UPDATE usuario SET status_usuario='SUSPENSO', suspenso_ate="
+            + (tipo.equals("indefinida") ? "NULL" : "now()+interval '30 days'") + " WHERE id_usuario=?", pessoa.id());
+        OffsetDateTime prazoAnterior = jdbcTemplate.queryForObject(
+            "SELECT suspenso_ate FROM usuario WHERE id_usuario=?", OffsetDateTime.class, pessoa.id());
+
+        alternarInscricao(pessoa, evento).andExpect(jsonPath("$.status").value("CANCELADO"));
+
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM cancelamento_tardio WHERE id_usuario=?",
+            Integer.class, pessoa.id())).isEqualTo(3);
+        assertThat(jdbcTemplate.queryForObject("SELECT status_usuario FROM usuario WHERE id_usuario=?",
+            String.class, pessoa.id())).isEqualTo("SUSPENSO");
+        assertThat(jdbcTemplate.queryForObject("SELECT suspenso_ate FROM usuario WHERE id_usuario=?",
+            OffsetDateTime.class, pessoa.id())).isEqualTo(prazoAnterior);
+        criarEvento(pessoa.token(), "Conta continua suspensa", 10).andExpect(status().isForbidden());
     }
 
     @Test

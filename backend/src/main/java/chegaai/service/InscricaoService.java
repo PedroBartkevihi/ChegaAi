@@ -160,9 +160,15 @@ public class InscricaoService {
             "SELECT COUNT(*) FROM cancelamento_tardio WHERE id_usuario = ? AND cancelado_em >= ? AND cancelado_em <= ?",
             Integer.class, usuario.getId(), agora.minusDays(janelaCancelamentoDias), agora);
         if (quantidade != null && quantidade >= maxCancelamentosTardios) {
-            usuario.setStatusUsuario(StatusUsuario.SUSPENSO);
-            usuario.setSuspensoAte(agora.plusDays(suspensaoCancelamentoDias));
-            usuarioRepository.save(usuario);
+            OffsetDateTime novoPrazo = agora.plusDays(suspensaoCancelamentoDias);
+            // Cancelar um compromisso não reduz uma punição manual ou um prazo já maior.
+            boolean preservarSuspensao = usuario.getStatusUsuario() == StatusUsuario.SUSPENSO
+                && (usuario.getSuspensoAte() == null || !usuario.getSuspensoAte().isBefore(novoPrazo));
+            if (!preservarSuspensao) {
+                usuario.setStatusUsuario(StatusUsuario.SUSPENSO);
+                usuario.setSuspensoAte(novoPrazo);
+                usuarioRepository.save(usuario);
+            }
         }
     }
     @Transactional
