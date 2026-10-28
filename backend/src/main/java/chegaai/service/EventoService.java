@@ -138,13 +138,15 @@ public class EventoService {
             throw new IllegalStateException(
                 "Apenas o organizador pode concluir o evento.");
         }
-        contaService.travar(usuarioId);
-        evento.concluir(OffsetDateTime.now());
-        eventoRepository.save(evento);
         List<Inscricao> confirmadas = inscricaoRepository
             .findByEventoIdAndStatusInscricao(eventoId, StatusInscricao.CONFIRMADA);
-        var usuarios = honraService.travarUsuarios(confirmadas.stream()
-            .map(i -> i.getUsuario().getId()).toList());
+        var usuarios = honraService.travarUsuarios(java.util.stream.Stream.concat(
+            confirmadas.stream().map(i -> i.getUsuario().getId()), java.util.stream.Stream.of(usuarioId)).toList());
+        if (usuarios.get(usuarioId).getStatusUsuario() == chegaai.domain.enums.StatusUsuario.BANIDO) {
+            throw new AccessDeniedException("Esta conta foi banida pela moderação.");
+        }
+        evento.concluir(OffsetDateTime.now());
+        eventoRepository.save(evento);
         for (Inscricao inscricao : confirmadas) {
             if (inscricao.getUsuario().getId().equals(usuarioId)) {
                 // o organizador conduziu o rolé: conta como presente e não é penalizado
