@@ -6,6 +6,10 @@ Plataforma web para **criar, descobrir e participar de eventos presenciais** ("r
 organizadores bem avaliados ganham destaque, vagas e fila de espera são controladas pelo sistema
 e quem participa avalia os outros participantes, formando um índice de reputação (honra).
 
+**Versão online:** [chegaai-web.onrender.com](https://chegaai-web.onrender.com). Entre com uma das
+[contas de demonstração](#contas-de-demonstração). A API desliga quando fica parada, então a
+primeira visita pode levar cerca de 30 s.
+
 ![Feed de rolés do ChegaAí](docs/images/feed.png)
 
 ## Sobre o projeto
@@ -187,5 +191,6 @@ ainda com o nome ChegAê: scripts em [`tests/load`](tests/load) e resultados em 
 
 ## Deploy
 
-A versão online usa Neon (PostgreSQL), Google Cloud Run (API) e Render (site estático).
-O passo a passo está em [`DEPLOY.md`](DEPLOY.md).
+A [versão online](https://chegaai-web.onrender.com) usa Neon (PostgreSQL), Google Cloud Run (API)
+e Render (site estático), com deploy automático a cada merge na `main`. O passo a passo está em
+[`DEPLOY.md`](DEPLOY.md).
