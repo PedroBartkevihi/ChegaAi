@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -99,6 +100,73 @@ class InscricaoIT extends IntegracaoBase {
         alternarInscricao(primeiro, eventoId).andExpect(jsonPath("$.status").value("FILA"));
         assertThat(nomes(buscarEvento(eventoId), "waitlist"))
             .containsExactly(confirmado.primeiroNome(), primeiro.primeiroNome());
+    }
+    @ParameterizedTest
+    @ValueSource(strings = {"SUSPENSO", "BANIDO"})
+    @DisplayName("promoção pula contas impedidas sem retirar sua posição e aproveita a vaga com a próxima ativa")
+    void promocaoPulaContasImpedidasSemPerderPosicao(String statusConta) throws Exception {
+        UsuarioTeste organizador = cadastrar("Org");
+        UsuarioTeste confirmadoA = cadastrar("ConfirmadoA");
+        UsuarioTeste confirmadoB = cadastrar("ConfirmadoB");
+        UsuarioTeste impedido = cadastrar("Impedido");
+        UsuarioTeste ativo = cadastrar("Ativo");
+        UsuarioTeste novo = cadastrar("Novo");
+        UUID evento = criarEventoValido(organizador, 3);
+        alternarInscricao(confirmadoA, evento).andExpect(jsonPath("$.status").value("CONFIRMADO"));
+        alternarInscricao(confirmadoB, evento).andExpect(jsonPath("$.status").value("CONFIRMADO"));
+        alternarInscricao(impedido, evento).andExpect(jsonPath("$.status").value("FILA"));
+        alternarInscricao(ativo, evento).andExpect(jsonPath("$.status").value("FILA"));
+        Long ordemAnterior = ordemDaInscricao(impedido, evento);
+        jdbcTemplate.update("UPDATE usuario SET status_usuario=?, suspenso_ate=NULL WHERE id_usuario=?",
+            statusConta, impedido.id());
+
+        alternarInscricao(confirmadoA, evento).andExpect(jsonPath("$.status").value("CANCELADO"));
+        assertThat(nomes(buscarEvento(evento), "confirmed"))
+            .containsExactlyInAnyOrder(organizador.primeiroNome(), confirmadoB.primeiroNome(), ativo.primeiroNome());
+        assertThat(nomes(buscarEvento(evento), "waitlist")).containsExactly(impedido.primeiroNome());
+
+        alternarInscricao(confirmadoB, evento).andExpect(jsonPath("$.status").value("CANCELADO"));
+        alternarInscricao(novo, evento).andExpect(jsonPath("$.status").value("CONFIRMADO"));
+        assertThat(nomes(buscarEvento(evento), "confirmed"))
+            .containsExactlyInAnyOrder(organizador.primeiroNome(), ativo.primeiroNome(), novo.primeiroNome());
+        assertThat(nomes(buscarEvento(evento), "waitlist")).containsExactly(impedido.primeiroNome());
+        assertThat(ordemDaInscricao(impedido, evento)).isEqualTo(ordemAnterior);
+    }
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    @DisplayName("suspensão vencida recupera prioridade antes de uma nova entrada ou reentrada")
+    void suspensaoVencidaTemPrioridadeSobreNovaEntrada(boolean reentrada) throws Exception {
+        UsuarioTeste organizador = cadastrar("Org");
+        UsuarioTeste confirmadoA = cadastrar("ConfirmadoA");
+        UsuarioTeste confirmadoB = cadastrar("ConfirmadoB");
+        UsuarioTeste esperando = cadastrar("Esperando");
+        UsuarioTeste novo = cadastrar("Novo");
+        UUID evento = criarEventoValido(organizador, 3);
+        if (reentrada) {
+            alternarInscricao(novo, evento).andExpect(jsonPath("$.status").value("CONFIRMADO"));
+            alternarInscricao(novo, evento).andExpect(jsonPath("$.status").value("CANCELADO"));
+        }
+        alternarInscricao(confirmadoA, evento).andExpect(jsonPath("$.status").value("CONFIRMADO"));
+        alternarInscricao(confirmadoB, evento).andExpect(jsonPath("$.status").value("CONFIRMADO"));
+        alternarInscricao(esperando, evento).andExpect(jsonPath("$.status").value("FILA"));
+        Long ordemAnterior = ordemDaInscricao(esperando, evento);
+        jdbcTemplate.update("UPDATE usuario SET status_usuario='SUSPENSO', suspenso_ate=now()+interval '1 day' "
+            + "WHERE id_usuario=?", esperando.id());
+        alternarInscricao(confirmadoA, evento).andExpect(jsonPath("$.status").value("CANCELADO"));
+        assertThat(nomes(buscarEvento(evento), "confirmed"))
+            .containsExactlyInAnyOrder(organizador.primeiroNome(), confirmadoB.primeiroNome());
+        jdbcTemplate.update("UPDATE usuario SET suspenso_ate=now()-interval '1 second' WHERE id_usuario=?", esperando.id());
+
+        alternarInscricao(novo, evento).andExpect(jsonPath("$.status").value("FILA"));
+
+        assertThat(nomes(buscarEvento(evento), "confirmed"))
+            .containsExactlyInAnyOrder(organizador.primeiroNome(), confirmadoB.primeiroNome(), esperando.primeiroNome());
+        assertThat(nomes(buscarEvento(evento), "waitlist")).containsExactly(novo.primeiroNome());
+        assertThat(ordemDaInscricao(esperando, evento)).isEqualTo(ordemAnterior);
+    }
+    private Long ordemDaInscricao(UsuarioTeste pessoa, UUID evento) {
+        return jdbcTemplate.queryForObject("SELECT ordem_entrada FROM inscricao WHERE id_usuario=? AND id_evento=?",
+            Long.class, pessoa.id(), evento);
     }
     @Test
     @DisplayName("inscrições simultâneas nunca passam do limite: quem não couber vai para a fila")

@@ -79,6 +79,8 @@ public class InscricaoService {
                 ") está abaixo do mínimo (" + honraMinimaInscricao +
                 "). Você não pode se inscrever em novos eventos.");
         }
+        // Quem já espera e voltou a estar ativo tem prioridade sobre uma entrada ou reentrada.
+        promoverFila(evento);
         long confirmados = inscricaoRepository
             .countByEventoIdAndStatusInscricao(evento.getId(), StatusInscricao.CONFIRMADA);
         boolean temVaga = confirmados < evento.getLimiteParticipantes();
@@ -132,14 +134,16 @@ public class InscricaoService {
     public void preencherVagasDaFila(UUID eventoId) {
         Evento evento = eventoRepository.findByIdForUpdate(eventoId)
             .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + eventoId));
-        if (evento.getStatusEvento() == StatusEvento.ATIVO
-                && !Boolean.TRUE.equals(evento.getTravado())
-                && evento.getDataHoraRealizacao().isAfter(OffsetDateTime.now())) {
-            promoverFila(evento);
-        }
+        promoverFila(evento);
     }
     // O chamador mantém a trava pessimista do evento até o fim da transação.
     private void promoverFila(Evento evento) {
+        OffsetDateTime agora = OffsetDateTime.now();
+        if (evento.getStatusEvento() != StatusEvento.ATIVO
+                || Boolean.TRUE.equals(evento.getTravado())
+                || !agora.isBefore(evento.getDataHoraRealizacao())) {
+            return;
+        }
         long confirmados = inscricaoRepository
             .countByEventoIdAndStatusInscricao(evento.getId(), StatusInscricao.CONFIRMADA);
         long vagas = evento.getLimiteParticipantes() - confirmados;
@@ -148,7 +152,9 @@ public class InscricaoService {
         }
         List<Inscricao> fila = inscricaoRepository
             .findByEventoIdAndStatusInscricao(evento.getId(), StatusInscricao.SOLICITADA);
-        fila.stream().limit(vagas).forEach(inscricao -> {
+        // Suspensos e banidos permanecem na fila e conservam sua posição numérica.
+        // Não se travam os candidatos: eventos diferentes podem compartilhar a mesma fila de pessoas.
+        fila.stream().filter(inscricao -> inscricao.getUsuario().estaAtivo(agora)).limit(vagas).forEach(inscricao -> {
             inscricao.confirmar();
             inscricaoRepository.save(inscricao);
         });
