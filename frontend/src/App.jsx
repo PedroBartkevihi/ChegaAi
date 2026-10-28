@@ -1,17 +1,26 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Notice from "./components/Notice";
 import LoginScreen from "./components/LoginScreen";
-import SiteHeader from "./components/SiteHeader";
+import Sidebar from "./components/Sidebar";
+import Brand from "./components/Brand";
+import ThemeToggle from "./components/ThemeToggle";
 import FeedView from "./components/FeedView";
 import CreateView from "./components/CreateView";
 import ProfileView from "./components/ProfileView";
 import ModerationView from "./components/ModerationView";
 import EventModal from "./components/EventModal";
+import ConfirmDialog from "./components/ConfirmDialog";
 import { api, cleanErrorMessage, TOKEN_KEY, USER_KEY, SESSION_EXPIRED_EVENT } from "./lib/api";
-import { categories, initialFilters, isAmbassador, createId } from "./lib/eventos";
-import { useDemora, AVISO_SERVIDOR_ACORDANDO } from "./lib/useDemora";
+import { categories, initialFilters, isAmbassador, createId, sortByDate } from "./lib/eventos";
+// A API não diz se a pessoa está inscrita: a lista traz só os primeiros nomes de confirmados e da fila.
+function enrollmentFor(event, user) {
+  if (event.confirmed.includes(user.name)) return "CONFIRMADO";
+  if (event.waitlist.includes(user.name)) return "FILA";
+  return null;
+}
+import { useDemora } from "./lib/useDemora";
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [events, setEvents] = useState([]);
@@ -20,37 +29,45 @@ export default function App() {
   const [view, setView] = useState("feed");
   const [filters, setFilters] = useState(initialFilters);
   const [selectedEventId, setSelectedEventId] = useState(null);
-  const [alert, setAlert] = useState(null); 
-  const [loading, setLoading] = useState(false);
-  const loadingSlow = useDemora(loading);
+  const [alert, setAlert] = useState(null);
+  // "loading" só na primeira carga (a lista ainda vazia); depois de uma ação, a lista atualiza
+  // em silêncio e quem mostra o andamento é o botão da ação.
+  const [loadState, setLoadState] = useState("idle");
+  const loadingSlow = useDemora(loadState === "loading");
+  // Ações em andamento ("inscricao:<id>", "exclusao:<id>", "comentario:<id>", "criacao"). O ref barra
+  // o segundo clique antes de o React redesenhar o botão desabilitado.
+  const [pending, setPending] = useState({});
+  const pendingRef = useRef(new Set());
+  const [confirmState, setConfirmState] = useState(null);
   const capacityLimit = currentUser && isAmbassador(currentUser.honor) ? 50 : 20;
   const selectedEvent = events.find((event) => event.id === selectedEventId);
-  const loadEvents = useCallback(async () => {
+  const loadEvents = useCallback(async ({ initial = false } = {}) => {
+    if (initial) setLoadState("loading");
     try {
-      setLoading(true);
       const data = await api("/eventos");
       setEvents(data);
       if (currentUser) {
         const newEnrollments = {};
         data.forEach((event) => {
-          if (event.confirmed.includes(currentUser.name)) {
-            newEnrollments[event.id] = "CONFIRMADO";
-          } else if (event.waitlist.includes(currentUser.name)) {
-            newEnrollments[event.id] = "FILA";
-          }
+          const status = enrollmentFor(event, currentUser);
+          if (status) newEnrollments[event.id] = status;
         });
         setEnrollments(newEnrollments);
       }
+      setLoadState("ready");
+      return true;
     } catch (err) {
       console.error("Erro ao carregar eventos:", err);
-      showNotice("Não foi possível carregar os eventos. Verifique sua conexão ou se o servidor está ativo.", "error");
-    } finally {
-      setLoading(false);
+      if (initial) {
+        setLoadState("error");
+        showNotice("Não foi possível carregar os eventos. Verifique sua conexão ou se o servidor está ativo.", "error");
+      }
+      return false;
     }
   }, [currentUser]);
   useEffect(() => {
     if (currentUser) {
-      loadEvents();
+      loadEvents({ initial: true });
     }
   }, [currentUser, loadEvents]);
   useEffect(() => {
@@ -84,15 +101,12 @@ export default function App() {
     return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
   }, []);
   const filteredEvents = useMemo(() => {
-    return events
-      .filter((event) => {
-        const haystack = `${event.title} ${event.category} ${event.place} ${event.description} ${event.organizer.name}`.toLowerCase();
-        const matchesCategory = filters.category === "todos" || event.category === filters.category;
-        const matchesDistance = filters.distance === "todos" || event.distance <= Number(filters.distance);
-        const matchesHonor = event.organizer.honor >= Number(filters.honor);
-        return matchesCategory && matchesDistance && matchesHonor && haystack.includes(filters.search.toLowerCase());
-      })
-      .sort((a, b) => Number(isAmbassador(b.organizer.honor)) - Number(isAmbassador(a.organizer.honor)));
+    return sortByDate(events.filter((event) => {
+      const haystack = `${event.title} ${event.category} ${event.place} ${event.description} ${event.organizer.name}`.toLowerCase();
+      const matchesCategory = filters.category === "todos" || event.category === filters.category;
+      const matchesHonor = event.organizer.honor >= Number(filters.honor);
+      return matchesCategory && matchesHonor && haystack.includes(filters.search.toLowerCase());
+    }));
   }, [events, filters]);
   const metrics = useMemo(() => {
     return {
@@ -103,6 +117,28 @@ export default function App() {
   }, [events]);
   function updateFilter(name, value) {
     setFilters((current) => ({ ...current, [name]: value }));
+  }
+  async function runOnce(key, action) {
+    if (pendingRef.current.has(key)) return;
+    pendingRef.current.add(key);
+    setPending((current) => ({ ...current, [key]: true }));
+    try {
+      return await action();
+    } finally {
+      pendingRef.current.delete(key);
+      setPending((current) => {
+        const next = { ...current };
+        delete next[key];
+        return next;
+      });
+    }
+  }
+  function askConfirm(options) {
+    return new Promise((resolve) => setConfirmState({ ...options, resolve }));
+  }
+  function settleConfirm(answer) {
+    confirmState?.resolve(answer);
+    setConfirmState(null);
   }
   async function handleLogin(email, password) {
     const session = await api("/auth/login", {
@@ -132,6 +168,7 @@ export default function App() {
     setCurrentUser(null);
     setEvents([]);
     setEnrollments({});
+    setLoadState("idle");
     clearSession();
     setView("feed");
   }
@@ -154,66 +191,108 @@ export default function App() {
       distance: Number(form.get("distance")),
       description: form.get("description").trim(),
     };
-    try {
-      setLoading(true);
-      const criado = await api("/eventos", {
-        method: "POST",
-        body: JSON.stringify(dto),
-      });
-      await loadEvents();
+    await runOnce("criacao", async () => {
+      let criado;
+      try {
+        criado = await api("/eventos", {
+          method: "POST",
+          body: JSON.stringify(dto),
+        });
+      } catch (err) {
+        showNotice("Não foi possível criar o evento: " + err.message, "error");
+        return;
+      }
+      // O rolé já existe: entra na lista com o que a API devolveu, mesmo que a atualização falhe,
+      // para ninguém achar que a criação falhou e criar de novo.
+      setEvents((current) => [...current.filter((event) => event.id !== criado.id), criado]);
+      setEnrollments((current) => setEnrollment(current, criado.id, enrollmentFor(criado, currentUser)));
       formElement.reset();
       setView("feed");
       setSelectedEventId(criado.id);
       showNotice("Rolé criado com sucesso!", "success");
-    } catch (err) {
-      showNotice("Não foi possível criar o evento: " + err.message, "error");
-    } finally {
-      setLoading(false);
-    }
+      if (!(await loadEvents())) {
+        showNotice("Rolé criado, mas não foi possível atualizar a lista agora. Recarregue a página para ver as vagas atualizadas.", "info");
+      }
+    });
   }
   async function toggleEnrollment(eventId) {
-    try {
-      setLoading(true);
-      const result = await api(`/eventos/${eventId}/inscricao`, {
-        method: "POST",
+    // Um segundo clique durante o envio não pode abrir outra confirmação e desfazer o primeiro.
+    if (pendingRef.current.has(`inscricao:${eventId}`)) return;
+    const event = events.find((item) => item.id === eventId);
+    const enrollment = enrollments[eventId];
+    if (event && (enrollment === "CONFIRMADO" || enrollment === "FILA")) {
+      const leavingSeat = enrollment === "CONFIRMADO";
+      const confirmed = await askConfirm({
+        title: leavingSeat ? "Cancelar sua presença?" : "Sair da lista de espera?",
+        message: leavingSeat
+          ? `Sua vaga em "${event.title}" pode ir na hora para a próxima pessoa da fila, e não há garantia de recuperá-la.`
+          : `Você perde o seu lugar na fila de "${event.title}".`,
+        confirmLabel: leavingSeat ? "Cancelar presença" : "Sair da fila",
+        cancelLabel: "Continuar inscrito",
+        tone: "danger",
       });
-      showNotice(result.message, "success");
-      await loadEvents();
-    } catch (err) {
-      showNotice("Não foi possível realizar a inscrição: " + err.message, "error");
-    } finally {
-      setLoading(false);
+      if (!confirmed) return;
     }
+    await runOnce(`inscricao:${eventId}`, async () => {
+      let result;
+      try {
+        result = await api(`/eventos/${eventId}/inscricao`, {
+          method: "POST",
+        });
+      } catch (err) {
+        showNotice("Não foi possível realizar a inscrição: " + err.message, "error");
+        return;
+      }
+      // A situação devolvida vale já: se a atualização da lista falhar, o botão não pode continuar
+      // oferecendo a ação antiga (um novo clique desfaria a inscrição sem confirmação).
+      setEnrollments((current) => setEnrollment(current, eventId, result.status === "CANCELADO" ? null : result.status));
+      showNotice(result.message, "success");
+      if (!(await loadEvents())) {
+        showNotice(`${result.message} Não foi possível atualizar a lista agora; recarregue a página para ver as vagas atualizadas.`, "info");
+      }
+    });
+  }
+  function setEnrollment(current, eventId, status) {
+    const next = { ...current };
+    if (status) next[eventId] = status;
+    else delete next[eventId];
+    return next;
   }
   async function addComment(eventId, text) {
-    if (!text.trim()) return;
-    try {
-      const novoComentario = await api(`/eventos/${eventId}/comentarios`, {
-        method: "POST",
-        body: JSON.stringify({ text: text.trim() }),
-      });
-      setEvents((current) =>
-        current.map((event) =>
-          event.id === eventId
-            ? {
-                ...event,
-                comments: [
-                  ...event.comments,
-                  {
-                    author: novoComentario.author,
-                    text: novoComentario.text,
-                    time: novoComentario.time,
-                  },
-                ],
-              }
-            : event
-        )
-      );
-    } catch (err) {
-      showNotice("Não foi possível publicar o comentário: " + err.message, "error");
-    }
+    if (!text.trim()) return false;
+    const saved = await runOnce(`comentario:${eventId}`, async () => {
+      try {
+        const novoComentario = await api(`/eventos/${eventId}/comentarios`, {
+          method: "POST",
+          body: JSON.stringify({ text: text.trim() }),
+        });
+        setEvents((current) =>
+          current.map((event) =>
+            event.id === eventId
+              ? {
+                  ...event,
+                  comments: [
+                    ...event.comments,
+                    {
+                      author: novoComentario.author,
+                      text: novoComentario.text,
+                      time: novoComentario.time,
+                    },
+                  ],
+                }
+              : event
+          )
+        );
+        return true;
+      } catch (err) {
+        showNotice("Não foi possível publicar o comentário: " + err.message, "error");
+        return false;
+      }
+    });
+    return saved === true;
   }
   async function deleteEvent(eventId) {
+    if (pendingRef.current.has(`exclusao:${eventId}`)) return;
     const event = events.find((item) => item.id === eventId);
     if (!event) return;
     const canDelete = currentUser.isModerator || event.organizer.id === currentUser.id;
@@ -221,24 +300,25 @@ export default function App() {
       showNotice("Apenas o organizador ou um moderador pode excluir este rolé.", "error");
       return;
     }
-    const confirmed = window.confirm(`Excluir o rolé "${event.title}"? Essa ação não pode ser desfeita.`);
+    const confirmed = await askConfirm({
+      title: "Excluir este rolé?",
+      message: `"${event.title}" será excluído para todos os inscritos. Essa ação não pode ser desfeita.`,
+      confirmLabel: "Excluir rolé",
+      tone: "danger",
+    });
     if (!confirmed) return;
-    try {
-      setLoading(true);
-      await api(`/eventos/${eventId}`, { method: "DELETE" });
+    await runOnce(`exclusao:${eventId}`, async () => {
+      try {
+        await api(`/eventos/${eventId}`, { method: "DELETE" });
+      } catch (err) {
+        showNotice("Não foi possível excluir o evento: " + err.message, "error");
+        return;
+      }
       setEvents((current) => current.filter((item) => item.id !== eventId));
-      setEnrollments((current) => {
-        const next = { ...current };
-        delete next[eventId];
-        return next;
-      });
+      setEnrollments((current) => setEnrollment(current, eventId, null));
       setSelectedEventId(null);
       showNotice("Rolé excluído com sucesso.", "success");
-    } catch (err) {
-      showNotice("Não foi possível excluir o evento: " + err.message, "error");
-    } finally {
-      setLoading(false);
-    }
+    });
   }
   function reportEvent(eventId) {
     const event = events.find((item) => item.id === eventId);
@@ -264,10 +344,11 @@ export default function App() {
   }
   function showNotice(message, type = "info") {
     const cleanMsg = type === "error" ? cleanErrorMessage(message) : message;
-    setAlert({ message: cleanMsg, type });
+    setAlert({ message: cleanMsg, type, id: createId() });
   }
+  // Só o aviso de sucesso some sozinho; erro e aviso informativo ficam até a pessoa fechar.
   useEffect(() => {
-    if (alert) {
+    if (alert?.type === "success") {
       const timer = setTimeout(() => setAlert(null), 6000);
       return () => clearTimeout(timer);
     }
@@ -290,39 +371,57 @@ export default function App() {
   }
   return (
     <div className="app-shell">
-      <SiteHeader
+      <a className="skip-link" href="#conteudo">Pular para o conteúdo</a>
+      <Sidebar
         view={view}
         setView={handleSetView}
         currentUser={currentUser}
         onLogout={handleLogout}
       />
-      <main className="content">
-        {/* Com o detalhe de um rolé aberto, o aviso aparece dentro dele, onde está o foco. */}
-        {alert && !selectedEvent && <Notice alert={alert} onClose={() => setAlert(null)} />}
-        {loading && <div className="notice loading-notice">{loadingSlow ? AVISO_SERVIDOR_ACORDANDO : "Carregando..."}</div>}
-        {view === "feed" && (
-          <FeedView
-            events={filteredEvents}
-            metrics={metrics}
-            filters={filters}
-            updateFilter={updateFilter}
-            enrollments={enrollments}
-            currentUser={currentUser}
-            resetFilters={() => setFilters(initialFilters)}
-            openEvent={setSelectedEventId}
-            toggleEnrollment={toggleEnrollment}
-            deleteEvent={deleteEvent}
-            onCreate={() => handleSetView("create")}
-          />
-        )}
-        {view === "create" && <CreateView categoryOptions={categories} capacityLimit={capacityLimit} onSubmit={createEvent} />}
-        {view === "profile" && <ProfileView events={events} enrollments={enrollments} currentUser={currentUser} />}
-        {view === "moderation" && currentUser.isModerator && <ModerationView reports={reports} resolveReport={resolveReport} />}
-      </main>
+      <div className="main-column">
+        {/* Chave de tema no canto superior direito; no celular, o topo também mostra a marca. */}
+        <div className="topbar">
+          <div className="topbar-brand"><Brand /></div>
+          <ThemeToggle />
+        </div>
+        <main id="conteudo" className="content" tabIndex={-1}>
+          {view === "feed" && (
+            <FeedView
+              events={filteredEvents}
+              totalEvents={events.length}
+              loadState={loadState}
+              loadingSlow={loadingSlow}
+              retryLoad={() => loadEvents({ initial: true })}
+              metrics={metrics}
+              filters={filters}
+              updateFilter={updateFilter}
+              enrollments={enrollments}
+              pending={pending}
+              currentUser={currentUser}
+              resetFilters={() => setFilters(initialFilters)}
+              openEvent={setSelectedEventId}
+              toggleEnrollment={toggleEnrollment}
+              deleteEvent={deleteEvent}
+              onCreate={() => handleSetView("create")}
+            />
+          )}
+          {view === "create" && <CreateView categoryOptions={categories} capacityLimit={capacityLimit} onSubmit={createEvent} submitting={Boolean(pending.criacao)} />}
+          {view === "profile" && <ProfileView events={events} enrollments={enrollments} currentUser={currentUser} openEvent={setSelectedEventId} onLogout={handleLogout} />}
+          {view === "moderation" && currentUser.isModerator && <ModerationView reports={reports} resolveReport={resolveReport} />}
+        </main>
+      </div>
+      {/* Avisos flutuam na tela para aparecerem onde a pessoa estiver; com o detalhe de um rolé
+          aberto, aparecem dentro dele, onde está o foco. */}
+      {alert && !selectedEvent && (
+        <div className="toast-region">
+          <Notice key={alert.id} alert={alert} onClose={() => setAlert(null)} />
+        </div>
+      )}
       {selectedEvent && (
         <EventModal
           event={selectedEvent}
           enrollment={enrollments[selectedEvent.id]}
+          pending={pending}
           close={() => setSelectedEventId(null)}
           notice={alert}
           onCloseNotice={() => setAlert(null)}
@@ -331,6 +430,17 @@ export default function App() {
           deleteEvent={deleteEvent}
           reportEvent={reportEvent}
           currentUser={currentUser}
+        />
+      )}
+      {confirmState && (
+        <ConfirmDialog
+          title={confirmState.title}
+          message={confirmState.message}
+          confirmLabel={confirmState.confirmLabel}
+          cancelLabel={confirmState.cancelLabel}
+          tone={confirmState.tone}
+          onConfirm={() => settleConfirm(true)}
+          onCancel={() => settleConfirm(false)}
         />
       )}
     </div>

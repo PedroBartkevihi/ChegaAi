@@ -1,5 +1,7 @@
 import {
   CalendarDays,
+  CalendarPlus,
+  ExternalLink,
   Flag,
   MapPin,
   Star,
@@ -10,9 +12,11 @@ import {
 import { useEffect, useRef, useState } from "react";
 import CategoryIcon from "./CategoryIcon";
 import Notice from "./Notice";
-import { getEnrollmentActionLabel, formatDate, categorySlug } from "../lib/eventos";
+import { getEnrollmentActionLabel, formatEventDateLong, categorySlug } from "../lib/eventos";
+import { downloadIcs, mapUrl } from "../lib/agenda";
+import { returnFocus } from "../lib/foco";
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-export default function EventModal({ event, enrollment, close, notice, onCloseNotice, toggleEnrollment, addComment, deleteEvent, reportEvent, currentUser }) {
+export default function EventModal({ event, enrollment, pending = {}, close, notice, onCloseNotice, toggleEnrollment, addComment, deleteEvent, reportEvent, currentUser }) {
   const [comment, setComment] = useState("");
   const dialogRef = useRef(null);
   const closeRef = useRef(null);
@@ -23,9 +27,11 @@ export default function EventModal({ event, enrollment, close, notice, onCloseNo
   const canComment = enrollment === "CONFIRMADO" || enrollment === "FILA";
   const canManage = currentUser?.isModerator || event.organizer.id === currentUser?.id;
   const slug = categorySlug(event.category);
+  const enrolling = Boolean(pending[`inscricao:${event.id}`]);
+  const deleting = Boolean(pending[`exclusao:${event.id}`]);
+  const commenting = Boolean(pending[`comentario:${event.id}`]);
   // Ao abrir, o foco vai para o botão de fechar; Esc fecha; Tab circula só dentro do diálogo;
-  // ao fechar, o foco volta para o botão que abriu o diálogo ou, se ele sumiu (rolé excluído,
-  // formulário de criação desmontado), para o título da lista de rolés.
+  // ao fechar, o foco volta para quem abriu o diálogo (ver returnFocus).
   useEffect(() => {
     const opener = document.activeElement;
     closeRef.current?.focus();
@@ -51,14 +57,16 @@ export default function EventModal({ event, enrollment, close, notice, onCloseNo
     document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
-      if (opener instanceof HTMLElement && opener.isConnected && opener !== document.body) opener.focus();
-      else document.getElementById("roles-disponiveis")?.focus();
+      returnFocus(opener);
     };
   }, []);
-  function submitComment(formEvent) {
+  // O texto só é apagado depois que a API aceitou o comentário (se falhar, continua no campo), e só
+  // se ainda for o que foi enviado; durante o envio o campo fica só para leitura.
+  async function submitComment(formEvent) {
     formEvent.preventDefault();
-    addComment(event.id, comment);
-    setComment("");
+    if (commenting) return;
+    const sent = comment;
+    if (await addComment(event.id, sent)) setComment((current) => (current === sent ? "" : current));
   }
   return (
     <div className="modal-backdrop" role="presentation">
@@ -70,10 +78,15 @@ export default function EventModal({ event, enrollment, close, notice, onCloseNo
           <button ref={closeRef} className="icon-button" type="button" aria-label="Fechar" onClick={close}><X size={18} aria-hidden="true" /></button>
         </header>
         <div className="dialog-body">
-          {notice && <Notice alert={notice} onClose={onCloseNotice} />}
+          {/* Fixo no topo da área que rola, para o aviso aparecer mesmo com o detalhe rolado. */}
+          {notice && <div className="dialog-notice"><Notice alert={notice} onClose={onCloseNotice} /></div>}
           <p>{event.description}</p>
           <div className="dialog-stats">
-            <div><CalendarDays size={18} aria-hidden="true" /><strong>{formatDate(event.date)}</strong><span>{event.time}</span></div>
+            <div>
+              <CalendarDays size={18} aria-hidden="true" />
+              <strong><time dateTime={`${event.date}T${event.time}`}>{formatEventDateLong(event.date)}</time></strong>
+              <span>às {event.time}</span>
+            </div>
             <div><UsersRound size={18} aria-hidden="true" /><strong>{event.confirmed.length}/{event.capacity}</strong><span>confirmados</span></div>
             <div><UsersRound size={18} aria-hidden="true" /><strong>{event.waitlist.length}</strong><span>na lista de espera</span></div>
           </div>
@@ -81,18 +94,29 @@ export default function EventModal({ event, enrollment, close, notice, onCloseNo
             <span><MapPin size={15} aria-hidden="true" /> {event.place} - CEP {event.cep || "não informado"}</span>
             <span className="organizer-rating"><Star size={14} aria-hidden="true" />Reputação {event.organizer.honor.toFixed(1)}</span>
           </div>
+          <div className="dialog-links">
+            <a className="ghost-action" href={mapUrl(event)} target="_blank" rel="noopener noreferrer">
+              <ExternalLink size={16} aria-hidden="true" />
+              Ver no mapa
+              <span className="sr-only">(abre em nova aba)</span>
+            </a>
+            <button className="ghost-action" type="button" onClick={() => downloadIcs(event)}>
+              <CalendarPlus size={16} aria-hidden="true" />
+              Adicionar à agenda
+            </button>
+          </div>
           <div className="card-actions">
-            <button className="primary-action" type="button" disabled={event.status !== "ABERTO"} onClick={() => toggleEnrollment(event.id)}>
-              {getEnrollmentActionLabel(event, enrollment)}
+            <button className="primary-action" type="button" disabled={event.status !== "ABERTO"} aria-disabled={enrolling || undefined} onClick={() => toggleEnrollment(event.id)}>
+              {enrolling ? "Enviando..." : getEnrollmentActionLabel(event, enrollment)}
             </button>
             <button className="secondary-action" type="button" onClick={() => reportEvent(event.id)}>
               <Flag size={16} aria-hidden="true" />
               Denunciar
             </button>
             {canManage && (
-              <button className="danger-action" type="button" onClick={() => deleteEvent(event.id)}>
+              <button className="danger-action" type="button" aria-disabled={deleting || undefined} onClick={() => deleteEvent(event.id)}>
                 <Trash2 size={16} aria-hidden="true" />
-                Excluir
+                {deleting ? "Excluindo..." : "Excluir"}
               </button>
             )}
           </div>
@@ -112,9 +136,11 @@ export default function EventModal({ event, enrollment, close, notice, onCloseNo
               <form className="comment-form" onSubmit={submitComment}>
                 <label>
                   Novo comentário
-                  <textarea value={comment} onChange={(event) => setComment(event.target.value)} required maxLength="180" rows="3" placeholder="Escreva seu comentário para o grupo..." />
+                  <textarea value={comment} readOnly={commenting} onChange={(event) => setComment(event.target.value)} required maxLength="180" rows="3" placeholder="Escreva seu comentário para o grupo..." />
                 </label>
-                <button className="secondary-action" type="submit">Enviar comentário</button>
+                <button className="secondary-action" type="submit" aria-disabled={commenting || undefined}>
+                  {commenting ? "Enviando..." : "Enviar comentário"}
+                </button>
               </form>
             ) : (
               <div className="empty-state">Apenas participantes confirmados ou na lista de espera podem comentar.</div>

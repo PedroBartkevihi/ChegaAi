@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 import { todayInputValue } from "../lib/eventos";
-export default function CreateView({ categoryOptions, capacityLimit, onSubmit }) {
+export default function CreateView({ categoryOptions, capacityLimit, onSubmit, submitting = false }) {
   return (
     <section className="view" aria-label="Criar evento">
       <div className="page-heading">
@@ -42,7 +42,10 @@ export default function CreateView({ categoryOptions, capacityLimit, onSubmit })
         </fieldset>
         <div className="form-actions">
           <button className="secondary-action" type="reset">Limpar</button>
-          <button className="primary-action" type="submit"><Plus size={18} aria-hidden="true" />Publicar rolé</button>
+          <button className="primary-action" type="submit" aria-disabled={submitting || undefined}>
+            <Plus size={18} aria-hidden="true" />
+            {submitting ? "Publicando..." : "Publicar rolé"}
+          </button>
         </div>
       </form>
     </section>

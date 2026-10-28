@@ -1,15 +1,37 @@
 import {
   CalendarDays,
+  ChevronDown,
   Plus,
+  RefreshCw,
   Search,
   Star,
   UsersRound,
   X,
 } from "lucide-react";
+import { useState } from "react";
 import EventCard from "./EventCard";
 import Landscape from "./Landscape";
-import { buildFilterSummary, categories } from "../lib/eventos";
-export default function FeedView({ events, metrics, filters, updateFilter, enrollments, currentUser, resetFilters, openEvent, toggleEnrollment, deleteEvent, onCreate }) {
+import { buildFilterSummary, categories, hasActiveFilters, isUpcoming } from "../lib/eventos";
+import { AVISO_SERVIDOR_ACORDANDO } from "../lib/useDemora";
+export default function FeedView({ events, totalEvents, loadState, loadingSlow, retryLoad, metrics, filters, updateFilter, enrollments, pending, currentUser, resetFilters, openEvent, toggleEnrollment, deleteEvent, onCreate }) {
+  const [showPast, setShowPast] = useState(false);
+  const now = Date.now();
+  const upcoming = events.filter((event) => isUpcoming(event, now));
+  // Anteriores e indisponíveis: os mais recentes primeiro.
+  const past = events.filter((event) => !isUpcoming(event, now)).reverse();
+  const filtering = hasActiveFilters(filters);
+  const renderCard = (event) => (
+    <EventCard
+      key={event.id}
+      event={event}
+      enrollment={enrollments[event.id]}
+      pending={pending}
+      currentUser={currentUser}
+      openEvent={openEvent}
+      toggleEnrollment={toggleEnrollment}
+      deleteEvent={deleteEvent}
+    />
+  );
   return (
     <section className="view" aria-label="Feed de eventos">
       <div className="hero">
@@ -32,7 +54,7 @@ export default function FeedView({ events, metrics, filters, updateFilter, enrol
       <div className="section-heading">
         <div>
           <h2 id="roles-disponiveis" tabIndex={-1}>Rolés disponíveis</h2>
-          <span>{buildFilterSummary(filters)}</span>
+          <span>{buildFilterSummary(filters)} · em ordem de data</span>
         </div>
         <button className="secondary-action" type="button" onClick={resetFilters}>
           <X size={16} aria-hidden="true" />
@@ -40,28 +62,54 @@ export default function FeedView({ events, metrics, filters, updateFilter, enrol
         </button>
       </div>
       <FeedFilters filters={filters} updateFilter={updateFilter} />
-      <div className="event-grid">
-        {events.length ? (
-          events.map((event) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              enrollment={enrollments[event.id]}
-              currentUser={currentUser}
-              openEvent={openEvent}
-              toggleEnrollment={toggleEnrollment}
-              deleteEvent={deleteEvent}
-            />
-          ))
-        ) : (
-          <div className="empty-state">Nenhum rolé encontrado com os filtros atuais.</div>
-        )}
-      </div>
+      {loadState === "loading" && !totalEvents ? (
+        <div className="empty-state" role="status">{loadingSlow ? AVISO_SERVIDOR_ACORDANDO : "Carregando rolés..."}</div>
+      ) : loadState === "error" && !totalEvents ? (
+        <div className="empty-state">
+          <p>Não foi possível carregar os rolés. Verifique sua conexão e tente de novo.</p>
+          <button className="secondary-action" type="button" onClick={retryLoad}>
+            <RefreshCw size={16} aria-hidden="true" />
+            Tentar de novo
+          </button>
+        </div>
+      ) : upcoming.length ? (
+        <div className="event-grid">{upcoming.map(renderCard)}</div>
+      ) : filtering ? (
+        <div className="empty-state">
+          <p>Nenhum rolé aberto com os filtros atuais.</p>
+          <button className="secondary-action" type="button" onClick={resetFilters}>
+            <X size={16} aria-hidden="true" />
+            Limpar filtros
+          </button>
+        </div>
+      ) : (
+        <div className="empty-state">
+          <p>{totalEvents ? "Nenhum rolé aberto por enquanto." : "Ainda não há rolés."} Que tal organizar o próximo?</p>
+          <button className="primary-action" type="button" onClick={onCreate}>
+            <Plus size={16} aria-hidden="true" />
+            Organizar um rolé
+          </button>
+        </div>
+      )}
+      {past.length > 0 && (
+        <section className="past-events" aria-label="Rolés anteriores e indisponíveis">
+          <button
+            className="past-toggle"
+            type="button"
+            aria-expanded={showPast}
+            aria-controls="roles-anteriores"
+            onClick={() => setShowPast((current) => !current)}
+          >
+            <ChevronDown size={18} aria-hidden="true" />
+            {showPast ? "Ocultar" : "Mostrar"} rolés anteriores e indisponíveis ({past.length})
+          </button>
+          {showPast && <div id="roles-anteriores" className="event-grid">{past.map(renderCard)}</div>}
+        </section>
+      )}
     </section>
   );
 }
 function FeedFilters({ filters, updateFilter }) {
-  // A categoria precisa continuar sendo o primeiro select da página (os testes E2E contam com isso).
   return (
     <div className="filters" role="group" aria-label="Filtros de eventos">
       <label className="filter-search">
@@ -80,12 +128,6 @@ function FeedFilters({ filters, updateFilter }) {
       <SelectFilter label="Categoria" value={filters.category} onChange={(value) => updateFilter("category", value)}>
         <option value="todos">Todas</option>
         {categories.map((category) => <option key={category} value={category}>{category}</option>)}
-      </SelectFilter>
-      <SelectFilter label="Distância" value={filters.distance} onChange={(value) => updateFilter("distance", value)}>
-        <option value="todos">Qualquer distância</option>
-        <option value="5">Até 5 km</option>
-        <option value="15">Até 15 km</option>
-        <option value="30">Até 30 km</option>
       </SelectFilter>
       <SelectFilter label="Honra do organizador" value={filters.honor} onChange={(value) => updateFilter("honor", value)}>
         <option value="0">Qualquer honra</option>
