@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Generated;
+import org.hibernate.generator.EventType;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 @Entity
@@ -46,6 +48,10 @@ public class Inscricao {
     @Column(name = "data_hora_solicitacao", nullable = false, updatable = false,
             columnDefinition = "timestamptz DEFAULT now()")
     private OffsetDateTime dataHoraSolicitacao;
+    // O banco atribui a sequência na primeira inscrição; a reentrada recebe outro valor.
+    @Generated(event = EventType.INSERT)
+    @Column(name = "ordem_entrada", nullable = false, unique = true)
+    private Long ordemEntrada;
     @NotNull(message = "O status da inscrição é obrigatório.")
     @Enumerated(EnumType.STRING)
     @Column(name = "status_inscricao", nullable = false, length = 20)

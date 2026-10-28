@@ -70,6 +70,37 @@ class InscricaoIT extends IntegracaoBase {
         assertThat(nomes(depois, "waitlist")).containsExactly(delta.primeiroNome());
     }
     @Test
+    @DisplayName("quem cancela e volta recebe nova posição, mesmo com datas de solicitação empatadas")
+    void reentradaVaiParaOFimDaFila() throws Exception {
+        UsuarioTeste organizador = cadastrar("Org");
+        UsuarioTeste confirmado = cadastrar("Confirmado");
+        UsuarioTeste primeiro = cadastrar("Primeiro");
+        UsuarioTeste segundo = cadastrar("Segundo");
+        UsuarioTeste terceiro = cadastrar("Terceiro");
+        UUID eventoId = criarEventoValido(organizador, 3);
+        alternarInscricao(confirmado, eventoId).andExpect(jsonPath("$.status").value("CONFIRMADO"));
+        alternarInscricao(primeiro, eventoId).andExpect(jsonPath("$.status").value("CONFIRMADO"));
+        alternarInscricao(primeiro, eventoId).andExpect(jsonPath("$.status").value("CANCELADO"));
+        alternarInscricao(segundo, eventoId).andExpect(jsonPath("$.status").value("CONFIRMADO"));
+        alternarInscricao(terceiro, eventoId).andExpect(jsonPath("$.status").value("FILA"));
+        alternarInscricao(primeiro, eventoId).andExpect(jsonPath("$.status").value("FILA"));
+        // Datas iguais não alteram a ordem numérica de entrada.
+        jdbcTemplate.update("UPDATE inscricao SET data_hora_solicitacao = '2026-01-01T00:00:00Z' "
+            + "WHERE id_evento = ?", eventoId);
+        assertThat(nomes(buscarEvento(eventoId), "waitlist"))
+            .containsExactly(terceiro.primeiroNome(), primeiro.primeiroNome());
+        alternarInscricao(confirmado, eventoId).andExpect(jsonPath("$.status").value("CANCELADO"));
+        assertThat(nomes(buscarEvento(eventoId), "confirmed"))
+            .containsExactlyInAnyOrder(organizador.primeiroNome(), segundo.primeiroNome(), terceiro.primeiroNome());
+        assertThat(nomes(buscarEvento(eventoId), "waitlist")).containsExactly(primeiro.primeiroNome());
+        // Sair já estando na fila e voltar também perde a posição.
+        alternarInscricao(confirmado, eventoId).andExpect(jsonPath("$.status").value("FILA"));
+        alternarInscricao(primeiro, eventoId).andExpect(jsonPath("$.status").value("CANCELADO"));
+        alternarInscricao(primeiro, eventoId).andExpect(jsonPath("$.status").value("FILA"));
+        assertThat(nomes(buscarEvento(eventoId), "waitlist"))
+            .containsExactly(confirmado.primeiroNome(), primeiro.primeiroNome());
+    }
+    @Test
     @DisplayName("inscrições simultâneas nunca passam do limite: quem não couber vai para a fila")
     void inscricoesSimultaneasRespeitamOLimite() throws Exception {
         int capacidade = 3;

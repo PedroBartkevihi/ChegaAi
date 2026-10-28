@@ -41,6 +41,7 @@ public class DataSeederService implements CommandLineRunner {
     private final EventoRepository eventoRepository;
     private final InscricaoRepository inscricaoRepository;
     private final ComentarioRepository comentarioRepository;
+    private final InscricaoService inscricaoService;
     private final PasswordEncoder passwordEncoder;
     private final NamedParameterJdbcTemplate jdbc;
     private String senhaDemoHash;
@@ -199,11 +200,18 @@ public class DataSeederService implements CommandLineRunner {
             return;
         }
         Map<String, Object> params = Map.of("ids", ids);
+        // Trava os eventos afetados antes da cascata, na mesma ordem em todas as recriações.
+        List<UUID> eventosAfetados = jdbc.queryForList(
+            "SELECT e.id_evento FROM evento e WHERE e.id_organizador NOT IN (:ids) "
+                + "AND EXISTS (SELECT 1 FROM inscricao i WHERE i.id_evento = e.id_evento "
+                + "AND i.id_usuario IN (:ids)) ORDER BY e.id_evento FOR UPDATE OF e",
+            params, UUID.class);
         jdbc.update("DELETE FROM avaliacao WHERE id_avaliador IN (:ids) OR id_avaliado IN (:ids)", params);
         jdbc.update("DELETE FROM denuncia WHERE id_denunciante IN (:ids) OR id_denunciado IN (:ids)", params);
         jdbc.update("DELETE FROM penalidade WHERE id_usuario IN (:ids) OR id_admin_aplicador IN (:ids)", params);
         jdbc.update("DELETE FROM evento WHERE id_organizador IN (:ids)", params);
         jdbc.update("DELETE FROM usuario WHERE id_usuario IN (:ids)", params);
+        eventosAfetados.forEach(inscricaoService::preencherVagasDaFila);
         jdbc.update("DELETE FROM endereco e WHERE NOT EXISTS "
             + "(SELECT 1 FROM evento ev WHERE ev.id_endereco = e.id_endereco)", Map.of());
         log.info("Demonstração anterior removida ({} contas). Recriando com datas atuais.", ids.size());

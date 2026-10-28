@@ -11,12 +11,13 @@ import java.util.UUID;
 @Repository
 public interface InscricaoRepository extends JpaRepository<Inscricao, UUID> {
     Optional<Inscricao> findByUsuarioIdAndEventoId(UUID usuarioId, UUID eventoId);
-    List<Inscricao> findByEventoIdAndStatusInscricao(UUID eventoId, StatusInscricao status);
+    @Query("SELECT i FROM Inscricao i WHERE i.evento.id = :eventoId " +
+           "AND i.statusInscricao = :status ORDER BY i.ordemEntrada ASC")
+    List<Inscricao> findByEventoIdAndStatusInscricao(@Param("eventoId") UUID eventoId,
+                                                  @Param("status") StatusInscricao status);
     long countByEventoIdAndStatusInscricao(UUID eventoId, StatusInscricao status);
-    Optional<Inscricao> findFirstByEvento_IdAndStatusInscricaoOrderByDataHoraSolicitacaoAsc(
-        UUID eventoId,
-        StatusInscricao status
-    );
+    @Query(value = "SELECT nextval('inscricao_ordem_entrada_seq')", nativeQuery = true)
+    long proximaOrdemEntrada();
     @Query("SELECT i FROM Inscricao i " +
            "JOIN FETCH i.evento e " +
            "JOIN FETCH e.organizador " +
