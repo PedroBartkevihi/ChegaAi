@@ -66,7 +66,7 @@ Os limites ficam em `application.properties` (`chegaai.regras.*`) e podem ser aj
 | Concluir rolé | Só o organizador, e só depois da data/hora marcada |
 | Ausência | Ao concluir o rolé, confirmado sem presença registrada perde **0.5** de honra |
 | Avaliação obrigatória | Após um rolé concluído, quem compareceu precisa avaliar os demais participantes antes de se inscrever em outro |
-| Honra | Média das notas recebidas nas avaliações |
+| Honra | Base definida no cadastro (**3.0** por padrão; contas de demonstração têm bases próprias) até receber **3 avaliações** entre quaisquer rolés; depois, média das notas. Em ambos os casos, desconta as penalidades acumuladas, com mínimo **0** |
 | Comentários | Só confirmados ou quem está na fila de espera |
 
 ## Tecnologias

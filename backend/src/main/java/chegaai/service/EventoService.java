@@ -44,10 +44,9 @@ public class EventoService {
     private final FusoHorario fusoHorario;
     private final TransactionTemplate transacao;
     private final ContaService contaService;
+    private final HonraService honraService;
     @Value("${chegaai.regras.honra-minima-criacao:2.0}")
     private double honraMinimaCriacao;
-    @Value("${chegaai.regras.deducao-honra-ausencia:0.5}")
-    private double deducaoHonraAusencia;
     @Transactional(readOnly = true)
     public List<EventoResponseDTO> listarTodos() {
         List<Evento> eventos = eventoRepository.findAllWithRelations();
@@ -144,7 +143,8 @@ public class EventoService {
         eventoRepository.save(evento);
         List<Inscricao> confirmadas = inscricaoRepository
             .findByEventoIdAndStatusInscricao(eventoId, StatusInscricao.CONFIRMADA);
-        BigDecimal deducao = BigDecimal.valueOf(deducaoHonraAusencia);
+        var usuarios = honraService.travarUsuarios(confirmadas.stream()
+            .map(i -> i.getUsuario().getId()).toList());
         for (Inscricao inscricao : confirmadas) {
             if (inscricao.getUsuario().getId().equals(usuarioId)) {
                 // o organizador conduziu o rolé: conta como presente e não é penalizado
@@ -155,30 +155,18 @@ public class EventoService {
             if (!Boolean.TRUE.equals(inscricao.getCompareceu())) {
                 inscricao.marcarAusente();
                 inscricaoRepository.save(inscricao);
-                Usuario usuario = inscricao.getUsuario();
-                BigDecimal novaHonra = usuario.getHonraMedia().subtract(deducao);
-                if (novaHonra.compareTo(BigDecimal.ZERO) < 0) {
-                    novaHonra = BigDecimal.ZERO;
-                }
-                usuario.setHonraMedia(novaHonra);
-                usuarioRepository.save(usuario);
-                log.info("RN008: Ausência registrada para usuário '{}'. Honra: {} → {}",
-                    usuario.getNome(), usuario.getHonraMedia().add(deducao), novaHonra);
+                Usuario usuario = usuarios.get(inscricao.getUsuario().getId());
+                honraService.registrarAusencia(usuario);
+                log.info("RN008: Ausência registrada para usuário {}. Honra: {}",
+                    usuario.getId(), usuario.getHonraMedia());
             }
         }
         return toResponseDTO(evento);
     }
+    @Transactional
     public void recalcularHonra(UUID usuarioId) {
-        Usuario usuario = usuarioRepository.findById(usuarioId)
-            .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + usuarioId));
-        Optional<Double> media = avaliacaoRepository.calcularMediaNotas(usuarioId);
-        if (media.isPresent() && media.get() != null) {
-            BigDecimal novaHonra = BigDecimal.valueOf(media.get())
-                .setScale(2, java.math.RoundingMode.HALF_UP);
-            usuario.setHonraMedia(novaHonra);
-            usuarioRepository.save(usuario);
-            log.info("RN002: Honra recalculada para usuário '{}': {}", usuario.getNome(), novaHonra);
-        }
+        Usuario usuario = honraService.travarUsuarios(List.of(usuarioId)).get(usuarioId);
+        honraService.recalcular(usuario);
     }
     @Transactional
     public AvaliacaoResponseDTO avaliarParticipante(UUID eventoId, UUID avaliadorId,
@@ -191,13 +179,9 @@ public class EventoService {
                 "Avaliações só podem ser registradas após a conclusão do evento.");
         }
 
-        Usuario avaliador = usuarioRepository.findById(avaliadorId)
-            .orElseThrow(() -> new NoSuchElementException(
-                "Avaliador não encontrado: " + avaliadorId));
-
-        Usuario avaliado = usuarioRepository.findById(dto.avaliadoId())
-            .orElseThrow(() -> new NoSuchElementException(
-                "Usuário avaliado não encontrado: " + dto.avaliadoId()));
+        var usuarios = honraService.travarUsuarios(List.of(avaliadorId, dto.avaliadoId()));
+        Usuario avaliador = usuarios.get(avaliadorId);
+        Usuario avaliado = usuarios.get(dto.avaliadoId());
 
         avaliador.exigirContaAtiva(OffsetDateTime.now());
         if (avaliadorId.equals(dto.avaliadoId())) {
@@ -229,7 +213,7 @@ public class EventoService {
 
         avaliacao = avaliacaoRepository.save(avaliacao);
 
-        recalcularHonra(dto.avaliadoId());
+        honraService.recalcular(avaliado);
 
         log.info("RF004: Avaliação registrada — avaliador={} avaliado={} nota={} evento={}",
             avaliador.getNome(), avaliado.getNome(), dto.nota(), evento.getTitulo());

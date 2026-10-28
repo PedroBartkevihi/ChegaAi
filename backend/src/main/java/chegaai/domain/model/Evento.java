@@ -99,13 +99,6 @@ public class Evento {
 			   && statusEvento == StatusEvento.ATIVO
 			   && contarConfirmados() < limiteParticipantes;
 	}
-	public boolean atingiuQuorumMinimo(long quorumMinimo) {
-		long confirmadosSemOrganizador = inscricoes.stream()
-				.filter(i -> i.getStatusInscricao() == StatusInscricao.CONFIRMADA
-							 && !i.getUsuario().getId().equals(organizador.getId()))
-				.count();
-		return confirmadosSemOrganizador >= quorumMinimo;
-	}
 	public void concluir(OffsetDateTime agora) {
 		if (statusEvento != StatusEvento.ATIVO) {
 			throw new IllegalStateException(
