@@ -44,6 +44,7 @@ public class EventoService {
     private final FusoHorario fusoHorario;
     private final TransactionTemplate transacao;
     private final ContaService contaService;
+    private final CoordenacaoDemonstracaoService coordenacaoDemonstracao;
     private final HonraService honraService;
     @Value("${chegaai.regras.honra-minima-criacao:2.0}")
     private double honraMinimaCriacao;
@@ -80,6 +81,7 @@ public class EventoService {
     }
     private EventoResponseDTO criarEventoNoBanco(EventoRequestDTO dto, UUID usuarioId,
                                                  OffsetDateTime dataHora, Endereco endereco) {
+        coordenacaoDemonstracao.aguardarRecriacao();
         contaService.travarAtivo(usuarioId);
         Usuario organizador = organizadorApto(usuarioId);
         Categoria categoria = categoriaPorNome(dto.category());
@@ -111,6 +113,7 @@ public class EventoService {
     }
     @Transactional
     public void excluirEvento(UUID eventoId, UUID usuarioId) {
+        coordenacaoDemonstracao.aguardarRecriacao();
         Evento evento = eventoRepository.findByIdForUpdate(eventoId)
             .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + eventoId));
         Usuario usuario = contaService.travarAtivo(usuarioId);
@@ -132,6 +135,7 @@ public class EventoService {
     }
     @Transactional
     public EventoResponseDTO concluirEvento(UUID eventoId, UUID usuarioId) {
+        coordenacaoDemonstracao.aguardarRecriacao();
         Evento evento = eventoRepository.findByIdForUpdate(eventoId)
             .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + eventoId));
         if (!evento.getOrganizador().getId().equals(usuarioId)) {
@@ -173,6 +177,7 @@ public class EventoService {
     @Transactional
     public AvaliacaoResponseDTO avaliarParticipante(UUID eventoId, UUID avaliadorId,
                                                      AvaliacaoRequestDTO dto) {
+        coordenacaoDemonstracao.aguardarRecriacao();
         Evento evento = eventoRepository.findByIdForUpdate(eventoId)
             .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + eventoId));
 

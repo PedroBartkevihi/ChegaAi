@@ -21,8 +21,10 @@ public class ComentarioService {
     private final InscricaoRepository inscricaoRepository;
     private final UsuarioRepository usuarioRepository;
     private final ContaService contaService;
+    private final CoordenacaoDemonstracaoService coordenacaoDemonstracao;
     @Transactional
     public Comentario adicionarComentario(UUID eventoId, UUID usuarioId, String texto) {
+        coordenacaoDemonstracao.aguardarRecriacao();
         if (texto == null || texto.trim().isEmpty()) {
             throw new IllegalArgumentException("O texto do comentário não pode ser vazio.");
         }

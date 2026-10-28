@@ -158,6 +158,24 @@ class DemonstracaoIT extends IntegracaoBase {
         assertThat(usuarioAtual(visitante).get("honor").asDouble()).isEqualTo(2.5);
     }
 
+    @Test
+    void duasRecriacoesSimultaneasNaoDuplicamCenarios() throws Exception {
+        java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(2);
+        java.util.concurrent.CountDownLatch largada = new java.util.concurrent.CountDownLatch(1);
+        ReflectionTestUtils.setField(dataSeederService, "recriarAoIniciar", true);
+        try {
+            var primeira = executor.submit(() -> { largada.await(); dataSeederService.run(); return true; });
+            var segunda = executor.submit(() -> { largada.await(); dataSeederService.run(); return true; });
+            largada.countDown();
+            assertThat(primeira.get(30, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+            assertThat(segunda.get(30, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+        } finally {
+            ReflectionTestUtils.setField(dataSeederService, "recriarAoIniciar", false);
+            executor.shutdownNow();
+        }
+        assertThat(contar("SELECT COUNT(*) FROM evento WHERE titulo=?", "Futebol no Aterro")).isEqualTo(1);
+    }
+
     private void inscreverDemo(String email, UUID evento, String esperado) throws Exception {
         mockMvc.perform(post("/eventos/{id}/inscricao", evento)
             .header("Authorization", bearer(login(email, "admin123"))))
