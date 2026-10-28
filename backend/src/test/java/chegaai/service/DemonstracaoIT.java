@@ -9,7 +9,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.Map;
 import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 class DemonstracaoIT extends IntegracaoBase {
     @Autowired
@@ -41,6 +43,10 @@ class DemonstracaoIT extends IntegracaoBase {
             .containsExactly(organizadorReal.primeiroNome());
         assertThat(usuarioAtual(organizadorReal).get("email").asText()).isEqualTo(organizadorReal.email());
         login("pedro@chegaai.dev", "admin123");
+        // as contas de demonstração voltam com o mesmo id: o token de antes da recriação continua valendo
+        mockMvc.perform(get("/auth/me").header("Authorization", bearer(tokenPedro)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(DataSeederService.idDeDemonstracao("pedro@chegaai.dev").toString()));
     }
     private long contar(String sql, Object... args) {
         Long total = jdbcTemplate.queryForObject(sql, Long.class, args);

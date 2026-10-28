@@ -68,6 +68,16 @@ class SegurancaIT extends IntegracaoBase {
             .andExpect(status().isOk());
     }
     @Test
+    @DisplayName("token de uma conta que não existe mais devolve 401, inclusive em rota pública")
+    void tokenDeContaApagadaDevolve401() throws Exception {
+        UsuarioTeste helo = cadastrar("Helo");
+        jdbcTemplate.update("DELETE FROM usuario WHERE id_usuario = ?", helo.id());
+        mockMvc.perform(get("/auth/me").header("Authorization", bearer(helo.token())))
+            .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/eventos").header("Authorization", bearer(helo.token())))
+            .andExpect(status().isUnauthorized());
+    }
+    @Test
     @DisplayName("contas de demonstração entram com a senha documentada e recusam senha errada")
     void loginDasContasDeDemonstracao() throws Exception {
         String token = login("pedro@chegaai.dev", "admin123");
