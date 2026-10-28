@@ -124,6 +124,29 @@ class SegurancaIT extends IntegracaoBase {
             .andExpect(jsonPath("$.message", containsString("e-mail")));
     }
     @Test
+    @DisplayName("cadastro sem CPF funciona, e CPF repetido recebe mensagem genérica")
+    void cadastroComCpfOpcional() throws Exception {
+        mockMvc.perform(post("/auth/cadastro")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of(
+                    "name", "Jade Sem Cpf", "email", "jade@teste.chegaai.dev", "cpf", "",
+                    "birthDate", "1998-08-08", "password", SENHA))))
+            .andExpect(status().isCreated());
+        login("jade@teste.chegaai.dev", SENHA);
+        String cpf = cpfValido();
+        Map<String, Object> primeiro = Map.of("name", "Kai Teste", "email", "kai@teste.chegaai.dev", "cpf", cpf,
+            "birthDate", "1997-07-07", "password", SENHA);
+        mockMvc.perform(post("/auth/cadastro").contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(primeiro)))
+            .andExpect(status().isCreated());
+        Map<String, Object> segundo = Map.of("name", "Lu Teste", "email", "lu@teste.chegaai.dev", "cpf", cpf,
+            "birthDate", "1996-06-06", "password", SENHA);
+        mockMvc.perform(post("/auth/cadastro").contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(segundo)))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.message", containsString("Não foi possível concluir o cadastro")));
+    }
+    @Test
     @DisplayName("só o organizador ou a moderação excluem um evento")
     void exclusaoDeEventoRespeitaPermissoes() throws Exception {
         UsuarioTeste organizador = cadastrar("Dani");

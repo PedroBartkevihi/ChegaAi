@@ -21,6 +21,8 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+    static final String CADASTRO_RECUSADO =
+        "Não foi possível concluir o cadastro com esses dados. Se você já tem conta, entre com seu e-mail.";
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
@@ -39,16 +41,19 @@ public class AuthService {
     @Transactional
     public AuthResponseDTO cadastrar(CadastroRequestDTO dto) {
         String email = normalizarEmail(dto.email());
-        if (!Cpf.valido(dto.cpf())) {
+        // CPF opcional: em branco vira nulo; se vier, é validado e precisa ser único.
+        String cpf = dto.cpf() == null || dto.cpf().isBlank() ? null : dto.cpf();
+        if (cpf != null && !Cpf.valido(cpf)) {
             throw new IllegalArgumentException("CPF inválido.");
         }
         if (usuarioRepository.existsByEmail(email)) {
             throw new IllegalStateException("Já existe uma conta com este e-mail.");
         }
-        if (usuarioRepository.existsByCpf(dto.cpf())) {
-            throw new IllegalStateException("Já existe uma conta com este CPF.");
+        // Mensagem genérica: não confirma para qualquer pessoa que aquele CPF tem conta.
+        if (cpf != null && usuarioRepository.existsByCpf(cpf)) {
+            throw new IllegalStateException(CADASTRO_RECUSADO);
         }
-        Participante participante = new Participante(dto.name().trim(), email, dto.cpf(),
+        Participante participante = new Participante(dto.name().trim(), email, cpf,
             passwordEncoder.encode(dto.password()), dto.birthDate());
         participante.setHonraMedia(BigDecimal.valueOf(honraInicial));
         return gerarResposta(usuarioRepository.save(participante));

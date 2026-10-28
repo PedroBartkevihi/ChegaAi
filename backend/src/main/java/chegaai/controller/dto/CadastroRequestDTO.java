@@ -11,7 +11,7 @@ public record CadastroRequestDTO(
     String name,
     @NotBlank @Email @Size(max = 254)
     String email,
-    @NotBlank @Pattern(regexp = "^[0-9]{11}$", message = "informe os 11 dígitos do CPF")
+    @Pattern(regexp = "^([0-9]{11})?$", message = "informe os 11 dígitos do CPF ou deixe o campo vazio")
     String cpf,
     @NotNull @Past(message = "a data de nascimento deve estar no passado")
     LocalDate birthDate,

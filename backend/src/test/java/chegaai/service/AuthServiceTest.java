@@ -110,13 +110,30 @@ class AuthServiceTest {
         verify(usuarioRepository, never()).save(any());
     }
     @Test
-    @DisplayName("cadastro com CPF já usado é recusado")
+    @DisplayName("cadastro com CPF já usado é recusado com mensagem que não confirma o CPF")
     void cadastroComCpfRepetido() {
         when(usuarioRepository.existsByCpf("52998224725")).thenReturn(true);
         assertThatThrownBy(() -> authService.cadastrar(cadastro("ana@exemplo.com", "52998224725")))
             .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("CPF");
+            .hasMessage(AuthService.CADASTRO_RECUSADO)
+            .message().doesNotContain("CPF");
         verify(usuarioRepository, never()).save(any());
+    }
+    @Test
+    @DisplayName("cadastro sem CPF (vazio ou ausente) é aceito e não consulta CPF")
+    void cadastroSemCpf() {
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocacao -> {
+            Usuario salvo = invocacao.getArgument(0);
+            salvo.setId(UUID.randomUUID());
+            return salvo;
+        });
+        when(tokenService.gerar(any())).thenReturn(new TokenService.TokenGerado("token-jwt", Instant.now()));
+        authService.cadastrar(cadastro("ana@exemplo.com", ""));
+        authService.cadastrar(cadastro("bia@exemplo.com", null));
+        ArgumentCaptor<Usuario> captor = ArgumentCaptor.forClass(Usuario.class);
+        verify(usuarioRepository, org.mockito.Mockito.times(2)).save(captor.capture());
+        assertThat(captor.getAllValues()).extracting(Usuario::getCpf).containsOnlyNulls();
+        verify(usuarioRepository, never()).existsByCpf(any());
     }
     @Test
     @DisplayName("cadastro com CPF de dígito verificador errado é recusado")

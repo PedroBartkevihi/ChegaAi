@@ -46,7 +46,7 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
     submit(() => onRegister({
       name: form.get("name").trim(),
       email: form.get("email").trim().toLowerCase(),
-      cpf: form.get("cpf").replace(/\D/g, ""),
+      cpf: form.get("cpf").replace(/\D/g, "") || null,
       birthDate: form.get("birthDate"),
       password: form.get("password"),
     }));
@@ -120,8 +120,9 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
             </button>
           </form>
         ) : (
-          <form key="register" onSubmit={handleRegister} className="login-form">
+          <form key="register" onSubmit={handleRegister} className="login-form" aria-describedby="aviso-cadastro">
             {error && <LoginError message={error} />}
+            <p id="aviso-cadastro" className="login-hint">Versão de demonstração: não use seus dados reais. O CPF é opcional.</p>
 
             <label>
               Nome completo
@@ -132,8 +133,8 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
               <input data-testid="input-email-cadastro" name="email" type="email" autoComplete="email" required maxLength="254" placeholder="seu@email.com" />
             </label>
             <label>
-              CPF
-              <input data-testid="input-cpf" name="cpf" required inputMode="numeric" pattern="[0-9.\-]{11,14}" maxLength="14" placeholder="000.000.000-00" />
+              CPF (opcional)
+              <input data-testid="input-cpf" name="cpf" inputMode="numeric" pattern="[0-9.\-]{11,14}" maxLength="14" placeholder="000.000.000-00" />
             </label>
             <label>
               Data de nascimento
