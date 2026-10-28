@@ -5,7 +5,7 @@ import chegaai.domain.model.Inscricao;
 import chegaai.repository.EventoRepository;
 import chegaai.repository.InscricaoRepository;
 import chegaai.repository.UsuarioRepository;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
