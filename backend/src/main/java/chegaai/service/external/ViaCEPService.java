@@ -1,34 +1,46 @@
 package chegaai.service.external;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
-import chegaai.service.EventoService;
+import java.time.Duration;
 import java.util.Optional;
 @Service
 @Slf4j
 public class ViaCEPService {
-    private final RestTemplate restTemplate;
-    @Value("${chegaai.viacep.url}")
-    private String viaCepBaseUrl;
-    public ViaCEPService() {
-        this.restTemplate = new RestTemplate();
+    private final RestClient restClient;
+    // Com tempo limite: sem ele, um ViaCEP lento prenderia a requisição (e a thread) indefinidamente.
+    public ViaCEPService(@Value("${chegaai.viacep.url}") String viaCepBaseUrl,
+                         @Value("${chegaai.viacep.tempo-conexao:2s}") Duration tempoConexao,
+                         @Value("${chegaai.viacep.tempo-resposta:3s}") Duration tempoResposta) {
+        SimpleClientHttpRequestFactory fabrica = new SimpleClientHttpRequestFactory();
+        fabrica.setConnectTimeout(tempoConexao);
+        fabrica.setReadTimeout(tempoResposta);
+        this.restClient = RestClient.builder()
+            .baseUrl(viaCepBaseUrl.replaceAll("/+$", ""))
+            .requestFactory(fabrica)
+            .build();
     }
+    // O ViaCEP manda outros campos (unidade, estado, regiao...) que não interessam aqui.
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ViaCEPResponse {
         public String cep;
         public String logradouro;
         public String complemento;
         public String bairro;
-        public String localidade;   
-        public String uf;           
+        public String localidade;
+        public String uf;
         public String ibge;
         public String gia;
         public String ddd;
         public String siafi;
-        public Boolean erro;        
+        // CEP inexistente: o ViaCEP responde {"erro": "true"} (antes, {"erro": true}).
+        public String erro;
         public boolean cepInvalido() {
-            return Boolean.TRUE.equals(erro);
+            return "true".equalsIgnoreCase(erro);
         }
     }
     public Optional<ViaCEPResponse> buscarEnderecoPorCep(String cep) {
@@ -43,8 +55,10 @@ public class ViaCEPService {
         }
         try {
             log.info("ViaCEP: consultando CEP '{}'...", cepLimpo);
-            String url = viaCepBaseUrl.replaceAll("/+$", "") + "/{cep}/json/";
-            ViaCEPResponse resposta = restTemplate.getForObject(url, ViaCEPResponse.class, cepLimpo);
+            ViaCEPResponse resposta = restClient.get()
+                .uri("/{cep}/json/", cepLimpo)
+                .retrieve()
+                .body(ViaCEPResponse.class);
             if (resposta == null) {
                 log.warn("ViaCEP: resposta nula para o CEP '{}'.", cepLimpo);
                 return Optional.empty();

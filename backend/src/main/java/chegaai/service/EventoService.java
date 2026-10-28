@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
@@ -39,8 +40,9 @@ public class EventoService {
     private final InscricaoRepository inscricaoRepository;
     private final ComentarioRepository comentarioRepository;
     private final AvaliacaoRepository avaliacaoRepository;
-    private final ViaCEPService viaCEPService;   
+    private final ViaCEPService viaCEPService;
     private final FusoHorario fusoHorario;
+    private final TransactionTemplate transacao;
     @Value("${chegaai.regras.honra-minima-criacao:2.0}")
     private double honraMinimaCriacao;
     @Value("${chegaai.regras.deducao-honra-ausencia:0.5}")
@@ -63,12 +65,18 @@ public class EventoService {
             .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + id));
         return toResponseDTO(evento);
     }
-    @Transactional
+    // Sem @Transactional: o ViaCEP é consultado antes, fora da transação, para uma demora dele não
+    // prender uma conexão do banco (são só 5 na versão online). A parte do banco roda numa transação só.
     public EventoResponseDTO criarEvento(EventoRequestDTO dto, UUID usuarioId) {
         OffsetDateTime dataHora = fusoHorario.instante(lerData(dto.date()), lerHorario(dto.time()));
         if (!dataHora.isAfter(OffsetDateTime.now())) {
             throw new IllegalArgumentException("A data de realização deve ser uma data futura.");
         }
+        Endereco endereco = montarEndereco(dto);
+        return transacao.execute(status -> criarEventoNoBanco(dto, usuarioId, dataHora, endereco));
+    }
+    private EventoResponseDTO criarEventoNoBanco(EventoRequestDTO dto, UUID usuarioId,
+                                                 OffsetDateTime dataHora, Endereco endereco) {
         Usuario organizador = usuarioRepository.findById(usuarioId)
             .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + usuarioId));
         if (organizador.getHonraMedia().compareTo(BigDecimal.valueOf(honraMinimaCriacao)) < 0) {
@@ -78,14 +86,13 @@ public class EventoService {
         }
         Categoria categoria = categoriaRepository.findByNome(dto.category())
             .orElseThrow(() -> new NoSuchElementException("Categoria não encontrada: " + dto.category()));
-        Endereco endereco = montarEndereco(dto);
-        endereco = enderecoRepository.save(endereco);
+        Endereco enderecoSalvo = enderecoRepository.save(endereco);
         int limiteMax = organizador.getHonraMedia().compareTo(BigDecimal.valueOf(4.8)) >= 0 ? 50 : 20;
         int capacidade = Math.min(dto.capacity(), limiteMax);
         Evento evento = new Evento();
         evento.setOrganizador(organizador);
         evento.setCategoria(categoria);
-        evento.setEndereco(endereco);
+        evento.setEndereco(enderecoSalvo);
         evento.setTitulo(dto.title());
         evento.setDescricao(dto.description());
         evento.setDataHoraRealizacao(dataHora);
