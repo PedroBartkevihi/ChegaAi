@@ -3,6 +3,7 @@ import chegaai.repository.UsuarioRepository;
 import chegaai.service.TokenService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.Jwt;
 import javax.crypto.SecretKey;
@@ -12,6 +13,7 @@ import java.util.UUID;
 import static java.time.temporal.ChronoUnit.HOURS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -71,6 +73,17 @@ class SecurityConfigTest {
             .hasErrors()).isTrue();
         assertThat(validador.validate(jwt(TokenService.EMISSOR, "nao-e-uuid", agora, agora.plus(1, HOURS)))
             .hasErrors()).isTrue();
+    }
+    @Test
+    @DisplayName("falha do banco ao conferir a conta não vira token inválido: a exceção segue adiante")
+    void falhaDoBancoNaoViraTokenInvalido() {
+        UsuarioRepository repositorio = mock(UsuarioRepository.class);
+        when(repositorio.existsById(any())).thenThrow(new DataAccessResourceFailureException("banco fora do ar"));
+        OAuth2TokenValidator<Jwt> validador = SecurityConfig.validadorDeToken(repositorio);
+        Instant agora = Instant.now();
+        assertThatThrownBy(() -> validador.validate(
+                jwt(TokenService.EMISSOR, UUID.randomUUID().toString(), agora, agora.plus(1, HOURS))))
+            .isInstanceOf(DataAccessResourceFailureException.class);
     }
     private static Jwt jwt(String emissor, String subject, Instant emitidoEm, Instant expiraEm) {
         return Jwt.withTokenValue("token")

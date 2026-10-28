@@ -2,6 +2,7 @@ package chegaai.config;
 import chegaai.repository.UsuarioRepository;
 import chegaai.service.TokenService;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import jakarta.servlet.DispatcherType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -48,6 +49,9 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // O despacho de erro do contêiner (/error) não exige login: sem isso, uma falha interna durante
+                // a autenticação (o banco fora do ar, por exemplo) viraria 401, e o site deslogaria a pessoa.
+                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/cadastro").permitAll()
                 .requestMatchers(HttpMethod.GET, "/eventos", "/eventos/**", "/recomendacoes/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
