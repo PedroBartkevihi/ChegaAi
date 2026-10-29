@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
     "server.tomcat.remoteip.internal-proxies=127\\.0\\.0\\.1|::1|0:0:0:0:0:0:0:1",
-    "chegaai.limites.login-ip.capacidade=3"
+    "chegaai.limites.login-ip.capacidade=3", "chegaai.limites.cadastro-ip.capacidade=2"
 })
 @Import(RelogioLimitesTeste.Config.class)
 class ProxyConfiavelLimiteIT extends IntegracaoBase {
@@ -28,7 +28,10 @@ class ProxyConfiavelLimiteIT extends IntegracaoBase {
     final HttpClient cliente = HttpClient.newHttpClient();
     @BeforeEach void avancar() { relogio.avancar(Duration.ofDays(2)); }
     private int chamar(String xff, String forwarded) throws Exception {
-        var builder = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + porta + "/api/auth/login"))
+        return chamarCaminho("/auth/login", xff, forwarded);
+    }
+    private int chamarCaminho(String caminho, String xff, String forwarded) throws Exception {
+        var builder = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + porta + "/api" + caminho))
             .header("Content-Type", "application/json").header("X-Forwarded-For", xff);
         if (forwarded != null) builder.header("Forwarded", forwarded);
         return cliente.send(builder.POST(HttpRequest.BodyPublishers.ofString("{}")).build(), HttpResponse.BodyHandlers.ofString()).statusCode();
@@ -38,6 +41,13 @@ class ProxyConfiavelLimiteIT extends IntegracaoBase {
         for (int i = 0; i < 3; i++) assertThat(chamar("198.51.100." + i + ", 203.0.113.44", "for=192.0.2." + i)).isEqualTo(400);
         assertThat(chamar("198.51.100.99, 203.0.113.44", "for=192.0.2.99")).isEqualTo(429);
         assertThat(chamar("198.51.100.99, 203.0.113.45", "for=192.0.2.99")).isEqualTo(400);
+    }
+    @Test
+    void letrasCodificadasNaoContornamCotasDeLoginOuCadastro() throws Exception {
+        for (int i = 0; i < 3; i++) assertThat(chamarCaminho("/auth/log%69n", "203.0.113.77", null)).isEqualTo(400);
+        assertThat(chamar("203.0.113.77", null)).isEqualTo(429);
+        for (int i = 0; i < 2; i++) assertThat(chamarCaminho("/auth/cad%61stro", "203.0.113.78", null)).isEqualTo(400);
+        assertThat(chamarCaminho("/auth/cadastro", "203.0.113.78", null)).isEqualTo(429);
     }
     @Test
     void servidorRealAgrupaIpv6Por64() throws Exception {
