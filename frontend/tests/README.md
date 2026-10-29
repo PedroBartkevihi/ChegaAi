@@ -53,8 +53,9 @@ Em um terceiro terminal:
 
 ```powershell
 cd frontend
-npm ci
+npm ci --include=dev
 npm run test:session
+npm run test:security
 npx playwright install chromium
 $env:E2E_DATABASE_URL = 'postgresql://chegaai_e2e:chegaai_e2e@127.0.0.1:55436/chegaai_e2e'
 $env:E2E_API_BASE_URL = 'http://127.0.0.1:8086/api'
@@ -66,13 +67,20 @@ npm run build
 npx playwright test --repeat-each=2 --retries=0
 ```
 
+O build aplica e verifica a CSP em todos os HTML do export. O servidor de teste lê os quatro
+cabeçalhos globais diretamente de `render.yaml` e os aplica também em HEAD e respostas de erro.
+Uma regra não global, serviço divergente ou header inválido faz o servidor falhar antes de iniciar.
+
 O Playwright inicia e encerra o servidor de arquivos em `tests/serve-static.mjs`; não é preciso
 abrir outro servidor do front. O endereço da API é embutido durante o build: ao mudar essa URL,
 refaça o export. Front e API precisam ter origens diferentes no modo estático.
 
 Os três testes de sessão usam o runner do Node. O Playwright descobre somente `*.spec.ts`,
 com fluxos reais de presença/avaliação, homônimos por UUID, atualização de honra e respostas
-atrasadas entre contas.
+atrasadas entre contas. Os testes de CSP (`security.spec.ts`) só rodam no export estático: conferem
+`securitypolicyviolation`, injeção inline bloqueada, conexão não autorizada, tema antes da
+hidratação, mapa em nova aba e arquivo `.ics`. A navegação de mapa é interceptada por um
+conteúdo fictício no navegador; nenhum dado do teste é enviado ao Google.
 
 O CI usa esse mesmo desenho: export completo, API separada, CORS e duas execuções de cada
 cenário sem retries, no mesmo banco e sem reset entre elas. Relatório local em

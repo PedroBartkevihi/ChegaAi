@@ -169,6 +169,54 @@ A política de manter vale mais que a de excluir: ficam sempre as 2 imagens mais
 
 O endereço da API é embutido no build do front-end: se ele mudar, refaça o deploy do site no Render.
 
+### CSP e cabeçalhos do site estático
+
+O build do Render instala explicitamente as dependências de desenvolvimento com
+`npm ci --include=dev`: `parse5` processa o HTML exportado e `yaml` lê a configuração usada
+nos testes. O `postbuild` executa `scripts/secure-export.mjs` somente com `NEXT_OUTPUT=export`.
+
+Cada HTML em `frontend/out/`, incluindo as páginas 404, recebe uma meta CSP logo após o
+charset. A política autoriza pelos hashes SHA-256 os scripts inline do tema e do Next
+(bootstrap e dados Flight), além dos scripts do próprio site. Não libera `unsafe-inline`
+nem `unsafe-eval` para scripts. Os textos dos scripts são preservados; apenas os finais de
+linha são normalizados para LF antes do cálculo dos hashes.
+
+`connect-src` permite o próprio site e a origem extraída de `NEXT_PUBLIC_API_BASE_URL`.
+No export, essa variável precisa ser uma URL HTTPS terminada em `/api`, sem credenciais,
+query ou fragmento; HTTP é aceito apenas para `localhost`, `127.0.0.1` e `[::1]` nos testes.
+Ao mudar a API, gere um novo build. A execução manual `npm run security:export` é idempotente
+para o mesmo HTML e origem, mas falha se uma meta existente divergir do conteúdo: refaça o
+export em vez de editar o HTML publicado.
+
+O `render.yaml` é a fonte dos cabeçalhos globais (`path: /*`):
+
+- `Content-Security-Policy`: `frame-ancestors 'none'; base-uri 'none'; object-src 'none'; form-action 'self'`;
+- `X-Frame-Options: DENY`;
+- `X-Content-Type-Options: nosniff`;
+- `Referrer-Policy: strict-origin-when-cross-origin`.
+
+A CSP de recursos fica no HTML porque seus hashes mudam a cada export, enquanto os valores
+dos cabeçalhos do Render são estáticos. Não adicione `default-src` ou `script-src` ao header
+fixo sem revisar a política inteira: políticas de CSP se acumulam, e um header restritivo
+pode bloquear os scripts autorizados pela meta. `frame-ancestors` é entregue por header
+porque não é aceito em meta. Os estilos inline permanecem permitidos por compatibilidade
+com o HTML gerado, incluindo o 404 padrão. Não há endpoint de reporting configurado.
+
+O CI roda os testes Node e a suíte de navegador com os cabeçalhos reais lidos do YAML e a
+meta entregue no HTML. Os cenários de CSP são exclusivos do modo estático; o desenvolvimento
+com proxy e o build Docker `standalone` não recebem esta política do export. Os arquivos de
+build não devem ser reformatados depois da geração dos hashes.
+
+Depois de sincronizar o Blueprint, confira os cabeçalhos na URL pública e os fluxos da
+aplicação. O Render preserva regras antigas do Dashboard que não constem do Blueprint;
+elas também podem afetar a política entregue. Alterações no `render.yaml` agora entram no
+filtro de build do site.
+
+Referências: [cabeçalhos do Render](https://render.com/docs/static-site-headers),
+[Blueprints](https://render.com/docs/blueprint-spec#headers),
+[CSP no Next](https://nextjs.org/docs/app/guides/content-security-policy) e
+[políticas cumulativas de CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy#multiple_content_security_policies).
+
 ## Limites e comportamento da versão online
 
 - **API em repouso:** sem acessos por alguns minutos, o Cloud Run desliga a instância. A próxima visita leva cerca de 30 s. O front-end chama o health check assim que a página abre, para adiantar esse tempo, e mostra um aviso se o login demorar.

@@ -3,6 +3,7 @@ import { createReadStream } from 'node:fs';
 import { realpath, stat } from 'node:fs/promises';
 import { dirname, extname, isAbsolute, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readRenderHeaders } from '../scripts/render-headers.mjs';
 
 const url = new URL(process.env.E2E_BASE_URL || 'http://127.0.0.1:3000');
 if (url.protocol !== 'http:' || !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
@@ -10,6 +11,7 @@ if (url.protocol !== 'http:' || !['localhost', '127.0.0.1', '[::1]'].includes(ur
   throw new Error('Servidor E2E aceita somente uma origem HTTP de loopback.');
 }
 const root = await realpath(resolve(dirname(fileURLToPath(import.meta.url)), '../out'));
+const securityHeaders = await readRenderHeaders();
 const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml',
   '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.txt': 'text/plain; charset=utf-8' };
@@ -18,6 +20,7 @@ function dentro(path) {
   return caminho === '' || (!caminho.startsWith('..') && !isAbsolute(caminho));
 }
 createServer(async (request, response) => {
+  for (const [name, value] of Object.entries(securityHeaders)) response.setHeader(name, value);
   if (!['GET', 'HEAD'].includes(request.method)) { response.writeHead(405).end(); return; }
   try {
     const pathname = decodeURIComponent(new URL(request.url, url).pathname);
