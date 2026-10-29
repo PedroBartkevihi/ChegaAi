@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures";
+import { test, expect, abrirPagina } from "./fixtures";
 
 function deferred() {
   let resolve;
@@ -67,7 +67,7 @@ for (const status of [200, 401]) {
   test(`resposta antiga de perfil (${status}) não restaura nem encerra a sessão nova`, async ({ page }) => {
     const gate = { started: deferred(), release: deferred() };
     await preparar(page, { profileGate: gate, profileStatus: status });
-    await page.goto("/");
+    await abrirPagina(page);
     await gate.started.promise;
     await entrarEmBruna(page);
     const oldResponse = page.waitForResponse((response) => response.url().endsWith("/auth/me") && response.request().headers().authorization === "Bearer token-a");
@@ -81,7 +81,7 @@ for (const status of [200, 401]) {
 test("resposta e finally antigos não alteram comentário nem pending da nova sessão", async ({ page }) => {
   const comments = { old: { started: deferred(), release: deferred() }, current: { started: deferred(), release: deferred() } };
   await preparar(page, { comments });
-  await page.goto("/");
+  await abrirPagina(page);
   const open = async () => { await page.getByTestId(`event-card-${evento.id}`).getByRole("button", { name: "Detalhes", exact: true }).click(); return page.getByRole("dialog"); };
   let dialog = await open();
   await dialog.getByRole("textbox", { name: "Novo comentário" }).fill("Comentário antigo");
@@ -106,7 +106,7 @@ test("resposta e finally antigos não alteram comentário nem pending da nova se
 test("refresh que substitui o carregamento inicial e falha encerra a espera", async ({ page }) => {
   const gate = { started: deferred(), release: deferred() };
   await preparar(page, { feedGate: gate });
-  await page.goto("/");
+  await abrirPagina(page);
   await gate.started.promise;
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   await expect(page.getByRole("button", { name: "Tentar de novo", exact: true })).toBeVisible();
@@ -121,7 +121,7 @@ test("refresh de pendências preserva foco e texto da avaliação em andamento",
   const pendingRatings = { podeAvaliar: true, eventos: [{ eventoId: evento.id, titulo: evento.title,
     data: evento.date, hora: evento.time, participantes: [{ id: bruna.id, nome: bruna.fullName }] }] };
   await preparar(page, { eventData: { ...evento, status: "CONCLUIDO" }, pendingRatings });
-  await page.goto("/");
+  await abrirPagina(page);
   await page.getByRole("button", { name: /Mostrar rolés anteriores/ }).click();
   await page.getByTestId(`event-card-${evento.id}`).getByRole("button", { name: "Detalhes", exact: true }).click();
   await page.getByRole("button", { name: "Avaliar participantes", exact: true }).click();

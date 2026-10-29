@@ -145,8 +145,16 @@ export const test = base.extend<{ cenario: Cenario }>({
   },
 });
 
-export async function loginPelaUI(page: Page, conta: Pick<Conta, 'email' | 'senha'> & Partial<Pick<Conta, 'id'>>) {
+// O health é disparado pelo useEffect inicial: aguardá-lo evita digitar no HTML antes da hidratação.
+export async function abrirPagina(page: Page) {
+  const inicio = page.waitForResponse((response) => new URL(response.url()).pathname.endsWith('/api/actuator/health'));
   await page.goto('/');
+  await inicio;
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+}
+
+export async function loginPelaUI(page: Page, conta: Pick<Conta, 'email' | 'senha'> & Partial<Pick<Conta, 'id'>>) {
+  await abrirPagina(page);
   await page.getByTestId('input-email').fill(conta.email);
   await page.getByTestId('input-password').fill(conta.senha);
   const responsePromise = page.waitForResponse((response) => response.url().endsWith('/api/auth/login') && response.request().method() === 'POST');

@@ -1,4 +1,4 @@
-import { test, expect, loginPelaUI, type EventoDTO } from './fixtures';
+import { test, expect, abrirPagina, loginPelaUI, type EventoDTO } from './fixtures';
 import { apiURL } from './environment';
 
 test.describe('ChegaAí — fluxos com dados próprios', () => {
@@ -170,7 +170,7 @@ test.describe('ChegaAí — fluxos com dados próprios', () => {
 
   test('CT09 — senha incorreta recebe 401 e mantém o login', async ({ page, cenario }) => {
     const conta = await cenario.criarConta('senhaErrada');
-    await page.goto('/');
+    await abrirPagina(page);
     await page.getByTestId('input-email').fill(conta.email);
     await page.getByTestId('input-password').fill('OutraSenhaIncorreta!');
     const resposta = page.waitForResponse((r) => r.url().endsWith('/api/auth/login') && r.request().method() === 'POST');
@@ -183,7 +183,7 @@ test.describe('ChegaAí — fluxos com dados próprios', () => {
 
   test('CT10 — cadastro pela UI sem CPF cria sessão persistente', async ({ page, cenario, request }) => {
     const dados = cenario.dadosConta('cadastro');
-    await page.goto('/');
+    await abrirPagina(page);
     await page.getByTestId('link-cadastro').click();
     await page.getByTestId('input-nome').fill(dados.name);
     await page.getByTestId('input-email-cadastro').fill(dados.email);
@@ -211,7 +211,7 @@ test.describe('ChegaAí — fluxos com dados próprios', () => {
       await new Promise((resolve) => setTimeout(resolve, 6_000));
       await route.continue();
     });
-    await page.goto('/');
+    await abrirPagina(page);
     await page.getByTestId('input-email').fill(conta.email);
     await page.getByTestId('input-password').fill(conta.senha);
     const resposta = page.waitForResponse((r) => r.url().endsWith('/api/auth/login') && r.request().method() === 'POST');
