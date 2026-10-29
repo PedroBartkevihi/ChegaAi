@@ -22,7 +22,8 @@ public record EventoResponseDTO(
     public record OrganizerDTO(
         UUID id,
         String name,
-        double honor
+        double honor,
+        boolean isAmbassador
     ) {}
     public record CommentDTO(
         String author,

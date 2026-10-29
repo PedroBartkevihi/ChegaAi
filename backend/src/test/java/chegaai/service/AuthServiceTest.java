@@ -38,7 +38,8 @@ class AuthServiceTest {
     private AuthService authService;
     @BeforeEach
     void setUp() {
-        authService = new AuthService(usuarioRepository, ENCODER, tokenService);
+        authService = new AuthService(usuarioRepository, ENCODER, tokenService,
+            new RegrasEventoService(new BigDecimal("4.8"), new BigDecimal("2.0"), 20, 50));
         ReflectionTestUtils.setField(authService, "honraInicial", 3.0);
     }
     @Test
@@ -51,6 +52,9 @@ class AuthServiceTest {
         assertThat(resposta.token()).isEqualTo("token-jwt");
         assertThat(resposta.tokenType()).isEqualTo("Bearer");
         assertThat(resposta.user().email()).isEqualTo("pedro@chegaai.dev");
+        assertThat(resposta.user().isAmbassador()).isTrue();
+        assertThat(resposta.user().capacityLimit()).isEqualTo(50);
+        assertThat(resposta.user().canCreateEvents()).isTrue();
     }
     @Test
     @DisplayName("login com senha errada é recusado com a mesma mensagem de e-mail inexistente")
@@ -100,6 +104,8 @@ class AuthServiceTest {
         assertThat(salvo.getHonraInicial()).isEqualByComparingTo(BigDecimal.valueOf(3.0));
         assertThat(salvo.getHonraMedia()).isEqualByComparingTo(BigDecimal.valueOf(3.0));
         assertThat(resposta.user().honor()).isEqualTo(3.0);
+        assertThat(resposta.user().isAmbassador()).isFalse();
+        assertThat(resposta.user().capacityLimit()).isEqualTo(20);
     }
     @Test
     @DisplayName("cadastro com e-mail já usado é recusado")

@@ -17,7 +17,7 @@ public record EventoRequestDTO(
     String cep,
     @NotBlank @Size(max = 150)
     String place,
-    @Min(3) @Max(50)
+    @Min(3)
     int capacity,
     @Min(0) @Max(80)
     int distance,

@@ -128,9 +128,4 @@ public abstract class Usuario {
     public boolean qualificaEmbaixador(BigDecimal thresholdEmbaixador) {
         return honraMedia.compareTo(thresholdEmbaixador) >= 0;
     }
-    public boolean deveSerBanidoAutomaticamente(BigDecimal honraLimite,
-                                                int limiteDenunciasValidadas) {
-        return honraMedia.compareTo(honraLimite) < 0
-               || qtdDenunciasValidadas >= limiteDenunciasValidadas;
-    }
 }

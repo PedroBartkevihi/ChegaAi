@@ -35,7 +35,7 @@ export default function CreateView({ categoryOptions, capacityLimit, onSubmit, s
           <div className="form-grid">
             <label>
               Limite de participantes
-              <input data-testid="input-capacidade" name="capacity" required min="3" max={capacityLimit} type="number" defaultValue="20" />
+              <input data-testid="input-capacidade" name="capacity" required min="3" max={capacityLimit} type="number" defaultValue={capacityLimit} />
               <small className="field-hint">Até {capacityLimit} participantes na sua reputação atual.</small>
             </label>
           </div>

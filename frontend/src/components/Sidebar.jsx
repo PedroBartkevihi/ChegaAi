@@ -1,5 +1,4 @@
 import { CalendarPlus, Compass, LogOut, ShieldCheck, UserRound } from "lucide-react";
-import { isAmbassador } from "../lib/eventos";
 import Brand from "./Brand";
 // Barra lateral no computador; no celular, o CSS deixa só a navegação, como barra de abas fixa embaixo
 // (o "Sair" passa para o Meu perfil). A navegação é uma só no DOM, para não duplicar os botões.
@@ -17,7 +16,7 @@ export default function Sidebar({ view, setView, currentUser, onLogout }) {
         <span className="avatar" aria-hidden="true">{currentUser.name[0]}</span>
         <div>
           <strong>{currentUser.name}</strong>
-          <small>{isAmbassador(currentUser.honor) ? "Embaixador" : "Participante"}</small>
+          <small>{currentUser.isAmbassador ? "Embaixador" : "Participante"}</small>
         </div>
         <div className="sidebar-honor">
           <span>Reputação</span>

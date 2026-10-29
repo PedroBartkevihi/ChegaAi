@@ -132,7 +132,7 @@ function FeedFilters({ filters, updateFilter }) {
       <SelectFilter label="Honra do organizador" value={filters.honor} onChange={(value) => updateFilter("honor", value)}>
         <option value="0">Qualquer honra</option>
         <option value="4">4.0+</option>
-        <option value="4.8">Embaixadores</option>
+        <option value="ambassador">Embaixadores</option>
       </SelectFilter>
     </div>
   );

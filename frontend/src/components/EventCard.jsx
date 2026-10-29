@@ -1,10 +1,10 @@
 import { Award, CalendarDays, MapPin, Star, Trash2, UsersRound } from "lucide-react";
 import CategoryIcon from "./CategoryIcon";
-import { getEnrollmentActionLabel, isAmbassador, formatEventDay, categorySlug, eventTimestamp } from "../lib/eventos";
+import { getEnrollmentActionLabel, formatEventDay, categorySlug, eventTimestamp } from "../lib/eventos";
 export default function EventCard({ event, enrollment, pending = {}, currentUser, openEvent, toggleEnrollment, deleteEvent }) {
   const seats = Math.max(event.capacity - event.confirmed.length, 0);
   const percent = Math.min((event.confirmed.length / event.capacity) * 100, 100);
-  const featured = isAmbassador(event.organizer.honor);
+  const featured = event.organizer.isAmbassador;
   const locked = event.status !== "ABERTO" || eventTimestamp(event) <= Date.now();
   const canManage = currentUser?.isModerator || event.organizer.id === currentUser?.id;
   const slug = categorySlug(event.category);

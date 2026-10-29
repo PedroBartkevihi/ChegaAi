@@ -13,7 +13,7 @@ import ModerationView from "./components/ModerationView";
 import EventModal from "./components/EventModal";
 import ConfirmDialog from "./components/ConfirmDialog";
 import { api, cleanErrorMessage, TOKEN_KEY, USER_KEY, SESSION_EXPIRED_EVENT } from "./lib/api";
-import { categories, initialFilters, isAmbassador, createId, sortByDate } from "./lib/eventos";
+import { categories, initialFilters, createId, sortByDate } from "./lib/eventos";
 // A API não diz se a pessoa está inscrita: a lista traz só os primeiros nomes de confirmados e da fila.
 function enrollmentFor(event, user) {
   if (event.confirmed.includes(user.name)) return "CONFIRMADO";
@@ -39,7 +39,7 @@ export default function App() {
   const [pending, setPending] = useState({});
   const pendingRef = useRef(new Set());
   const [confirmState, setConfirmState] = useState(null);
-  const capacityLimit = currentUser && isAmbassador(currentUser.honor) ? 50 : 20;
+  const capacityLimit = currentUser?.capacityLimit;
   const selectedEvent = events.find((event) => event.id === selectedEventId);
   const loadEvents = useCallback(async ({ initial = false } = {}) => {
     if (initial) setLoadState("loading");
@@ -104,7 +104,9 @@ export default function App() {
     return sortByDate(events.filter((event) => {
       const haystack = `${event.title} ${event.category} ${event.place} ${event.description} ${event.organizer.name}`.toLowerCase();
       const matchesCategory = filters.category === "todos" || event.category === filters.category;
-      const matchesHonor = event.organizer.honor >= Number(filters.honor);
+      const matchesHonor = filters.honor === "ambassador"
+        ? event.organizer.isAmbassador
+        : event.organizer.honor >= Number(filters.honor);
       return matchesCategory && matchesHonor && haystack.includes(filters.search.toLowerCase());
     }));
   }, [events, filters]);
@@ -112,7 +114,7 @@ export default function App() {
     return {
       active: events.filter((event) => event.status === "ABERTO").length,
       waitlist: events.reduce((total, event) => total + event.waitlist.length, 0),
-      ambassadors: events.filter((event) => isAmbassador(event.organizer.honor)).length,
+      ambassadors: events.filter((event) => event.organizer.isAmbassador).length,
     };
   }, [events]);
   function updateFilter(name, value) {
@@ -177,8 +179,8 @@ export default function App() {
   async function createEvent(formEvent) {
     formEvent.preventDefault();
     const formElement = formEvent.currentTarget;
-    if (currentUser.honor < 2) {
-      showNotice("Ação Não Permitida. Sua reputação atual está abaixo do limite mínimo necessário para criar novos rolés.", "error");
+    if (!currentUser.canCreateEvents) {
+      showNotice("Sua conta não pode criar rolés no momento. Confira sua reputação ou aguarde o fim da suspensão.", "error");
       return;
     }
     const form = new FormData(formElement);
