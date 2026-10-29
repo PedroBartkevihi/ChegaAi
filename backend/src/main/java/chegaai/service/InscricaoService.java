@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -68,6 +69,8 @@ public class InscricaoService {
         Inscricao inscricao;
         if (inscricaoReaproveitada != null) {
             inscricao = inscricaoReaproveitada;
+            inscricao.setOrdemEntrada(inscricaoRepository.proximaOrdemEntrada());
+            inscricao.setCompareceu(false);
         } else {
             inscricao = new Inscricao();
             inscricao.setUsuario(usuario);
@@ -96,22 +99,39 @@ public class InscricaoService {
         inscricao.setStatusInscricao(StatusInscricao.CANCELADA);
         inscricaoRepository.save(inscricao);
         if (eraConfirmado) {
-            Optional<Inscricao> primeiroFila = inscricaoRepository
-                .findFirstByEvento_IdAndStatusInscricaoOrderByDataHoraSolicitacaoAsc(
-                    evento.getId(),
-                    StatusInscricao.SOLICITADA
-                );
-            if (primeiroFila.isPresent()) {
-                Inscricao promovido = primeiroFila.get();
-                promovido.setStatusInscricao(StatusInscricao.CONFIRMADA);
-                inscricaoRepository.save(promovido);
-            }
+            promoverFila(evento);
         }
         return new InscricaoResponseDTO(
             evento.getId(), inscricao.getUsuario().getId(),
             "CANCELADO",
             "Inscrição cancelada com sucesso."
         );
+    }
+    /** Recompõe as vagas após remoções externas, sob a mesma trava das inscrições. */
+    @Transactional
+    public void preencherVagasDaFila(UUID eventoId) {
+        Evento evento = eventoRepository.findByIdForUpdate(eventoId)
+            .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + eventoId));
+        if (evento.getStatusEvento() == StatusEvento.ATIVO
+                && !Boolean.TRUE.equals(evento.getTravado())
+                && evento.getDataHoraRealizacao().isAfter(OffsetDateTime.now())) {
+            promoverFila(evento);
+        }
+    }
+    // O chamador mantém a trava pessimista do evento até o fim da transação.
+    private void promoverFila(Evento evento) {
+        long confirmados = inscricaoRepository
+            .countByEventoIdAndStatusInscricao(evento.getId(), StatusInscricao.CONFIRMADA);
+        long vagas = evento.getLimiteParticipantes() - confirmados;
+        if (vagas <= 0) {
+            return;
+        }
+        List<Inscricao> fila = inscricaoRepository
+            .findByEventoIdAndStatusInscricao(evento.getId(), StatusInscricao.SOLICITADA);
+        fila.stream().limit(vagas).forEach(inscricao -> {
+            inscricao.confirmar();
+            inscricaoRepository.save(inscricao);
+        });
     }
     @Transactional
     public void registrarPresenca(UUID eventoId, UUID organizadorId, UUID participanteId) {

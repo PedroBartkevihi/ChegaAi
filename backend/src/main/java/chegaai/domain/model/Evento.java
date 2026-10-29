@@ -78,7 +78,7 @@ public class Evento {
 	private OffsetDateTime criadoEm;
 	@OneToMany(mappedBy = "evento", cascade = CascadeType.ALL,
 			   orphanRemoval = true, fetch = FetchType.LAZY)
-	@OrderBy("dataHoraSolicitacao ASC")
+	@OrderBy("ordemEntrada ASC")
 	private List<Inscricao> inscricoes = new ArrayList<>();
 	@OneToMany(mappedBy = "evento", cascade = CascadeType.ALL,
 			   orphanRemoval = true, fetch = FetchType.LAZY)
