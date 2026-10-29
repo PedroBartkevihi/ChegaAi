@@ -1,42 +1,29 @@
 import { defineConfig, devices } from '@playwright/test';
+import { frontendURL, apiURL, databaseURL } from './tests/environment';
+
+databaseURL();
+const mode = process.env.E2E_MODE || 'dev';
+if (!['dev', 'static'].includes(mode)) throw new Error('E2E_MODE deve ser dev ou static.');
+if (mode === 'static' && frontendURL.origin === apiURL.origin) throw new Error('O teste estático exige origens distintas para exercitar CORS.');
+const port = frontendURL.port || (frontendURL.protocol === 'https:' ? '443' : '80');
+const command = mode === 'static'
+  ? 'node tests/serve-static.mjs'
+  : `npm run dev -- --hostname ${frontendURL.hostname} --port ${port}`;
 
 export default defineConfig({
   testDir: './tests',
-  fullyParallel: false, // Mantém falso para rodar os cenários em ordem limpa
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: 1, // Excelente para ambiente de desenvolvimento local e logs ordenados
-  
-  // TAREFA 1: CONFIGURAÇÃO DE EVIDÊNCIAS E LOGS
-  reporter: [
-    ['list'],                                           // Mostra o log detalhado no terminal
-    ['html', { outputFolder: 'playwright-report' }],    // Relatório HTML rico
-    ['json', { outputFile: 'test-results/report.json' }]// Relatório JSON para Rastreabilidade
-  ],
-  
-  use: {
-    baseURL: 'http://localhost:3000', // URL local do Next.js
-    
-    // TAREFA 1: Screenshots e Traces (Evidências)
-    trace: 'on',         // Gera um "raio-x" visual sempre (ótimo para rastreabilidade)
-    screenshot: 'on',    // Tira print ao final de CADA teste (sucesso ou falha)
-    video: 'retain-on-failure',
-  },
-
-  // Sobe o Next.js antes dos testes (a API Spring Boot precisa estar rodando na porta 8080)
+  workers: 1,
+  reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ['json', { outputFile: 'test-results/report.json' }]],
+  use: { baseURL: frontendURL.origin, trace: 'retain-on-failure', screenshot: 'only-on-failure', video: 'retain-on-failure' },
   webServer: {
-    // no CI o workflow já fez o build de produção
-    command: process.env.CI ? 'npm run start' : 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
+    command,
+    url: frontendURL.origin,
+    reuseExistingServer: !process.env.CI && mode === 'dev',
+    env: { E2E_BASE_URL: frontendURL.origin, API_URL: apiURL.origin },
   },
-
-  /* Focaremos no Chromium (Chrome) para acelerar seus testes acadêmicos */
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-    // { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-  ],
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 });
