@@ -105,10 +105,77 @@ class DemonstracaoIT extends IntegracaoBase {
             recriarDemonstracao();
             JsonNode depois = buscarEvento(evento);
             assertThat(depois.get("confirmed")).extracting(JsonNode::asText)
-                .containsExactly(organizador.primeiroNome());
+                .containsExactlyElementsOf(estado.equals("travado") ? java.util.List.of(organizador.primeiroNome())
+                    : java.util.List.of(organizador.primeiroNome(), "Pedro", "Caio"));
             assertThat(depois.get("waitlist")).extracting(JsonNode::asText).containsExactly(espera.primeiroNome());
         }
     }
+    @Test
+    void recriarPreservaNotasAusenciasEHonraEmRolesConcluidos() throws Exception {
+        var org = cadastrar("HistoricoReal");
+        var ausente = cadastrar("AusenteReal");
+        UUID evento = criarEventoValido(org, 10);
+        alternarInscricao(ausente, evento).andExpect(status().isOk());
+        inscreverDemo("marcos@chegaai.dev", evento, "CONFIRMADO");
+        UUID marcos = DataSeederService.idDeDemonstracao("marcos@chegaai.dev");
+        mockMvc.perform(post("/eventos/{id}/presencas", evento).header("Authorization", bearer(org.token()))
+            .contentType("application/json")
+            .content(objectMapper.writeValueAsString(Map.of("participanteId", marcos))))
+            .andExpect(status().isNoContent());
+        moverParaOPassado(evento);
+        concluir(org, evento).andExpect(status().isOk());
+        mockMvc.perform(post("/eventos/{id}/avaliacoes", evento).header("Authorization", bearer(org.token()))
+            .contentType("application/json")
+            .content(objectMapper.writeValueAsString(Map.of("avaliadoId", marcos, "nota", 4))))
+            .andExpect(status().isCreated());
+        double honraAntes = usuarioAtual(ausente).get("honor").asDouble();
+        recriarDemonstracao();
+        recriarDemonstracao();
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM avaliacao WHERE id_evento=?", Integer.class, evento)).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM inscricao WHERE id_evento=? AND id_usuario=?", Integer.class, evento, marcos)).isEqualTo(1);
+        assertThat(usuarioAtual(ausente).get("honor").asDouble()).isEqualTo(honraAntes).isEqualTo(2.5);
+        assertThat(jdbcTemplate.queryForObject("SELECT desconto_honra_acumulado FROM usuario WHERE id_usuario=?", java.math.BigDecimal.class, ausente.id()))
+            .isEqualByComparingTo("0.5");
+        assertThat(jdbcTemplate.queryForObject("SELECT honra_media FROM usuario WHERE id_usuario=?", java.math.BigDecimal.class, marcos))
+            .isEqualByComparingTo("5.0");
+    }
+
+    @Test
+    void concluidoOrganizadoPorDemoComVisitanteNaoDesaparece() throws Exception {
+        var visitante = cadastrar("VisitanteHistorico");
+        String token = login("marcos@chegaai.dev", "admin123");
+        UUID evento = UUID.fromString(json(criarEvento(token, "Historico demo com visitante", 10)
+            .andExpect(status().isCreated())).get("id").asText());
+        alternarInscricao(visitante, evento).andExpect(status().isOk());
+        moverParaOPassado(evento);
+        mockMvc.perform(post("/eventos/{id}/concluir", evento).header("Authorization", bearer(token)))
+            .andExpect(status().isOk());
+        recriarDemonstracao();
+        recriarDemonstracao();
+        assertThat(buscarEvento(evento).get("status").asText()).isEqualTo("CONCLUIDO");
+        assertThat(jdbcTemplate.queryForObject("SELECT status_inscricao FROM inscricao WHERE id_evento=? AND id_usuario=?",
+            String.class, evento, visitante.id())).isEqualTo("AUSENTE");
+        assertThat(usuarioAtual(visitante).get("honor").asDouble()).isEqualTo(2.5);
+    }
+
+    @Test
+    void duasRecriacoesSimultaneasNaoDuplicamCenarios() throws Exception {
+        java.util.concurrent.ExecutorService executor = java.util.concurrent.Executors.newFixedThreadPool(2);
+        java.util.concurrent.CountDownLatch largada = new java.util.concurrent.CountDownLatch(1);
+        ReflectionTestUtils.setField(dataSeederService, "recriarAoIniciar", true);
+        try {
+            var primeira = executor.submit(() -> { largada.await(); dataSeederService.run(); return true; });
+            var segunda = executor.submit(() -> { largada.await(); dataSeederService.run(); return true; });
+            largada.countDown();
+            assertThat(primeira.get(30, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+            assertThat(segunda.get(30, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+        } finally {
+            ReflectionTestUtils.setField(dataSeederService, "recriarAoIniciar", false);
+            executor.shutdownNow();
+        }
+        assertThat(contar("SELECT COUNT(*) FROM evento WHERE titulo=?", "Futebol no Aterro")).isEqualTo(1);
+    }
+
     private void inscreverDemo(String email, UUID evento, String esperado) throws Exception {
         mockMvc.perform(post("/eventos/{id}/inscricao", evento)
             .header("Authorization", bearer(login(email, "admin123"))))

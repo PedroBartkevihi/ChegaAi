@@ -56,7 +56,8 @@ public class AuthService {
         }
         Participante participante = new Participante(dto.name().trim(), email, cpf,
             passwordEncoder.encode(dto.password()), dto.birthDate());
-        participante.setHonraMedia(BigDecimal.valueOf(honraInicial));
+        participante.setHonraInicial(BigDecimal.valueOf(honraInicial));
+        participante.setHonraMedia(participante.getHonraInicial());
         return gerarResposta(usuarioRepository.save(participante));
     }
     @Transactional(readOnly = true)

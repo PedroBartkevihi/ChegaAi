@@ -59,14 +59,14 @@ Os limites ficam em `application.properties` (`chegaai.regras.*`) e podem ser aj
 | Inscrever-se | Exige conta ativa, honra **≥ 3.0**, nenhuma avaliação pendente e horário anterior ao início |
 | Cancelamento | Permitido só antes do início; sair de vaga confirmada nas 24 horas anteriores conta como cancelamento tardio |
 | Suspensão temporária | Ao atingir 3 cancelamentos tardios em 30 dias, a conta fica suspensa por 7 dias; saídas da fila não contam |
-| Histórico | Rolés concluídos não podem ser excluídos; avaliações e presenças são preservadas |
+| Histórico | Rolés concluídos não podem ser excluídos; o reset da demonstração também preserva presenças e avaliações que envolvam visitantes |
 | Estado da conta | Banimento bloqueia login e tokens antigos. Suspensos podem consultar, cancelar antes do início e registrar presença/concluir os próprios rolés; criar, entrar, comentar, avaliar e excluir ficam bloqueados. A suspensão temporária vence no horário registrado |
 | Embaixador | Honra **≥ 4.8**: rolés em destaque no feed e limite de **50** vagas (os demais, **20**) |
 | Fila de espera | Rolé lotado coloca a inscrição na fila; vagas liberadas vão para o primeiro da fila (FIFO) |
 | Concluir rolé | Só o organizador, e só depois da data/hora marcada |
 | Ausência | Ao concluir o rolé, confirmado sem presença registrada perde **0.5** de honra |
 | Avaliação obrigatória | Após um rolé concluído, quem compareceu precisa avaliar os demais participantes antes de se inscrever em outro |
-| Honra | Média das notas recebidas nas avaliações |
+| Honra | Base definida no cadastro (**3.0** por padrão; contas de demonstração têm bases próprias) até receber **3 avaliações** entre quaisquer rolés; depois, média das notas. Em ambos os casos, desconta as penalidades acumuladas, com mínimo **0** |
 | Comentários | Só confirmados ou quem está na fila de espera |
 
 ## Tecnologias

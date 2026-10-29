@@ -27,7 +27,7 @@ import java.util.UUID;
 public class DataSeederService implements CommandLineRunner {
     /** Senha de todas as contas de demonstração. */
     public static final String SENHA_DEMO = "admin123";
-    /** Contas criadas por este seeder; a recriação da demonstração apaga só elas e o que é delas. */
+    /** Contas fictícias: o reset preserva as identidades e o histórico que envolve visitantes. */
     static final List<String> EMAILS_DEMO = List.of(
         "pedro@chegaai.dev", "caio@chegaai.dev", "nina@chegaai.dev", "marcos@chegaai.dev",
         "lia@chegaai.dev", "rafael@chegaai.dev", "bia@chegaai.dev", "paula@chegaai.dev",
@@ -42,6 +42,8 @@ public class DataSeederService implements CommandLineRunner {
     private final InscricaoRepository inscricaoRepository;
     private final ComentarioRepository comentarioRepository;
     private final InscricaoService inscricaoService;
+    private final HonraService honraService;
+    private final jakarta.persistence.EntityManager entityManager;
     private final PasswordEncoder passwordEncoder;
     private final NamedParameterJdbcTemplate jdbc;
     private String senhaDemoHash;
@@ -50,6 +52,8 @@ public class DataSeederService implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        // Revisões simultâneas não podem reconstruir o mesmo conjunto de dados ao mesmo tempo.
+        jdbc.query("SELECT pg_advisory_xact_lock(746283901)", Map.of(), (rs) -> { });
         if (recriarAoIniciar) {
             removerDemonstracao();
         } else if (usuarioRepository.findByEmail("pedro@chegaai.dev").isPresent()) {
@@ -185,36 +189,51 @@ public class DataSeederService implements CommandLineRunner {
 
         // --- FIM: CENÁRIOS E2E ---
 
+        // Primeiro grava os novos cenários; só então relê as contas e aplica a fórmula única.
+        entityManager.flush();
+        entityManager.clear();
+        List<UUID> contasDemo = jdbc.queryForList(
+            "SELECT id_usuario FROM usuario WHERE email IN (:emails)", Map.of("emails", EMAILS_DEMO), UUID.class);
+        honraService.travarUsuarios(contasDemo).values().forEach(honraService::recalcular);
         log.info("Carga de dados de demonstração concluída com sucesso!");
     }
-    /**
-     * Apaga as contas de demonstração e tudo que depende delas: eventos que organizam
-     * (com inscrições, comentários e avaliações, por cascata), as próprias inscrições e
-     * comentários em eventos de outras pessoas, avaliações, denúncias e penalidades.
-     * Contas e eventos de usuários reais não são tocados.
-     */
+    /** Reinicia os cenários fictícios sem apagar a identidade nem o histórico de visitantes. */
     private void removerDemonstracao() {
         List<UUID> ids = jdbc.queryForList(
             "SELECT id_usuario FROM usuario WHERE email IN (:emails)", Map.of("emails", EMAILS_DEMO), UUID.class);
-        if (ids.isEmpty()) {
-            return;
-        }
+        if (ids.isEmpty()) return;
         Map<String, Object> params = Map.of("ids", ids);
-        // Trava os eventos afetados antes da cascata, na mesma ordem em todas as recriações.
+        // Eventos primeiro, em ordem estável; contas depois. Nenhum DELETE de conta provoca cascatas.
         List<UUID> eventosAfetados = jdbc.queryForList(
-            "SELECT e.id_evento FROM evento e WHERE e.id_organizador NOT IN (:ids) "
-                + "AND EXISTS (SELECT 1 FROM inscricao i WHERE i.id_evento = e.id_evento "
-                + "AND i.id_usuario IN (:ids)) ORDER BY e.id_evento FOR UPDATE OF e",
+            "SELECT e.id_evento FROM evento e WHERE e.id_organizador IN (:ids) "
+                + "OR EXISTS (SELECT 1 FROM inscricao i WHERE i.id_evento=e.id_evento AND i.id_usuario IN (:ids)) "
+                + "ORDER BY e.id_evento FOR UPDATE OF e", params, UUID.class);
+        jdbc.queryForList("SELECT id_usuario FROM usuario WHERE id_usuario IN (:ids) ORDER BY id_usuario FOR NO KEY UPDATE",
             params, UUID.class);
-        jdbc.update("DELETE FROM avaliacao WHERE id_avaliador IN (:ids) OR id_avaliado IN (:ids)", params);
-        jdbc.update("DELETE FROM denuncia WHERE id_denunciante IN (:ids) OR id_denunciado IN (:ids)", params);
-        jdbc.update("DELETE FROM penalidade WHERE id_usuario IN (:ids) OR id_admin_aplicador IN (:ids)", params);
-        jdbc.update("DELETE FROM evento WHERE id_organizador IN (:ids)", params);
-        jdbc.update("DELETE FROM usuario WHERE id_usuario IN (:ids)", params);
-        eventosAfetados.forEach(inscricaoService::preencherVagasDaFila);
+        // Em rolés de visitantes, a participação que já começou fica congelada, assim como na API.
+        jdbc.update("DELETE FROM inscricao i USING evento e WHERE i.id_evento=e.id_evento "
+            + "AND i.id_usuario IN (:ids) AND e.id_organizador NOT IN (:ids) "
+            + "AND e.status_evento='ATIVO' AND e.data_hora_realizacao>clock_timestamp()", params);
+        // Preserva concluídos com participação, avaliações ou comentários de visitantes.
+        jdbc.update("DELETE FROM evento e WHERE e.id_organizador IN (:ids) AND NOT (e.status_evento='CONCLUIDO' AND ("
+            + "EXISTS (SELECT 1 FROM inscricao i WHERE i.id_evento=e.id_evento AND i.id_usuario NOT IN (:ids)) "
+            + "OR EXISTS (SELECT 1 FROM avaliacao a WHERE a.id_evento=e.id_evento AND (a.id_avaliador NOT IN (:ids) OR a.id_avaliado NOT IN (:ids))) "
+            + "OR EXISTS (SELECT 1 FROM comentario c WHERE c.id_evento=e.id_evento AND c.id_usuario NOT IN (:ids))))", params);
+        // So contas ficticias sao reiniciadas; as ausencias preservadas mantem o valor original.
+        jdbc.update("DELETE FROM cancelamento_tardio WHERE id_usuario IN (:ids)", params);
+        jdbc.update("UPDATE usuario u SET status_usuario='ATIVO', suspenso_ate=NULL, "
+            + "desconto_honra_acumulado=COALESCE((SELECT SUM(i.desconto_honra_aplicado) FROM inscricao i "
+            + "WHERE i.id_usuario=u.id_usuario AND i.status_inscricao='AUSENTE'), 0) "
+            + "WHERE u.id_usuario IN (:ids)", params);
+        entityManager.clear();
+        for (UUID eventoId : eventosAfetados) {
+            if (eventoRepository.existsById(eventoId)) inscricaoService.preencherVagasDaFila(eventoId);
+        }
+        entityManager.flush();
+        entityManager.clear();
         jdbc.update("DELETE FROM endereco e WHERE NOT EXISTS "
-            + "(SELECT 1 FROM evento ev WHERE ev.id_endereco = e.id_endereco)", Map.of());
-        log.info("Demonstração anterior removida ({} contas). Recriando com datas atuais.", ids.size());
+            + "(SELECT 1 FROM evento ev WHERE ev.id_endereco=e.id_endereco)", Map.of());
+        log.info("Cenários fictícios reiniciados; identidades e histórico dos visitantes preservados.");
     }
     private Categoria salvarCategoria(String nome, String descricao) {
         return categoriaRepository.findByNome(nome).orElseGet(() -> {
@@ -258,8 +277,9 @@ public class DataSeederService implements CommandLineRunner {
                                 String dataNascimento, BigDecimal honra) {
         UUID id = idDeDemonstracao(email);
         jdbc.update("INSERT INTO usuario (id_usuario, nome, email, cpf, senha_hash, data_nascimento, honra_media, "
-                + "status_usuario, papel_sistema) "
-                + "VALUES (:id, :nome, :email, :cpf, :senha, :nascimento, :honra, 'ATIVO', :papel)",
+                + "status_usuario, papel_sistema, honra_inicial) "
+                + "VALUES (:id, :nome, :email, :cpf, :senha, :nascimento, :honra, 'ATIVO', :papel, :honra) "
+                + "ON CONFLICT (id_usuario) DO UPDATE SET nome=EXCLUDED.nome, senha_hash=EXCLUDED.senha_hash",
             new MapSqlParameterSource()
                 .addValue("id", id)
                 .addValue("nome", nome)

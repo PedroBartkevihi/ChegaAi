@@ -229,6 +229,29 @@ class PrazosEContasIT extends IntegracaoBase {
         } finally { executor.shutdownNow(); }
     }
 
+    @Test
+    void organizadoresQueParticipamUmDoOutroConcluemSemInverterTravas() throws Exception {
+        var alfa = cadastrar("CruzadoAlfa");
+        var beta = cadastrar("CruzadoBeta");
+        UUID primeiro = criarEventoValido(alfa, 10);
+        UUID segundo = criarEventoValido(beta, 10);
+        alternarInscricao(beta, primeiro).andExpect(status().isOk());
+        alternarInscricao(alfa, segundo).andExpect(status().isOk());
+        moverParaOPassado(primeiro);
+        moverParaOPassado(segundo);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch largada = new CountDownLatch(1);
+        try {
+            Future<Integer> um = executor.submit(() -> { largada.await(); return concluir(alfa, primeiro).andReturn().getResponse().getStatus(); });
+            Future<Integer> dois = executor.submit(() -> { largada.await(); return concluir(beta, segundo).andReturn().getResponse().getStatus(); });
+            largada.countDown();
+            assertThat(um.get(30, TimeUnit.SECONDS)).isEqualTo(200);
+            assertThat(dois.get(30, TimeUnit.SECONDS)).isEqualTo(200);
+            assertThat(usuarioAtual(alfa).get("honor").asDouble()).isEqualTo(2.5);
+            assertThat(usuarioAtual(beta).get("honor").asDouble()).isEqualTo(2.5);
+        } finally { executor.shutdownNow(); }
+    }
+
     private void aproximarInicio(UUID evento) {
         jdbcTemplate.update("UPDATE evento SET data_hora_realizacao=now()+interval '12 hours' WHERE id_evento=?", evento);
     }

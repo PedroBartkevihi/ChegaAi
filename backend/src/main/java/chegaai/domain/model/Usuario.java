@@ -61,6 +61,15 @@ public abstract class Usuario {
     @Column(name = "honra_media", nullable = false,
             columnDefinition = "numeric(3,2) DEFAULT 0")
     private BigDecimal honraMedia = BigDecimal.ZERO;
+    @NotNull
+    @DecimalMin(value = "0.00", message = "A honra inicial não pode ser negativa.")
+    @DecimalMax(value = "5.00", message = "A honra inicial não pode exceder 5.00.")
+    @Column(name = "honra_inicial", nullable = false, precision = 3, scale = 2)
+    private BigDecimal honraInicial = BigDecimal.valueOf(3);
+    @NotNull
+    @DecimalMin(value = "0.00", message = "O desconto de honra não pode ser negativo.")
+    @Column(name = "desconto_honra_acumulado", nullable = false, precision = 12, scale = 2)
+    private BigDecimal descontoHonraAcumulado = BigDecimal.ZERO;
     @NotNull(message = "O status do usuário é obrigatório.")
     @Enumerated(EnumType.STRING)
     @Column(name = "status_usuario", nullable = false, length = 20)

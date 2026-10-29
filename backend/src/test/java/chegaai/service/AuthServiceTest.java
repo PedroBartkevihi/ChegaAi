@@ -97,6 +97,7 @@ class AuthServiceTest {
         assertThat(salvo.getEmail()).isEqualTo("ana@exemplo.com");
         assertThat(salvo.getSenhaHash()).isNotEqualTo("senhaSegura123");
         assertThat(ENCODER.matches("senhaSegura123", salvo.getSenhaHash())).isTrue();
+        assertThat(salvo.getHonraInicial()).isEqualByComparingTo(BigDecimal.valueOf(3.0));
         assertThat(salvo.getHonraMedia()).isEqualByComparingTo(BigDecimal.valueOf(3.0));
         assertThat(resposta.user().honor()).isEqualTo(3.0);
     }

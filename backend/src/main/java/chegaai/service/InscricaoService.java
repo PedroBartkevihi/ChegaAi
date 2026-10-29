@@ -29,6 +29,7 @@ public class InscricaoService {
     private final UsuarioRepository usuarioRepository;
     private final AvaliacaoRepository avaliacaoRepository;
     private final ContaService contaService;
+    private final CoordenacaoDemonstracaoService coordenacaoDemonstracao;
     private final JdbcTemplate jdbc;
     @Value("${chegaai.regras.antecedencia-cancelamento-tardio-horas:24}")
     private long antecedenciaCancelamentoHoras;
@@ -42,6 +43,7 @@ public class InscricaoService {
     private double honraMinimaInscricao;
     @Transactional
     public InscricaoResponseDTO toggleInscricao(UUID eventoId, UUID usuarioId) {
+        coordenacaoDemonstracao.aguardarRecriacao();
         // Trava o evento até o commit: pedidos simultâneos no mesmo evento passam um por vez, então a
         // contagem de vagas (realizarNovaInscricao) e a promoção da fila (cancelarInscricao) sempre
         // enxergam o que o pedido anterior gravou.
@@ -179,6 +181,7 @@ public class InscricaoService {
     }
     @Transactional
     public void registrarPresenca(UUID eventoId, UUID organizadorId, UUID participanteId) {
+        coordenacaoDemonstracao.aguardarRecriacao();
         Evento evento = eventoRepository.findByIdForUpdate(eventoId)
             .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + eventoId));
         contaService.travar(organizadorId);

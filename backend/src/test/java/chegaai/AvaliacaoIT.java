@@ -33,8 +33,8 @@ class AvaliacaoIT extends IntegracaoBase {
         alternarInscricao(alfa, proximoEvento)
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("CONFIRMADO"));
-        assertThat(usuarioAtual(bravo).get("honor").asDouble()).isEqualTo(5.0);
-        assertThat(usuarioAtual(organizador).get("honor").asDouble()).isEqualTo(4.0);
+        assertThat(usuarioAtual(bravo).get("honor").asDouble()).isEqualTo(3.0);
+        assertThat(usuarioAtual(organizador).get("honor").asDouble()).isEqualTo(3.0);
     }
     @Test
     @DisplayName("avaliação exige evento concluído, participação dos dois lados e é única por pessoa")
