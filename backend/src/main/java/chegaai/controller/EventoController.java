@@ -67,6 +67,17 @@ public class EventoController {
         EventoResponseDTO concluido = eventoService.concluirEvento(id, usuarioId);
         return ResponseEntity.ok(concluido);
     }
+    @GetMapping("/{id}/participantes")
+    public ResponseEntity<ParticipantesResponseDTO> participantes(@PathVariable UUID id,
+            @UsuarioAutenticado UUID usuarioId) {
+        return ResponseEntity.ok(inscricaoService.participantes(id, usuarioId));
+    }
+    @PutMapping("/{id}/presencas/{participanteId}")
+    public ResponseEntity<Void> atualizarPresenca(@PathVariable UUID id, @PathVariable UUID participanteId,
+            @Valid @RequestBody AtualizarPresencaRequestDTO dto, @UsuarioAutenticado UUID usuarioId) {
+        inscricaoService.registrarPresenca(id, usuarioId, participanteId, dto.presente());
+        return ResponseEntity.noContent().build();
+    }
     @PostMapping("/{id}/presencas")
     public ResponseEntity<Void> registrarPresenca(
             @PathVariable UUID id,

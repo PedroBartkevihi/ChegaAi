@@ -28,10 +28,10 @@ class ParametrosHonraIT extends IntegracaoBase {
         alternarInscricao(alvo, notas).andExpect(status().isOk());
         alternarInscricao(outro, notas).andExpect(status().isOk());
         alternarInscricao(alvo, falta).andExpect(status().isOk());
-        registrarPresenca(organizador, notas, alvo).andExpect(status().isNoContent());
-        registrarPresenca(organizador, notas, outro).andExpect(status().isNoContent());
         moverParaOPassado(notas);
         moverParaOPassado(falta);
+        registrarPresenca(organizador, notas, alvo).andExpect(status().isNoContent());
+        registrarPresenca(organizador, notas, outro).andExpect(status().isNoContent());
         concluir(organizador, notas).andExpect(status().isOk());
         concluir(organizador, falta).andExpect(status().isOk());
         assertHonra(alvo, 3.75);

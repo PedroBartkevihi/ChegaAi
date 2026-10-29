@@ -1,11 +1,11 @@
 package chegaai.service;
 import chegaai.controller.dto.InscricaoResponseDTO;
+import chegaai.controller.dto.ParticipantesResponseDTO;
 import chegaai.domain.enums.StatusEvento;
 import chegaai.domain.enums.StatusInscricao;
 import chegaai.domain.model.Evento;
 import chegaai.domain.model.Inscricao;
 import chegaai.domain.model.Usuario;
-import chegaai.repository.AvaliacaoRepository;
 import chegaai.repository.EventoRepository;
 import chegaai.repository.InscricaoRepository;
 import chegaai.repository.UsuarioRepository;
@@ -27,7 +27,8 @@ public class InscricaoService {
     private final InscricaoRepository inscricaoRepository;
     private final EventoRepository eventoRepository;
     private final UsuarioRepository usuarioRepository;
-    private final AvaliacaoRepository avaliacaoRepository;
+    private final PendenciasAvaliacaoService pendenciasAvaliacaoService;
+    private final HonraService honraService;
     private final ContaService contaService;
     private final CoordenacaoDemonstracaoService coordenacaoDemonstracao;
     private final JdbcTemplate jdbc;
@@ -59,6 +60,9 @@ public class InscricaoService {
         }
         if (evento.getTravado() != null && evento.getTravado()) {
             throw new IllegalStateException("Este evento está travado pela moderação.");
+        }
+        if (evento.getOrganizador().getId().equals(usuarioId)) {
+            throw new IllegalStateException("O organizador não pode sair nem alterar a própria inscrição neste rolé.");
         }
         Optional<Inscricao> inscricaoExistente = inscricaoRepository
             .findByUsuarioIdAndEventoId(usuarioId, eventoId);
@@ -179,40 +183,65 @@ public class InscricaoService {
             }
         }
     }
+    @Transactional(readOnly = true)
+    public ParticipantesResponseDTO participantes(UUID eventoId, UUID organizadorId) {
+        Evento evento = eventoRepository.findById(eventoId)
+            .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + eventoId));
+        exigirOrganizador(evento, organizadorId);
+        Usuario usuario = usuarioRepository.findById(organizadorId)
+            .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + organizadorId));
+        if (usuario.getStatusUsuario() == StatusUsuario.BANIDO) usuario.exigirContaAtiva(OffsetDateTime.now());
+        OffsetDateTime agora = OffsetDateTime.now();
+        boolean podeGerir = evento.getStatusEvento() == StatusEvento.ATIVO && !agora.isBefore(evento.getDataHoraRealizacao());
+        var participantes = inscricaoRepository.listarParticipantes(eventoId,
+            List.of(StatusInscricao.CONFIRMADA, StatusInscricao.AUSENTE)).stream().map(i -> {
+                boolean organizador = i.getUsuario().getId().equals(organizadorId);
+                return new ParticipantesResponseDTO.ParticipanteDTO(i.getUsuario().getId(),
+                    i.getUsuario().getNome(), i.getStatusInscricao().name(),
+                    organizador || Boolean.TRUE.equals(i.getCompareceu()), organizador);
+            }).toList();
+        // Legado: uma inscricao cancelada/inexistente do organizador nao e recriada pelo preview.
+        return new ParticipantesResponseDTO(eventoId, evento.getDataHoraRealizacao().toString(),
+            evento.getStatusEvento().name(), podeGerir, podeGerir, honraService.descontoPorAusencia(), participantes);
+    }
     @Transactional
     public void registrarPresenca(UUID eventoId, UUID organizadorId, UUID participanteId) {
+        registrarPresenca(eventoId, organizadorId, participanteId, true);
+    }
+    @Transactional
+    public void registrarPresenca(UUID eventoId, UUID organizadorId, UUID participanteId, boolean presente) {
         coordenacaoDemonstracao.aguardarRecriacao();
         Evento evento = eventoRepository.findByIdForUpdate(eventoId)
             .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + eventoId));
         contaService.travar(organizadorId);
-        if (!evento.getOrganizador().getId().equals(organizadorId)) {
-            throw new IllegalStateException("Apenas o organizador pode registrar presenças.");
-        }
+        exigirOrganizador(evento, organizadorId);
         if (evento.getStatusEvento() != StatusEvento.ATIVO) {
             throw new IllegalStateException("Presenças só podem ser registradas antes de concluir o evento.");
         }
+        if (OffsetDateTime.now().isBefore(evento.getDataHoraRealizacao())) {
+            throw new IllegalStateException("Presenças só podem ser registradas após o início do rolé.");
+        }
         Inscricao inscricao = inscricaoRepository.findByUsuarioIdAndEventoId(participanteId, eventoId)
             .orElseThrow(() -> new NoSuchElementException("Este usuário não está inscrito no evento."));
-        inscricao.registrarPresenca();
+        if (inscricao.getStatusInscricao() != StatusInscricao.CONFIRMADA) {
+            throw new IllegalStateException("Somente inscrições CONFIRMADA podem registrar presença.");
+        }
+        if (participanteId.equals(organizadorId) && !presente) {
+            throw new IllegalStateException("A presença do organizador é automática e não pode ser desmarcada.");
+        }
+        if (presente) inscricao.registrarPresenca();
+        else inscricao.registrarAusencia();
         inscricaoRepository.save(inscricao);
     }
+    private void exigirOrganizador(Evento evento, UUID usuarioId) {
+        if (!evento.getOrganizador().getId().equals(usuarioId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Apenas o organizador pode gerir participantes e registrar presenças.");
+        }
+    }
     private void verificarAvaliacoesPendentes(Usuario usuario) {
-        List<Inscricao> inscricoesComparecidas = inscricaoRepository
-            .findCompareceuEmEventosConcluidos(usuario.getId());
-        for (Inscricao inscricao : inscricoesComparecidas) {
-            UUID eventoId = inscricao.getEvento().getId();
-            long outrosConfirmados = inscricaoRepository
-                .findByEventoIdAndStatusInscricao(eventoId, StatusInscricao.CONFIRMADA)
-                .stream()
-                .filter(i -> !i.getUsuario().getId().equals(usuario.getId()))
-                .count();
-            long avaliacoesFeitas = avaliacaoRepository
-                .contarAvaliacoesFeitas(usuario.getId(), eventoId);
-            if (avaliacoesFeitas < outrosConfirmados) {
-                throw new IllegalStateException(
-                    "Você possui avaliações pendentes de eventos anteriores. " +
-                    "Avalie os participantes para se inscrever em novos eventos.");
-            }
+        if (pendenciasAvaliacaoService.temPendencias(usuario.getId())) {
+            throw new IllegalStateException("Você possui avaliações pendentes de eventos anteriores. " +
+                "Avalie os participantes para se inscrever em novos eventos.");
         }
     }
 }

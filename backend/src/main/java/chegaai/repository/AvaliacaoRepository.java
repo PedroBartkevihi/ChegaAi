@@ -11,7 +11,7 @@ public interface AvaliacaoRepository extends JpaRepository<Avaliacao, UUID> {
     @Query("SELECT AVG(a.nota) FROM Avaliacao a WHERE a.avaliado.id = :usuarioId")
     Optional<Double> calcularMediaNotas(@Param("usuarioId") UUID usuarioId);
     long countByAvaliado_Id(UUID usuarioId);
-    @Query("SELECT COUNT(a) FROM Avaliacao a WHERE a.avaliador.id = :avaliadorId AND a.evento.id = :eventoId")
-    long contarAvaliacoesFeitas(@Param("avaliadorId") UUID avaliadorId, @Param("eventoId") UUID eventoId);
+    @Query("SELECT a.avaliado.id FROM Avaliacao a WHERE a.avaliador.id = :usuarioId AND a.evento.id = :eventoId")
+    java.util.List<UUID> buscarIdsAvaliados(@Param("usuarioId") UUID usuarioId, @Param("eventoId") UUID eventoId);
     boolean existsByAvaliador_IdAndAvaliado_IdAndEvento_Id(UUID avaliadorId, UUID avaliadoId, UUID eventoId);
 }

@@ -118,11 +118,11 @@ class DemonstracaoIT extends IntegracaoBase {
         alternarInscricao(ausente, evento).andExpect(status().isOk());
         inscreverDemo("marcos@chegaai.dev", evento, "CONFIRMADO");
         UUID marcos = DataSeederService.idDeDemonstracao("marcos@chegaai.dev");
+        moverParaOPassado(evento);
         mockMvc.perform(post("/eventos/{id}/presencas", evento).header("Authorization", bearer(org.token()))
             .contentType("application/json")
             .content(objectMapper.writeValueAsString(Map.of("participanteId", marcos))))
             .andExpect(status().isNoContent());
-        moverParaOPassado(evento);
         concluir(org, evento).andExpect(status().isOk());
         mockMvc.perform(post("/eventos/{id}/avaliacoes", evento).header("Authorization", bearer(org.token()))
             .contentType("application/json")

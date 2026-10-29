@@ -5,6 +5,10 @@ import chegaai.controller.dto.CadastroRequestDTO;
 import chegaai.controller.dto.LoginRequestDTO;
 import chegaai.controller.dto.UsuarioResponseDTO;
 import chegaai.service.AuthService;
+import chegaai.service.PerfilService;
+import chegaai.controller.dto.MinhaInscricaoResponseDTO;
+import chegaai.controller.dto.AvaliacoesPendentesResponseDTO;
+import java.util.List;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,6 +20,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
+    private final PerfilService perfilService;
     @PostMapping("/login")
     public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody LoginRequestDTO request) {
         return ResponseEntity.ok(authService.login(request));
@@ -27,5 +32,13 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<UsuarioResponseDTO> usuarioAtual(@UsuarioAutenticado UUID usuarioId) {
         return ResponseEntity.ok(authService.buscarUsuario(usuarioId));
+    }
+    @GetMapping("/me/inscricoes")
+    public ResponseEntity<List<MinhaInscricaoResponseDTO>> minhasInscricoes(@UsuarioAutenticado UUID usuarioId) {
+        return ResponseEntity.ok(perfilService.minhasInscricoes(usuarioId));
+    }
+    @GetMapping("/me/avaliacoes-pendentes")
+    public ResponseEntity<AvaliacoesPendentesResponseDTO> avaliacoesPendentes(@UsuarioAutenticado UUID usuarioId) {
+        return ResponseEntity.ok(perfilService.avaliacoesPendentes(usuarioId));
     }
 }
