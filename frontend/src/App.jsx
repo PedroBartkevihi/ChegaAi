@@ -122,7 +122,8 @@ export default function App() {
       return true;
     } catch (error) {
       if (!guard.isCurrent(scope) || request !== eventRequestRef.current || isDiscardedRequest(error)) return false;
-      if (initial) {
+      // O refresh mais recente também encerra a espera se substituiu o carregamento inicial.
+      if (initial || eventsRef.current.length === 0) {
         setLoadState("error");
         showNotice("Não foi possível carregar os rolés. Verifique sua conexão e tente de novo.", "error", scope);
       }

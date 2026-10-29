@@ -1,12 +1,15 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { formatEventDateLong } from "../lib/eventos";
 
 export default function PendingRatings({ ratings, focusEventId, pending, sendRating, loading, error, retry }) {
+  const focusedEventRef = useRef(null);
   useEffect(() => {
-    if (!focusEventId) return;
+    if (!focusEventId || focusedEventRef.current === focusEventId) return;
     const heading = document.getElementById(`avaliacoes-${focusEventId}`);
-    heading?.focus();
-    heading?.scrollIntoView({ block: "center" });
+    if (!heading) return;
+    focusedEventRef.current = focusEventId;
+    heading.focus();
+    heading.scrollIntoView({ block: "center" });
   }, [focusEventId, ratings.eventos]);
   return (
     <section className="profile-panel ratings-panel" aria-label="Avaliações pendentes">
@@ -19,7 +22,7 @@ export default function PendingRatings({ ratings, focusEventId, pending, sendRat
         <section className="rating-event" key={event.eventoId} aria-labelledby={`avaliacoes-${event.eventoId}`}>
           <h3 id={`avaliacoes-${event.eventoId}`} tabIndex={-1}>{event.titulo}</h3>
           <p className="muted">{formatEventDateLong(event.data)} · {event.hora}</p>
-          <div className="rating-list">{event.participantes.map((person) => <RatingForm key={person.id} person={person} eventId={event.eventoId} canRate={ratings.podeAvaliar && !loading} submitting={Boolean(pending[`avaliacao:${event.eventoId}:${person.id}`])} sendRating={sendRating} />)}</div>
+          <div className="rating-list">{event.participantes.map((person) => <RatingForm key={person.id} person={person} eventId={event.eventoId} canRate={ratings.podeAvaliar} submitting={Boolean(pending[`avaliacao:${event.eventoId}:${person.id}`])} sendRating={sendRating} />)}</div>
         </section>
       )) : !loading && !error && <div className="empty-state">Você está em dia. Nenhuma avaliação pendente.</div>}
     </section>

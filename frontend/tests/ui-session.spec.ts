@@ -14,7 +14,7 @@ const evento = {
   capacity: 10, status: "ABERTO", organizer: { id: "organizador", name: "Organizador", honor: 3, isAmbassador: false },
   confirmed: ["Organizador", "Ana", "Bruna"], waitlist: [], comments: [], reports: 0, description: "Evento fictício para isolar respostas de sessões."
 };
-async function preparar(page, { profileGate = null, profileStatus = 200, comments = null } = {}) {
+async function preparar(page, { profileGate = null, profileStatus = 200, comments = null, feedGate = null, eventData = evento, pendingRatings = { podeAvaliar: true, eventos: [] } } = {}) {
   await page.addInitScript(({ user }) => {
     localStorage.setItem("chegaai.token", "token-a");
     localStorage.setItem("chegaai.user", JSON.stringify(user));
@@ -22,6 +22,7 @@ async function preparar(page, { profileGate = null, profileStatus = 200, comment
     AbortController.prototype.abort = function () {};
   }, { user: ana });
   let held = false;
+  let heldFeed = false;
   await page.route("**/api/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname.replace(/^.*\/api/, "");
@@ -36,8 +37,16 @@ async function preparar(page, { profileGate = null, profileStatus = 200, comment
       return json(current);
     }
     if (path === "/auth/me/inscricoes") return json([{ eventoId: evento.id, status: "CONFIRMADO", compareceu: false }]);
-    if (path === "/auth/me/avaliacoes-pendentes") return json({ podeAvaliar: true, eventos: [] });
-    if (path === "/eventos") return json([evento]);
+    if (path === "/auth/me/avaliacoes-pendentes") return json(pendingRatings);
+    if (path === "/eventos") {
+      if (feedGate) {
+        if (heldFeed) return json({ message: "Falha do refresh" }, 503);
+        heldFeed = true;
+        feedGate.started.resolve();
+        await feedGate.release.promise;
+      }
+      return json([eventData]);
+    }
     if (path === `/eventos/${evento.id}/comentarios` && comments) {
       const gate = token === "Bearer token-a" ? comments.old : comments.current;
       gate.started.resolve();
@@ -92,4 +101,48 @@ test("resposta e finally antigos não alteram comentário nem pending da nova se
   comments.current.release.resolve();
   await expect(dialog.getByText("Comentário novo", { exact: true })).toBeVisible();
   await expect(dialog.getByText("Comentário antigo", { exact: true })).toHaveCount(0);
+});
+
+test("refresh que substitui o carregamento inicial e falha encerra a espera", async ({ page }) => {
+  const gate = { started: deferred(), release: deferred() };
+  await preparar(page, { feedGate: gate });
+  await page.goto("/");
+  await gate.started.promise;
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(page.getByRole("button", { name: "Tentar de novo", exact: true })).toBeVisible();
+  const respostaAntiga = page.waitForResponse((response) => response.url().endsWith("/api/eventos") && response.status() === 200);
+  gate.release.resolve();
+  await respostaAntiga;
+  await expect(page.getByTestId(`event-card-${evento.id}`)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Tentar de novo", exact: true })).toBeVisible();
+});
+
+test("refresh de pendências preserva foco e texto da avaliação em andamento", async ({ page }) => {
+  const pendingRatings = { podeAvaliar: true, eventos: [{ eventoId: evento.id, titulo: evento.title,
+    data: evento.date, hora: evento.time, participantes: [{ id: bruna.id, nome: bruna.fullName }] }] };
+  await preparar(page, { eventData: { ...evento, status: "CONCLUIDO" }, pendingRatings });
+  await page.goto("/");
+  await page.getByRole("button", { name: /Mostrar rolés anteriores/ }).click();
+  await page.getByTestId(`event-card-${evento.id}`).getByRole("button", { name: "Detalhes", exact: true }).click();
+  await page.getByRole("button", { name: "Avaliar participantes", exact: true }).click();
+  const comentario = page.getByRole("textbox", { name: "Comentário (opcional)", exact: true });
+  await expect(comentario).toBeEnabled();
+  await comentario.fill("Minha avaliação em andamento");
+  await expect(comentario).toBeFocused();
+  const gate = { started: deferred(), release: deferred() };
+  await page.route("**/api/auth/me/avaliacoes-pendentes", async (route) => {
+    gate.started.resolve();
+    await gate.release.promise;
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(pendingRatings), headers: { "access-control-allow-origin": "*" } });
+  });
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await gate.started.promise;
+  await expect(comentario).toBeEnabled();
+  await expect(comentario).toBeFocused();
+  const resposta = page.waitForResponse((response) => response.url().endsWith("/auth/me/avaliacoes-pendentes"));
+  gate.release.resolve();
+  await resposta;
+  await expect(comentario).toBeEnabled();
+  await expect(comentario).toBeFocused();
+  await expect(comentario).toHaveValue("Minha avaliação em andamento");
 });
