@@ -54,7 +54,7 @@ class FalhaDoBancoNaAutenticacaoIT extends IntegracaoBase {
         UsuarioRepository usuarioRepositoryQueFalha(@Qualifier("usuarioRepository") UsuarioRepository real) {
             return (UsuarioRepository) Proxy.newProxyInstance(UsuarioRepository.class.getClassLoader(),
                 new Class<?>[] {UsuarioRepository.class}, (proxy, metodo, argumentos) -> {
-                    if (BANCO_FORA.get() && metodo.getName().equals("existsById")) {
+                    if (BANCO_FORA.get() && metodo.getName().equals("findById")) {
                         throw new DataAccessResourceFailureException("banco fora do ar");
                     }
                     try {

@@ -20,17 +20,15 @@ public class ComentarioService {
     private final EventoRepository eventoRepository;
     private final InscricaoRepository inscricaoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final ContaService contaService;
     @Transactional
     public Comentario adicionarComentario(UUID eventoId, UUID usuarioId, String texto) {
         if (texto == null || texto.trim().isEmpty()) {
             throw new IllegalArgumentException("O texto do comentário não pode ser vazio.");
         }
-        if (!eventoRepository.existsById(eventoId)) {
-            throw new NoSuchElementException("Evento não encontrado: " + eventoId);
-        }
-        Evento evento = eventoRepository.getReferenceById(eventoId);
-        Usuario autor = usuarioRepository.findById(usuarioId)
-            .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + usuarioId));
+        Evento evento = eventoRepository.findByIdForUpdate(eventoId)
+            .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + eventoId));
+        Usuario autor = contaService.travarAtivo(usuarioId);
         Inscricao inscricao = inscricaoRepository.findByUsuarioIdAndEventoId(usuarioId, eventoId)
             .orElseThrow(() -> new IllegalStateException(
                 "Apenas participantes confirmados ou na lista de espera podem comentar."));

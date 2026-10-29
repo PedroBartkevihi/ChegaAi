@@ -12,7 +12,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import CategoryIcon from "./CategoryIcon";
 import Notice from "./Notice";
-import { getEnrollmentActionLabel, formatEventDateLong, categorySlug } from "../lib/eventos";
+import { getEnrollmentActionLabel, formatEventDateLong, categorySlug, eventTimestamp } from "../lib/eventos";
 import { downloadIcs, mapUrl } from "../lib/agenda";
 import { returnFocus } from "../lib/foco";
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -106,14 +106,14 @@ export default function EventModal({ event, enrollment, pending = {}, close, not
             </button>
           </div>
           <div className="card-actions">
-            <button className="primary-action" type="button" disabled={event.status !== "ABERTO"} aria-disabled={enrolling || undefined} onClick={() => toggleEnrollment(event.id)}>
+            <button className="primary-action" type="button" disabled={event.status !== "ABERTO" || eventTimestamp(event) <= Date.now()} aria-disabled={enrolling || undefined} onClick={() => toggleEnrollment(event.id)}>
               {enrolling ? "Enviando..." : getEnrollmentActionLabel(event, enrollment)}
             </button>
             <button className="secondary-action" type="button" onClick={() => reportEvent(event.id)}>
               <Flag size={16} aria-hidden="true" />
               Denunciar
             </button>
-            {canManage && (
+            {canManage && event.status !== "CONCLUIDO" && (
               <button className="danger-action" type="button" aria-disabled={deleting || undefined} onClick={() => deleteEvent(event.id)}>
                 <Trash2 size={16} aria-hidden="true" />
                 {deleting ? "Excluindo..." : "Excluir"}

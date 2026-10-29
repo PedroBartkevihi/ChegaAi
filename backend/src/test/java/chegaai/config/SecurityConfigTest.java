@@ -64,7 +64,8 @@ class SecurityConfigTest {
     void tokenComSubInvalidoOuDeContaInexistente() {
         UsuarioRepository repositorio = mock(UsuarioRepository.class);
         UUID existente = UUID.randomUUID();
-        when(repositorio.existsById(existente)).thenReturn(true);
+        chegaai.domain.model.Participante ativo = new chegaai.domain.model.Participante();
+        when(repositorio.findById(existente)).thenReturn(java.util.Optional.of(ativo));
         OAuth2TokenValidator<Jwt> validador = SecurityConfig.validadorDeToken(repositorio);
         Instant agora = Instant.now();
         assertThat(validador.validate(jwt(TokenService.EMISSOR, existente.toString(), agora, agora.plus(1, HOURS)))
@@ -78,7 +79,7 @@ class SecurityConfigTest {
     @DisplayName("falha do banco ao conferir a conta não vira token inválido: a exceção segue adiante")
     void falhaDoBancoNaoViraTokenInvalido() {
         UsuarioRepository repositorio = mock(UsuarioRepository.class);
-        when(repositorio.existsById(any())).thenThrow(new DataAccessResourceFailureException("banco fora do ar"));
+        when(repositorio.findById(any())).thenThrow(new DataAccessResourceFailureException("banco fora do ar"));
         OAuth2TokenValidator<Jwt> validador = SecurityConfig.validadorDeToken(repositorio);
         Instant agora = Instant.now();
         assertThatThrownBy(() -> validador.validate(

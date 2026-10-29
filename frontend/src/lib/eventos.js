@@ -12,6 +12,7 @@ export function getEnrollmentActionLabel(event, enrollment) {
   if (event.status === "TRAVADO") return "Suspenso";
   if (event.status === "CANCELADO") return "Cancelado";
   if (event.status === "CONCLUIDO") return "Concluído";
+  if (eventTimestamp(event) <= Date.now()) return "Inscrições encerradas";
   if (enrollment === "CONFIRMADO") return "Cancelar presença";
   if (enrollment === "FILA") return "Sair da lista de espera";
   return event.confirmed.length >= event.capacity ? "Entrar na lista de espera" : "Quero participar";
