@@ -43,6 +43,8 @@ class MigracaoHonraIT extends IntegracaoBase {
             ausencia(banco, alvo, faltaDois);
             ausencia(banco, poucasNotas, faltaUm);
             ausencia(banco, demo, faltaUm);
+            banco.update("INSERT INTO inscricao (id_usuario, id_evento, status_inscricao, compareceu) " +
+                "VALUES (?, ?, 'CONFIRMADA', true)", semHistorico, notas);
             nota(banco, notas, um, alvo, 5);
             nota(banco, notas, dois, alvo, 4);
             nota(banco, notas, tres, alvo, 3);
@@ -61,6 +63,11 @@ class MigracaoHonraIT extends IntegracaoBase {
             assertValor(banco, demo, "honra_inicial", "4.90");
             assertValor(banco, demo, "desconto_honra_acumulado", "0.50");
             assertValor(banco, demo, "honra_media", "4.40");
+            assertThat(banco.queryForObject("SELECT COUNT(*) FROM inscricao WHERE status_inscricao='AUSENTE' " +
+                "AND desconto_honra_aplicado=0.50", Long.class)).isEqualTo(4);
+            assertThat(banco.queryForObject("SELECT desconto_honra_aplicado FROM inscricao " +
+                "WHERE id_usuario=? AND id_evento=?", BigDecimal.class, semHistorico, notas))
+                .isEqualByComparingTo("0.00");
         } finally {
             jdbcTemplate.execute("DROP DATABASE " + database);
         }

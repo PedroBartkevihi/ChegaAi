@@ -162,7 +162,7 @@ public class EventoService {
                 inscricao.marcarAusente();
                 inscricaoRepository.save(inscricao);
                 Usuario usuario = usuarios.get(inscricao.getUsuario().getId());
-                honraService.registrarAusencia(usuario);
+                honraService.registrarAusencia(inscricao);
                 log.info("RN008: Ausência registrada para usuário {}. Honra: {}",
                     usuario.getId(), usuario.getHonraMedia());
             }

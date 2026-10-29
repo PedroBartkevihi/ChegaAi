@@ -219,6 +219,12 @@ public class DataSeederService implements CommandLineRunner {
             + "EXISTS (SELECT 1 FROM inscricao i WHERE i.id_evento=e.id_evento AND i.id_usuario NOT IN (:ids)) "
             + "OR EXISTS (SELECT 1 FROM avaliacao a WHERE a.id_evento=e.id_evento AND (a.id_avaliador NOT IN (:ids) OR a.id_avaliado NOT IN (:ids))) "
             + "OR EXISTS (SELECT 1 FROM comentario c WHERE c.id_evento=e.id_evento AND c.id_usuario NOT IN (:ids))))", params);
+        // So contas ficticias sao reiniciadas; as ausencias preservadas mantem o valor original.
+        jdbc.update("DELETE FROM cancelamento_tardio WHERE id_usuario IN (:ids)", params);
+        jdbc.update("UPDATE usuario u SET status_usuario='ATIVO', suspenso_ate=NULL, "
+            + "desconto_honra_acumulado=COALESCE((SELECT SUM(i.desconto_honra_aplicado) FROM inscricao i "
+            + "WHERE i.id_usuario=u.id_usuario AND i.status_inscricao='AUSENTE'), 0) "
+            + "WHERE u.id_usuario IN (:ids)", params);
         entityManager.clear();
         for (UUID eventoId : eventosAfetados) {
             if (eventoRepository.existsById(eventoId)) inscricaoService.preencherVagasDaFila(eventoId);
@@ -273,7 +279,7 @@ public class DataSeederService implements CommandLineRunner {
         jdbc.update("INSERT INTO usuario (id_usuario, nome, email, cpf, senha_hash, data_nascimento, honra_media, "
                 + "status_usuario, papel_sistema, honra_inicial) "
                 + "VALUES (:id, :nome, :email, :cpf, :senha, :nascimento, :honra, 'ATIVO', :papel, :honra) "
-                + "ON CONFLICT (id_usuario) DO UPDATE SET nome=EXCLUDED.nome, senha_hash=EXCLUDED.senha_hash, honra_inicial=EXCLUDED.honra_inicial",
+                + "ON CONFLICT (id_usuario) DO UPDATE SET nome=EXCLUDED.nome, senha_hash=EXCLUDED.senha_hash",
             new MapSqlParameterSource()
                 .addValue("id", id)
                 .addValue("nome", nome)

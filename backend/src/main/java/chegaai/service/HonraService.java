@@ -1,6 +1,7 @@
 package chegaai.service;
 
 import chegaai.domain.model.Usuario;
+import chegaai.domain.model.Inscricao;
 import chegaai.repository.AvaliacaoRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
@@ -48,8 +49,11 @@ public class HonraService {
         return usuarios;
     }
 
-    public void registrarAusencia(Usuario usuario) {
-        usuario.setDescontoHonraAcumulado(usuario.getDescontoHonraAcumulado().add(deducaoAusencia));
+    public void registrarAusencia(Inscricao inscricao) {
+        Usuario usuario = inscricao.getUsuario();
+        BigDecimal desconto = deducaoAusencia.setScale(2, RoundingMode.HALF_UP);
+        inscricao.setDescontoHonraAplicado(desconto);
+        usuario.setDescontoHonraAcumulado(usuario.getDescontoHonraAcumulado().add(desconto));
         recalcular(usuario);
     }
 

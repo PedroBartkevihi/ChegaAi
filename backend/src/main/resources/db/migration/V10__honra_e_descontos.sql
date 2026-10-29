@@ -25,11 +25,18 @@ SET honra_inicial = CASE email
     ELSE 3.00
 END;
 
+ALTER TABLE inscricao
+    ADD COLUMN desconto_honra_aplicado numeric(12,2) NOT NULL DEFAULT 0,
+    ADD CONSTRAINT ck_inscricao_desconto_honra CHECK (desconto_honra_aplicado >= 0);
+
+-- A ausencia guarda o valor original: mudar a configuracao nao altera o passado.
+UPDATE inscricao SET desconto_honra_aplicado = 0.50 WHERE status_inscricao = 'AUSENTE';
+
 UPDATE usuario u
-SET desconto_honra_acumulado = 0.5 * (
-    SELECT COUNT(*) FROM inscricao i
+SET desconto_honra_acumulado = COALESCE((
+    SELECT SUM(i.desconto_honra_aplicado) FROM inscricao i
     WHERE i.id_usuario = u.id_usuario AND i.status_inscricao = 'AUSENTE'
-);
+), 0);
 
 UPDATE usuario u
 SET honra_media = GREATEST(0.00, LEAST(5.00,

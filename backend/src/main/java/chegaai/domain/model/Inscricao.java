@@ -2,10 +2,12 @@ package chegaai.domain.model;
 import chegaai.domain.enums.StatusInscricao;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.DecimalMin;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Generated;
 import org.hibernate.generator.EventType;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 @Entity
@@ -58,6 +60,10 @@ public class Inscricao {
     private StatusInscricao statusInscricao;
     @Column(name = "compareceu", nullable = false)
     private Boolean compareceu = Boolean.FALSE;
+    @NotNull
+    @DecimalMin(value = "0.00", message = "O desconto de honra aplicado nao pode ser negativo.")
+    @Column(name = "desconto_honra_aplicado", nullable = false, precision = 12, scale = 2)
+    private BigDecimal descontoHonraAplicado = BigDecimal.ZERO;
     public void confirmar() {
         if (statusInscricao != StatusInscricao.SOLICITADA) {
             throw new IllegalStateException(
