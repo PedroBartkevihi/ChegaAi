@@ -42,7 +42,7 @@ Pedro Farias continuou o projeto neste repositório:
 - Comentários restritos a confirmados e a quem está na fila.
 - Presença registrada pelo organizador, conclusão do rolé e **avaliação entre participantes** (notas de 1 a 5).
 - Perfil com a reputação atual e as inscrições.
-- Moderação: o moderador pode excluir qualquer rolé; o moderador de demonstração, só os rolés das contas de demonstração.
+- Moderação: o moderador pode excluir rolés ainda não concluídos; o moderador de demonstração, só os das contas de demonstração.
 
 | Detalhes de um rolé | Tela de entrada |
 |---|---|
@@ -188,7 +188,7 @@ Rotas autenticadas recebem o token no cabeçalho `Authorization: Bearer <token>`
 | Integração (PostgreSQL real com Testcontainers; precisa do Docker) | 43 | `cd backend && ./mvnw verify` |
 | Ponta a ponta (Playwright; precisa da API rodando) | 11 | `cd frontend && npx playwright test` |
 
-O GitHub Actions roda os testes do back-end e os ponta a ponta (com o build de produção do Next.js) a cada push.
+O GitHub Actions roda os testes do back-end e os ponta a ponta (com o build de produção do Next.js) em cada pull request e a cada push na main.
 
 Os testes de carga com k6 e os relatórios de desempenho foram produzidos durante a disciplina,
 ainda com o nome ChegAê: scripts em [`tests/load`](tests/load) e resultados em [`docs/sla`](docs/sla/README.md).
