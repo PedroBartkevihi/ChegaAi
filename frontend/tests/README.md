@@ -28,9 +28,21 @@ $env:CHEGAAI_DB_USER = 'chegaai_e2e'
 $env:CHEGAAI_DB_PASSWORD = 'chegaai_e2e'
 $env:CHEGAAI_CORS_ORIGENS = 'http://127.0.0.1:3006'
 $env:CHEGAAI_DEMO_RECRIAR = 'false'
+$env:CHEGAAI_LIMITE_LOGIN_IP = '1000000'
+$env:CHEGAAI_LIMITE_LOGIN_PAR = '1000000'
+$env:CHEGAAI_LIMITE_CADASTRO_IP = '1000000'
+$env:CHEGAAI_LIMITE_CRIAR_EVENTO = '1000000'
+$env:CHEGAAI_LIMITE_CRIAR_EVENTO_DIA = '1000000'
+$env:CHEGAAI_LIMITE_COMENTAR = '1000000'
+$env:CHEGAAI_LIMITE_COMENTAR_HORA = '1000000'
 ./mvnw.cmd -B -ntp -DskipTests package
 java -jar target/chegaai-backend-1.0.0-SNAPSHOT.jar
 ```
+
+A suíte inteira cria centenas de dados pelo mesmo IP de loopback: as cotas acima são
+maiores, mas o limitador continua ativo. Os IT de segurança usam cotas baixas, relógio
+controlado e servidor Tomcat real para verificar 429, spoofing, expiração e concorrência.
+Não aplique esses valores de teste na instalação pública.
 
 Espere `http://127.0.0.1:8086/api/actuator/health` responder `{"status":"UP"}`.
 Em Linux/macOS, use `./mvnw` e a sintaxe `export NOME=valor` para definir as mesmas variáveis.

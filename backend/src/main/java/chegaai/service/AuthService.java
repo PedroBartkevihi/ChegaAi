@@ -15,7 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
-import java.util.Locale;
+import chegaai.limite.IdentidadeCliente;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 @Service
@@ -72,6 +72,6 @@ public class AuthService {
         return new AuthResponseDTO(token.valor(), "Bearer", token.expiraEm(), regrasEventoService.respostaDoUsuario(usuario));
     }
     private String normalizarEmail(String email) {
-        return email.trim().toLowerCase(Locale.ROOT);
+        return IdentidadeCliente.email(email);
     }
 }

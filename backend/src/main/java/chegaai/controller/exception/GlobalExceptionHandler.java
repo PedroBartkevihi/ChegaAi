@@ -1,5 +1,6 @@
 package chegaai.controller.exception;
 import chegaai.service.AuthService;
+import chegaai.limite.LimiteExcedidoException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +36,13 @@ import java.util.NoSuchElementException;
 @Slf4j
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     static final String ERRO_INTERNO = "Erro interno do servidor. Tente novamente em instantes.";
+    @ExceptionHandler(LimiteExcedidoException.class)
+    public ResponseEntity<Map<String, Object>> handleRateLimit(LimiteExcedidoException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+            .header(HttpHeaders.RETRY_AFTER, Long.toString(ex.getTentarAposSegundos()))
+            .header(HttpHeaders.CACHE_CONTROL, "no-store")
+            .body(buildBody(HttpStatus.TOO_MANY_REQUESTS, LimiteExcedidoException.MENSAGEM));
+    }
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(NoSuchElementException ex) {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());

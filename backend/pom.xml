@@ -44,6 +44,13 @@
     <!--  Dependências                                           -->
     <!-- ===================================================== -->
     <dependencies>
+        <!-- Núcleo local do limitador; estado efêmero, sem serviço externo. -->
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j_jdk17-core</artifactId>
+            <version>8.21.0</version>
+        </dependency>
+
 
         <!-- Spring MVC; as chamadas HTTP externas (ViaCEP e GraphDB) usam o RestClient dele -->
         <dependency>

@@ -26,7 +26,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * O contêiner é compartilhado entre as classes de teste; cada teste cria os próprios
  * usuários e eventos para não depender da ordem de execução.
  */
-@SpringBootTest
+@SpringBootTest(properties = {
+    "chegaai.limites.login-ip.capacidade=1000000", "chegaai.limites.login-par.capacidade=1000000",
+    "chegaai.limites.cadastro-ip.capacidade=1000000", "chegaai.limites.criar-evento.capacidade=1000000",
+    "chegaai.limites.criar-evento.longo-capacidade=1000000", "chegaai.limites.comentar.capacidade=1000000",
+    "chegaai.limites.comentar.longo-capacidade=1000000"
+})
 @AutoConfigureMockMvc
 public abstract class IntegracaoBase {
     @ServiceConnection
