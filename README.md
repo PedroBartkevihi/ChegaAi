@@ -26,27 +26,37 @@ Pedro Farias continuou o projeto neste repositório:
 
 - front-end migrado de Vite para **Next.js** e dividido em componentes;
 - **autenticação real** com senhas em BCrypt, token **JWT** e cadastro de usuários (antes o login só conferia o e-mail);
-- **registro de presença** pelo organizador, que tornou o fluxo de avaliações alcançável pela API;
+- **presença, conclusão e avaliações na interface**, com resumo de ausências antes de concluir e pendências no perfil;
 - correção de horários exibidos 3 horas adiantados (UTC) e de erros de validação que viravam erro 500;
 - **testes unitários e de integração** com PostgreSQL real (Testcontainers) e integração contínua no GitHub Actions;
 - **Docker**, Docker Compose e deploy da versão online;
 - **diagramas UML** gerados a partir do código;
-- **novo visual** pensado para rolés ao ar livre: paleta de areia e verde, ilustração própria da orla, cores por categoria e navegação por cabeçalho, com foco visível e o detalhe do rolé operável pelo teclado.
+- **novo visual** pensado para rolés ao ar livre: paleta de areia e verde, ilustração da orla, cores por categoria, modo escuro e navegação lateral (abas no celular), com foco visível e diálogos operáveis pelo teclado.
 
 ## Funcionalidades
 
 - Cadastro e login com JWT; contas de demonstração prontas para testar.
-- Feed de rolés com busca e filtros por categoria, distância e honra do organizador.
+- Feed de rolés com busca e filtros por categoria e honra do organizador.
 - Criação de rolés com limite de vagas, CEP (consultado no ViaCEP) e descrição.
 - Inscrição com **fila de espera automática**: quando alguém confirmado sai, o primeiro da fila é promovido.
 - Comentários restritos a confirmados e a quem está na fila.
-- Presença registrada pelo organizador, conclusão do rolé e **avaliação entre participantes** (notas de 1 a 5).
-- Perfil com a reputação atual e as inscrições.
+- Presença corrigível pelo organizador após o início, conclusão com confirmação das ausências e **avaliação entre participantes** (notas de 1 a 5) pelo perfil.
+- Perfil com reputação atualizada, inscrições identificadas por UUID e avaliações pendentes. Respostas atrasadas de uma sessão anterior são descartadas.
 - Moderação: o moderador pode excluir rolés ainda não concluídos; o moderador de demonstração, só os das contas de demonstração.
 
 | Detalhes de um rolé | Tela de entrada |
 |---|---|
 | ![Detalhes de um rolé com comentários](docs/images/detalhes.png) | ![Tela de login com contas de demonstração](docs/images/login.png) |
+
+
+| Presenças e conclusão | Avaliações no perfil |
+|---|---|
+| ![Organizador registra presenças antes de concluir](docs/images/presencas.png) | ![Perfil com avaliações pendentes por participante](docs/images/avaliacoes.png) |
+
+Antes de concluir, o organizador confere o [resumo das ausências](docs/images/conclusao.png).
+Também há capturas do [modo escuro](docs/images/feed-escuro.png), da
+[navegação no celular](docs/images/mobile.png) e do [formulário de criação](docs/images/roles.png).
+As imagens usam contas e rolés fictícios em ambiente local.
 
 ## Regras de negócio
 
@@ -57,15 +67,16 @@ Os limites ficam em `application.properties` (`chegaai.regras.*`) e podem ser aj
 | Honra inicial | Quem se cadastra começa com honra **3.0** |
 | Criar rolé | Exige honra **≥ 2.0** e data/hora no futuro |
 | Inscrever-se | Exige conta ativa, honra **≥ 3.0**, nenhuma avaliação pendente e horário anterior ao início |
-| Cancelamento | Permitido só antes do início; sair de vaga confirmada nas 24 horas anteriores conta como cancelamento tardio |
+| Cancelamento | Permitido só antes do início; o organizador permanece inscrito. Sair de vaga confirmada nas 24 horas anteriores conta como cancelamento tardio |
 | Suspensão temporária | Ao atingir 3 cancelamentos tardios em 30 dias, a conta fica suspensa por 7 dias; saídas da fila não contam |
 | Histórico | Rolés concluídos não podem ser excluídos; o reset da demonstração também preserva presenças e avaliações que envolvam visitantes |
 | Estado da conta | Banimento bloqueia login e tokens antigos. Suspensos podem consultar, cancelar antes do início e registrar presença/concluir os próprios rolés; criar, entrar, comentar, avaliar e excluir ficam bloqueados. A suspensão temporária vence no horário registrado |
 | Embaixador | Honra **≥ 4.8**: rolés em destaque no feed e limite de **50** vagas (os demais, **20**) |
-| Fila de espera | Rolé lotado coloca a inscrição na fila; vagas liberadas vão para o primeiro da fila (FIFO) |
-| Concluir rolé | Só o organizador, e só depois da data/hora marcada |
+| Fila de espera | Ordem de entrada (FIFO); contas suspensas ou banidas são puladas temporariamente, preservando a posição. Quem volta à fila recebe uma nova posição |
+| Presença | Só o organizador, entre o início e a conclusão; pode marcar e desmarcar. Sua própria presença é automática. O histórico concluído fica congelado |
+| Concluir rolé | Só o organizador, depois do início; a interface pede confirmação com os ausentes e o desconto informado pela API |
 | Ausência | Ao concluir o rolé, confirmado sem presença registrada perde **0.5** de honra |
-| Avaliação obrigatória | Após um rolé concluído, quem compareceu precisa avaliar os demais participantes antes de se inscrever em outro |
+| Avaliação obrigatória | Após um rolé concluído, quem compareceu avalia os outros que compareceram antes de se inscrever em outro; o perfil lista exatamente essas pendências |
 | Honra | Base definida no cadastro (**3.0** por padrão; contas de demonstração têm bases próprias) até receber **3 avaliações** entre quaisquer rolés; depois, média das notas. Em ambos os casos, desconta as penalidades acumuladas, com mínimo **0** |
 | Comentários | Só confirmados ou quem está na fila de espera |
 
@@ -169,26 +180,36 @@ A documentação interativa fica no Swagger (`/api/swagger-ui.html`). Principais
 | Método | Rota | Acesso |
 |---|---|---|
 | `POST` | `/api/auth/cadastro`, `/api/auth/login` | Público |
-| `GET` | `/api/auth/me` | Autenticado |
+| `GET` | `/api/auth/me`, `/api/auth/me/inscricoes`, `/api/auth/me/avaliacoes-pendentes` | Autenticado; somente dados da própria conta |
 | `GET` | `/api/eventos`, `/api/eventos/{id}`, `/api/eventos/paginado` | Público |
 | `POST` | `/api/eventos` | Autenticado (honra ≥ 2.0) |
 | `DELETE` | `/api/eventos/{id}` | Organizador ou moderador |
 | `POST` | `/api/eventos/{id}/inscricao` | Autenticado (inscreve ou cancela) |
 | `POST` | `/api/eventos/{id}/comentarios` | Inscritos |
-| `POST` | `/api/eventos/{id}/presencas`, `/api/eventos/{id}/concluir` | Organizador |
+| `GET` | `/api/eventos/{id}/participantes` | Somente o organizador; presença e condições para concluir |
+| `PUT` | `/api/eventos/{id}/presencas/{participanteId}` | Organizador; corpo `{ "presente": true }` ou `{ "presente": false }` |
+| `POST` | `/api/eventos/{id}/presencas` | Organizador; compatibilidade para marcar presença |
+| `POST` | `/api/eventos/{id}/concluir` | Organizador |
 | `POST` | `/api/eventos/{id}/avaliacoes` | Quem participou |
 
 Rotas autenticadas recebem o token no cabeçalho `Authorization: Bearer <token>`.
 
 ## Testes
 
-| Tipo | Quantidade | Como rodar |
-|---|---|---|
-| Unitários (JUnit + Mockito) | 38 | `cd backend && ./mvnw test` |
-| Integração (PostgreSQL real com Testcontainers; precisa do Docker) | 43 | `cd backend && ./mvnw verify` |
-| Ponta a ponta (Playwright; precisa da API rodando) | 11 | `cd frontend && npx playwright test` |
+| Tipo | Como rodar |
+|---|---|
+| Unitários (JUnit + Mockito) | `cd backend && ./mvnw test` |
+| Integração (PostgreSQL real com Testcontainers; precisa do Docker) | `cd backend && ./mvnw verify` |
+| Ponta a ponta (Playwright + API + banco descartável local) | [Preparar o ambiente e executar](frontend/tests/README.md) |
 
-O GitHub Actions roda os testes do back-end e os ponta a ponta (com o build de produção do Next.js) em cada pull request e a cada push na main.
+Os E2E criam contas, rolés e comentários próprios por tentativa. O único ajuste direto no banco é
+mover a data de um rolé recém-criado para testar presença e conclusão, sem esperar o relógio.
+As fixtures aceitam somente destinos de loopback e o banco `chegaai_e2e`.
+
+O GitHub Actions executa `verify` no back-end e toda a suíte Playwright duas vezes, sem retries,
+em cada pull request e push na `main`. O front é exportado para `out/` e servido como arquivos
+estáticos, chamando a API em outra origem. O CORS permitido é conferido no navegador; o rejeitado, nos testes de integração da API.
+O modo de desenvolvimento com proxy continua disponível localmente.
 
 Os testes de carga com k6 e os relatórios de desempenho foram produzidos durante a disciplina,
 ainda com o nome ChegAê: scripts em [`tests/load`](tests/load) e resultados em [`docs/sla`](docs/sla/README.md).
