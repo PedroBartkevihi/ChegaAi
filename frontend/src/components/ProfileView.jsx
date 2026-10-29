@@ -1,8 +1,9 @@
 import { Award, LogOut } from "lucide-react";
 import StackItem from "./StackItem";
+import PendingRatings from "./PendingRatings";
 import { formatEventDay, eventTimestamp, sortByDate } from "../lib/eventos";
-const STATUS_LABELS = { CONFIRMADO: "Confirmado", FILA: "Lista de espera" };
-export default function ProfileView({ events, enrollments, currentUser, openEvent, onLogout }) {
+const STATUS_LABELS = { CONFIRMADO: "Confirmado", FILA: "Lista de espera", AUSENTE: "Ausente" };
+export default function ProfileView({ events, enrollments, currentUser, openEvent, onLogout, ratings, ratingsEventId, pending, sendRating, accountLoading, accountError, refreshAccount }) {
   const now = Date.now();
   const myEnrollments = sortByDate(
     Object.keys(enrollments)
@@ -28,12 +29,12 @@ export default function ProfileView({ events, enrollments, currentUser, openEven
           <span className="status-pill">Sua reputação</span>
           <div className="big-honor">
             <strong data-testid="honor-value">{currentUser.honor.toFixed(1)}</strong>
-            <span>reputação média</span>
+            <span>honra atual</span>
           </div>
           {ambassador && <span className="ambassador-tag"><Award size={14} aria-hidden="true" />Embaixador</span>}
           <p>{ambassador
             ? "Tag Embaixador ativa. Eventos criados por você ganham destaque e podem ter limite ampliado de vagas."
-            : "Participante ativo. Aumente sua reputação para se tornar Embaixador."
+            : "Participe dos rolés e acompanhe sua reputação para se tornar Embaixador."
           }</p>
         </article>
         <article className="profile-panel">
@@ -49,6 +50,7 @@ export default function ProfileView({ events, enrollments, currentUser, openEven
           )}
         </article>
       </div>
+      <PendingRatings ratings={ratings} focusEventId={ratingsEventId} pending={pending} sendRating={sendRating} loading={accountLoading} error={accountError} retry={refreshAccount} />
     </section>
   );
 }

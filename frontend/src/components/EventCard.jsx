@@ -1,11 +1,12 @@
 import { Award, CalendarDays, MapPin, Star, Trash2, UsersRound } from "lucide-react";
 import CategoryIcon from "./CategoryIcon";
 import { getEnrollmentActionLabel, formatEventDay, categorySlug, eventTimestamp } from "../lib/eventos";
-export default function EventCard({ event, enrollment, pending = {}, currentUser, openEvent, toggleEnrollment, deleteEvent }) {
+export default function EventCard({ event, enrollment, enrollmentsReady = true, pending = {}, currentUser, openEvent, toggleEnrollment, deleteEvent }) {
   const seats = Math.max(event.capacity - event.confirmed.length, 0);
   const percent = Math.min((event.confirmed.length / event.capacity) * 100, 100);
   const featured = event.organizer.isAmbassador;
-  const locked = event.status !== "ABERTO" || eventTimestamp(event) <= Date.now();
+  const isOrganizer = event.organizer.id === currentUser?.id;
+  const locked = !enrollmentsReady || isOrganizer || event.status !== "ABERTO" || eventTimestamp(event) <= Date.now();
   const canManage = currentUser?.isModerator || event.organizer.id === currentUser?.id;
   const slug = categorySlug(event.category);
   const enrolling = Boolean(pending[`inscricao:${event.id}`]);
@@ -51,7 +52,7 @@ export default function EventCard({ event, enrollment, pending = {}, currentUser
         <div className="card-actions">
           <button className="secondary-action" type="button" onClick={() => openEvent(event.id)}>Detalhes</button>
           <button className={locked ? "secondary-action" : "primary-action"} type="button" disabled={locked} aria-disabled={enrolling || undefined} onClick={() => toggleEnrollment(event.id)}>
-            {enrolling ? "Enviando..." : getEnrollmentActionLabel(event, enrollment)}
+            {enrolling ? "Enviando..." : !enrollmentsReady ? "Carregando inscrição..." : isOrganizer ? "Você organiza este rolé" : getEnrollmentActionLabel(event, enrollment)}
           </button>
           {canManage && event.status !== "CONCLUIDO" && (
             <button className="danger-action" type="button" aria-disabled={deleting || undefined} onClick={() => deleteEvent(event.id)}>

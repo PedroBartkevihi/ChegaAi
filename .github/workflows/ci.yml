@@ -87,6 +87,9 @@ jobs:
         run: |
           npm ci
           npx playwright install --with-deps chromium
+      - name: Testes da proteção de sessão
+        working-directory: frontend
+        run: npm run test:session
       - name: Exportar o site estático
         working-directory: frontend
         run: npm run build

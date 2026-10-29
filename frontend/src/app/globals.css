@@ -2157,3 +2157,92 @@ legend {
     transform: none;
   }
 }
+
+/* Presenças e avaliações seguem os painéis, controles e cores já usados no perfil. */
+.participants-panel,
+.conclusion-review,
+.rating-list,
+.rating-form,
+.rating-event {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.participants-panel {
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.compact-heading {
+  align-items: center;
+  margin-bottom: 0;
+}
+.compact-heading h2,
+.compact-heading h3 {
+  margin: 0;
+}
+.participant-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.participant-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg);
+}
+.participant-row > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.presence-toggle {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.presence-toggle input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--primary);
+}
+.conclusion-review,
+.rating-form {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--bg);
+}
+.conclusion-review p,
+.conclusion-review h4,
+.rating-form h4 {
+  margin: 0;
+}
+.ratings-panel {
+  margin-top: 16px;
+}
+.rating-event + .rating-event {
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.rating-form .secondary-action,
+.participants-panel > .primary-action {
+  justify-self: start;
+}
+@media (max-width: 540px) {
+  .participant-row {
+    flex-wrap: wrap;
+  }
+  .conclusion-review .card-actions > button {
+    width: 100%;
+  }
+}

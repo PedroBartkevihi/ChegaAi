@@ -13,7 +13,7 @@ import EventCard from "./EventCard";
 import Landscape from "./Landscape";
 import { buildFilterSummary, categories, hasActiveFilters, isUpcoming } from "../lib/eventos";
 import { AVISO_SERVIDOR_ACORDANDO } from "../lib/useDemora";
-export default function FeedView({ events, totalEvents, loadState, loadingSlow, retryLoad, metrics, filters, updateFilter, enrollments, pending, currentUser, resetFilters, openEvent, toggleEnrollment, deleteEvent, onCreate }) {
+export default function FeedView({ events, totalEvents, loadState, loadingSlow, retryLoad, metrics, filters, updateFilter, enrollments, enrollmentsReady, pending, currentUser, resetFilters, openEvent, toggleEnrollment, deleteEvent, onCreate }) {
   const [showPast, setShowPast] = useState(false);
   const now = Date.now();
   const upcoming = events.filter((event) => isUpcoming(event, now));
@@ -25,6 +25,7 @@ export default function FeedView({ events, totalEvents, loadState, loadingSlow, 
       key={event.id}
       event={event}
       enrollment={enrollments[event.id]}
+      enrollmentsReady={enrollmentsReady}
       pending={pending}
       currentUser={currentUser}
       openEvent={openEvent}
