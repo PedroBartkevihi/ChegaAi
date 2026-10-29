@@ -10,8 +10,8 @@ export class ApiError extends Error {
 }
 // semToken: login e cadastro vão sem o token guardado. Um token antigo (de conta apagada) faria a API
 // responder 401 antes mesmo de olhar e-mail e senha.
-export async function api(path, { semToken = false, ...options } = {}) {
-  const token = semToken ? null : localStorage.getItem(TOKEN_KEY);
+export async function api(path, { semToken = false, token: requestedToken, isCurrentSession, ...options } = {}) {
+  const token = semToken ? null : (requestedToken === undefined ? localStorage.getItem(TOKEN_KEY) : requestedToken);
   const headers = {
     "Content-Type": "application/json",
     ...(token && { Authorization: `Bearer ${token}` }),
@@ -19,8 +19,10 @@ export async function api(path, { semToken = false, ...options } = {}) {
   };
   const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
   if (!response.ok) {
-    if (response.status === 401 && token) {
-      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    // Um pedido antigo não pode encerrar uma sessão iniciada enquanto ele estava em trânsito.
+    if (response.status === 401 && token && token === localStorage.getItem(TOKEN_KEY)
+        && (!isCurrentSession || isCurrentSession())) {
+      window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT, { detail: { token } }));
     }
     const error = await response.json().catch(() => ({ message: response.statusText }));
     throw new ApiError(error.message || `Erro ${response.status}`, response.status);

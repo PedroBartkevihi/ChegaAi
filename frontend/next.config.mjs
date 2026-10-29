@@ -6,6 +6,8 @@ const API_URL = process.env.API_URL || "http://localhost:8080";
 const output = process.env.NEXT_OUTPUT;
 
 const nextConfig = {
+  // Nos E2E de dev, o indicador do Next encobria o botão Sair. Erros continuam visíveis.
+  ...(process.env.E2E_MODE === "dev" && { devIndicators: false }),
   ...(output && { output }),
   ...(output !== "export" && {
     async rewrites() {

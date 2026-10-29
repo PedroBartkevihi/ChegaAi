@@ -12,11 +12,12 @@ import {
 import { useEffect, useRef, useState } from "react";
 import CategoryIcon from "./CategoryIcon";
 import Notice from "./Notice";
+import AttendancePanel from "./AttendancePanel";
 import { getEnrollmentActionLabel, formatEventDateLong, categorySlug, eventTimestamp } from "../lib/eventos";
 import { downloadIcs, mapUrl } from "../lib/agenda";
 import { returnFocus } from "../lib/foco";
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-export default function EventModal({ event, enrollment, pending = {}, close, notice, onCloseNotice, toggleEnrollment, addComment, deleteEvent, reportEvent, currentUser }) {
+export default function EventModal({ event, enrollment, enrollmentsReady = true, pending = {}, close, notice, onCloseNotice, toggleEnrollment, addComment, deleteEvent, reportEvent, currentUser, inactive = false, management, reloadManagement, changePresence, concludeEvent, hasPendingRatings, openRatings }) {
   const [comment, setComment] = useState("");
   const dialogRef = useRef(null);
   const closeRef = useRef(null);
@@ -24,7 +25,10 @@ export default function EventModal({ event, enrollment, pending = {}, close, not
   // abaixo (e devolver o foco ao botão de fechar) toda vez que a lista de eventos atualiza.
   const onCloseRef = useRef(close);
   onCloseRef.current = close;
-  const canComment = enrollment === "CONFIRMADO" || enrollment === "FILA";
+  const canComment = enrollmentsReady && (enrollment === "CONFIRMADO" || enrollment === "FILA");
+  const isOrganizer = event.organizer.id === currentUser?.id;
+  const activeRef = useRef(!inactive);
+  activeRef.current = !inactive;
   const canManage = currentUser?.isModerator || event.organizer.id === currentUser?.id;
   const slug = categorySlug(event.category);
   const enrolling = Boolean(pending[`inscricao:${event.id}`]);
@@ -36,6 +40,7 @@ export default function EventModal({ event, enrollment, pending = {}, close, not
     const opener = document.activeElement;
     closeRef.current?.focus();
     function handleKeyDown(keyEvent) {
+      if (!activeRef.current) return;
       if (keyEvent.key === "Escape") {
         keyEvent.preventDefault();
         onCloseRef.current();
@@ -70,7 +75,7 @@ export default function EventModal({ event, enrollment, pending = {}, close, not
   }
   return (
     <div className="modal-backdrop" role="presentation">
-      <section ref={dialogRef} className={`event-dialog cat-${slug}`} role="dialog" aria-modal="true" aria-label={event.title}>
+      <section ref={dialogRef} className={`event-dialog cat-${slug}`} role="dialog" aria-modal={!inactive} aria-hidden={inactive || undefined} inert={inactive || undefined} aria-label={event.title}>
         <header className="dialog-header">
           <CategoryIcon slug={slug} size={96} className="dialog-header-art" />
           <span className="event-type"><CategoryIcon slug={slug} size={15} />{event.category}</span>
@@ -106,8 +111,8 @@ export default function EventModal({ event, enrollment, pending = {}, close, not
             </button>
           </div>
           <div className="card-actions">
-            <button className="primary-action" type="button" disabled={event.status !== "ABERTO" || eventTimestamp(event) <= Date.now()} aria-disabled={enrolling || undefined} onClick={() => toggleEnrollment(event.id)}>
-              {enrolling ? "Enviando..." : getEnrollmentActionLabel(event, enrollment)}
+            <button className="primary-action" type="button" disabled={!enrollmentsReady || isOrganizer || event.status !== "ABERTO" || eventTimestamp(event) <= Date.now()} aria-disabled={enrolling || undefined} onClick={() => toggleEnrollment(event.id)}>
+              {enrolling ? "Enviando..." : !enrollmentsReady ? "Carregando inscrição..." : isOrganizer ? "Você organiza este rolé" : getEnrollmentActionLabel(event, enrollment)}
             </button>
             <button className="secondary-action" type="button" onClick={() => reportEvent(event.id)}>
               <Flag size={16} aria-hidden="true" />
@@ -120,6 +125,8 @@ export default function EventModal({ event, enrollment, pending = {}, close, not
               </button>
             )}
           </div>
+          {isOrganizer && <AttendancePanel eventId={event.id} management={management} pending={pending} reload={reloadManagement} changePresence={changePresence} concludeEvent={concludeEvent} />}
+          {event.status === "CONCLUIDO" && hasPendingRatings && <button className="primary-action" type="button" onClick={() => openRatings(event.id)}>Avaliar participantes</button>}
           <section className="comments-box">
             <h3>Comentários do rolé</h3>
             {event.comments.length ? (
