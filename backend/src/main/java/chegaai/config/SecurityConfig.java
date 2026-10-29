@@ -53,6 +53,7 @@ public class SecurityConfig {
                 // a autenticação (o banco fora do ar, por exemplo) viraria 401, e o site deslogaria a pessoa.
                 .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/cadastro").permitAll()
+                .requestMatchers(HttpMethod.GET, "/eventos/*/participantes").authenticated()
                 .requestMatchers(HttpMethod.GET, "/eventos", "/eventos/**", "/recomendacoes/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()

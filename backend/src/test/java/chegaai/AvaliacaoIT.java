@@ -20,9 +20,9 @@ class AvaliacaoIT extends IntegracaoBase {
         UUID eventoId = criarEventoValido(organizador, 10);
         alternarInscricao(alfa, eventoId).andExpect(status().isOk());
         alternarInscricao(bravo, eventoId).andExpect(status().isOk());
+        moverParaOPassado(eventoId);
         registrarPresenca(organizador, eventoId, alfa).andExpect(status().isNoContent());
         registrarPresenca(organizador, eventoId, bravo).andExpect(status().isNoContent());
-        moverParaOPassado(eventoId);
         concluir(organizador, eventoId).andExpect(jsonPath("$.status").value("CONCLUIDO"));
         UUID proximoEvento = criarEventoValido(cadastrar("OutroOrg"), 10);
         alternarInscricao(alfa, proximoEvento)
@@ -48,12 +48,12 @@ class AvaliacaoIT extends IntegracaoBase {
         alternarInscricao(alfa, eventoId).andExpect(status().isOk());
         alternarInscricao(bravo, eventoId).andExpect(status().isOk());
         alternarInscricao(faltou, eventoId).andExpect(status().isOk());
+        moverParaOPassado(eventoId);
         registrarPresenca(organizador, eventoId, alfa).andExpect(status().isNoContent());
         registrarPresenca(organizador, eventoId, bravo).andExpect(status().isNoContent());
         avaliar(alfa, eventoId, bravo, 5)
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.message", containsString("após a conclusão")));
-        moverParaOPassado(eventoId);
         concluir(organizador, eventoId).andExpect(status().isOk());
         avaliar(alfa, eventoId, naoInscrito, 3)
             .andExpect(status().isConflict())
@@ -76,11 +76,11 @@ class AvaliacaoIT extends IntegracaoBase {
         UsuarioTeste naoInscrito = cadastrar("Fora");
         UUID eventoId = criarEventoValido(organizador, 10);
         alternarInscricao(alfa, eventoId).andExpect(status().isOk());
+        moverParaOPassado(eventoId);
         registrarPresenca(alfa, eventoId, alfa)
-            .andExpect(status().isConflict())
+            .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.message", containsString("Apenas o organizador")));
         registrarPresenca(organizador, eventoId, naoInscrito).andExpect(status().isNotFound());
-        moverParaOPassado(eventoId);
         concluir(organizador, eventoId).andExpect(status().isOk());
         registrarPresenca(organizador, eventoId, alfa)
             .andExpect(status().isConflict())

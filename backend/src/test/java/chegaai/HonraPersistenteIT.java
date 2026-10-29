@@ -167,6 +167,9 @@ class HonraPersistenteIT extends IntegracaoBase {
         UUID evento = criarEventoValido(organizador, 10);
         for (UsuarioTeste participante : participantes) {
             alternarInscricao(participante, evento).andExpect(status().isOk());
+        }
+        moverParaOPassado(evento);
+        for (UsuarioTeste participante : participantes) {
             registrarPresenca(organizador, evento, participante).andExpect(status().isNoContent());
         }
         return evento;

@@ -16,6 +16,9 @@ public interface InscricaoRepository extends JpaRepository<Inscricao, UUID> {
     List<Inscricao> findByEventoIdAndStatusInscricao(@Param("eventoId") UUID eventoId,
                                                   @Param("status") StatusInscricao status);
     long countByEventoIdAndStatusInscricao(UUID eventoId, StatusInscricao status);
+    @Query("SELECT i FROM Inscricao i JOIN FETCH i.usuario WHERE i.evento.id = :eventoId " +
+           "AND i.statusInscricao IN :status ORDER BY i.ordemEntrada ASC")
+    List<Inscricao> listarParticipantes(@Param("eventoId") UUID eventoId, @Param("status") List<StatusInscricao> status);
     @Query(value = "SELECT nextval('inscricao_ordem_entrada_seq')", nativeQuery = true)
     long proximaOrdemEntrada();
     @Query("SELECT i FROM Inscricao i " +

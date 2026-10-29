@@ -49,9 +49,12 @@ public class HonraService {
         return usuarios;
     }
 
+    public BigDecimal descontoPorAusencia() {
+        return deducaoAusencia.setScale(2, RoundingMode.HALF_UP);
+    }
     public void registrarAusencia(Inscricao inscricao) {
         Usuario usuario = inscricao.getUsuario();
-        BigDecimal desconto = deducaoAusencia.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal desconto = descontoPorAusencia();
         inscricao.setDescontoHonraAplicado(desconto);
         usuario.setDescontoHonraAcumulado(usuario.getDescontoHonraAcumulado().add(desconto));
         recalcular(usuario);

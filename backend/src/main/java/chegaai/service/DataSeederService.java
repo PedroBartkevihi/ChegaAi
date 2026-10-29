@@ -173,7 +173,7 @@ public class DataSeederService implements CommandLineRunner {
         Evento evtPassadoSemAvaliacao = salvarEvento(pedro, catLazer, endTijuca,
             "Encontro Passado (Avaliação Pendente)",
             "Evento concluído no passado que requer avaliação mútua dos participantes.",
-            LocalDate.now().plusDays(1).toString(), "10:00", 10);
+            LocalDate.now().minusDays(1).toString(), "10:00", 10);
         evtPassadoSemAvaliacao.setStatusEvento(StatusEvento.CONCLUIDO);
         eventoRepository.save(evtPassadoSemAvaliacao);
         

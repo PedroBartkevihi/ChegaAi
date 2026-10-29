@@ -160,8 +160,8 @@ class PrazosEContasIT extends IntegracaoBase {
         var pessoa = cadastrar("ConcluidoPessoa");
         UUID evento = criarEventoValido(org, 10);
         alternarInscricao(pessoa, evento).andExpect(status().isOk());
-        registrarPresenca(org, evento, pessoa).andExpect(status().isNoContent());
         moverParaOPassado(evento);
+        registrarPresenca(org, evento, pessoa).andExpect(status().isNoContent());
         concluir(org, evento).andExpect(status().isOk());
         mockMvc.perform(post("/eventos/{id}/avaliacoes", evento).header("Authorization", bearer(pessoa.token()))
             .contentType(MediaType.APPLICATION_JSON)
@@ -199,8 +199,8 @@ class PrazosEContasIT extends IntegracaoBase {
         UUID evento = criarEventoValido(org, 10);
         alternarInscricao(pessoa, evento).andExpect(status().isOk());
         jdbcTemplate.update("UPDATE usuario SET status_usuario='SUSPENSO' WHERE id_usuario=?", org.id());
-        registrarPresenca(org, evento, pessoa).andExpect(status().isNoContent());
         moverParaOPassado(evento);
+        registrarPresenca(org, evento, pessoa).andExpect(status().isNoContent());
         concluir(org, evento).andExpect(status().isOk());
         mockMvc.perform(post("/eventos/{id}/avaliacoes", evento).header("Authorization", bearer(org.token()))
             .contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(Map.of("avaliadoId", pessoa.id(), "nota", 5))))
