@@ -1,360 +1,231 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, loginPelaUI, type EventoDTO } from './fixtures';
+import { apiURL } from './environment';
 
-// Gera um CPF válido (com dígitos verificadores) para o teste de cadastro
-function gerarCpfValido(): string {
-  const base = Array.from({ length: 9 }, () => Math.floor(Math.random() * 10));
-  const digito = (numeros: number[]) => {
-    const soma = numeros.reduce((total, n, i) => total + n * (numeros.length + 1 - i), 0);
-    const resto = (soma * 10) % 11;
-    return resto === 10 ? 0 : resto;
-  };
-  base.push(digito(base));
-  base.push(digito(base));
-  return base.join('');
-}
-
-// Função auxiliar para gerar timestamps fictícios sequenciais baseados na hora local
-function getSimulatedTime(stepOffset: number): string {
-  const d = new Date();
-  d.setSeconds(d.getSeconds() + stepOffset);
-  return d.toTimeString().split(' ')[0]; // HH:MM:SS
-}
-
-test.describe('ChegaAí - Fluxos Principais do Sistema', () => {
-
-  // -----------------------------------------------------------------------
-  // ISOLAMENTO: Limpa a sessão antes de cada teste
-  // -----------------------------------------------------------------------
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.evaluate(() => {
-      localStorage.removeItem('chegaai.user');
-      localStorage.removeItem('chegaai.token');
-    });
+test.describe('ChegaAí — fluxos com dados próprios', () => {
+  test('CT01 — login válido carrega sessão e rolé criado pela fixture', async ({ page, cenario }) => {
+    const conta = await cenario.criarConta('login');
+    const evento = await cenario.criarEvento(conta);
+    const user = await loginPelaUI(page, conta);
+    expect(user.email).toBe(conta.email);
+    await expect(page.getByTestId(`event-card-${evento.id}`)).toContainText(evento.titulo);
     await page.reload();
+    await expect(page.getByTestId(`event-card-${evento.id}`)).toBeVisible();
+  });
+
+  test('CT02 — publicação pela UI persiste o rolé e seu organizador', async ({ page, cenario }) => {
+    const conta = await cenario.criarConta('organizador');
+    const dados = cenario.dadosEvento({ capacity: 10 });
+    await loginPelaUI(page, conta);
+    await page.locator('[aria-label="Navegação principal"]').getByRole('button', { name: 'Criar rolé', exact: true }).click();
+    const form = page.locator('section[aria-label="Criar evento"]');
+    await form.locator('input[name="title"]').fill(dados.title);
+    await form.locator('select[name="category"]').selectOption(dados.category);
+    await form.locator('input[name="date"]').fill(dados.date);
+    await form.locator('input[name="time"]').fill(dados.time);
+    await form.locator('input[name="place"]').fill(dados.place);
+    await form.locator('input[name="distance"]').fill(String(dados.distance));
+    await form.locator('textarea[name="description"]').fill(dados.description);
+    await form.getByTestId('input-capacidade').fill(String(dados.capacity));
+    const resposta = page.waitForResponse((r) => r.url().endsWith('/api/eventos') && r.request().method() === 'POST');
+    await form.getByRole('button', { name: /publicar rolé/i }).click();
+    const response = await resposta;
+    expect(response.status()).toBe(201);
+    const dto: EventoDTO = await response.json();
+    const evento = cenario.rastrearEventoDTO(dto, conta);
+    expect(dto).toMatchObject({ title: dados.title, category: dados.category, capacity: 10, organizer: { id: conta.id } });
+    expect((await cenario.obterEvento(evento)).title).toBe(dados.title);
+    await expect(page.getByTestId(`event-card-${evento.id}`)).toContainText(dados.title);
+    await page.reload();
+    await expect(page.getByTestId(`event-card-${evento.id}`)).toBeVisible();
+  });
+
+  test('CT03 — honra baixa bloqueia a criação sem alterar a conta demo', async ({ page, cenario, request }) => {
+    // Única demo usada: cenário de honra inicial explícita, somente leitura.
+    const user = await loginPelaUI(page, { email: 'baixa@chegaai.dev', senha: 'admin123' });
+    expect(user.honor).toBeLessThan(2);
+    const antes = await request.get(cenario.endpoint('/eventos'));
+    expect(antes.status()).toBe(200);
+    const idsAntes = (await antes.json()).map((e: EventoDTO) => e.id).sort();
+    await page.locator('[aria-label="Navegação principal"]').getByRole('button', { name: 'Criar rolé', exact: true }).click();
+    await expect(page.locator('.notice.alert-error')).toContainText(/reputação|honra/i);
+    await expect(page.locator('section[aria-label="Criar evento"]')).toHaveCount(0);
+    const depois = await request.get(cenario.endpoint('/eventos'));
+    expect((await depois.json()).map((e: EventoDTO) => e.id).sort()).toEqual(idsAntes);
+  });
+
+  test('CT04 — participante envia comentário próprio e o reencontra após recarregar', async ({ page, cenario }) => {
+    const organizador = await cenario.criarConta('organizador');
+    const participante = await cenario.criarConta('comentador');
+    const evento = await cenario.criarEvento(organizador);
+    expect((await cenario.inscrever(evento, participante)).status).toBe('CONFIRMADO');
+    const texto = cenario.unico('comentario');
+    const comentariosAntes = (await cenario.obterEvento(evento)).comments;
+    await loginPelaUI(page, participante);
+    await page.getByTestId(`event-card-${evento.id}`).getByRole('button', { name: /detalhes/i }).click();
+    const modal = page.getByRole('dialog', { name: evento.titulo });
+    await modal.locator('form.comment-form textarea').fill(texto);
+    const resposta = page.waitForResponse((r) => r.url().endsWith(`/api/eventos/${evento.id}/comentarios`) && r.request().method() === 'POST');
+    await modal.getByRole('button', { name: 'Enviar comentário', exact: true }).click();
+    const response = await resposta;
+    expect(response.status()).toBe(201);
+    expect(await response.json()).toMatchObject({ author: participante.nome, text: texto });
+    await expect(modal.getByText(texto, { exact: true })).toHaveCount(1);
+    expect((await cenario.obterEvento(evento)).comments).toEqual([...comentariosAntes, expect.objectContaining({ author: participante.nome, text: texto })]);
+    await page.reload();
+    await page.getByTestId(`event-card-${evento.id}`).getByRole('button', { name: /detalhes/i }).click();
+    await expect(page.getByRole('dialog', { name: evento.titulo }).getByText(texto, { exact: true })).toBeVisible();
+  });
+
+  test('CT05 — busca e categoria retornam exatamente os rolés esperados', async ({ page, cenario }) => {
+    const conta = await cenario.criarConta('filtros');
+    const a = await cenario.criarEvento(conta, { title: `${cenario.prefixo} Futebol A`, category: 'Futebol' });
+    const b = await cenario.criarEvento(conta, { title: `${cenario.prefixo} Futebol B`, category: 'Futebol' });
+    const c = await cenario.criarEvento(conta, { title: `${cenario.prefixo} Pets C`, category: 'Pets' });
+    await loginPelaUI(page, conta);
+    const cards = page.locator('section[aria-label="Feed de eventos"] [data-testid^="event-card-"]');
+    const ids = () => cards.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-testid')!.replace('event-card-', '')).sort());
+    await page.getByTestId('search-input').fill(cenario.prefixo);
+    await expect.poll(ids).toEqual([a.id, b.id, c.id].sort());
+    await page.getByRole('combobox', { name: /^Categoria/ }).selectOption('Futebol');
+    await expect.poll(ids).toEqual([a.id, b.id].sort());
+    await page.getByTestId('search-input').fill(a.titulo);
+    await expect.poll(ids).toEqual([a.id]);
+    await page.getByTestId('search-input').fill(cenario.unico('inexistente'));
+    await expect(cards).toHaveCount(0);
+    await expect(page.getByText('Nenhum rolé aberto com os filtros atuais.', { exact: true })).toBeVisible();
+  });
+
+  test('CT06 — fila cheia promove o primeiro após saída de um confirmado', async ({ page, cenario }) => {
+    const org = await cenario.criarConta('organizador');
+    const confirmadoA = await cenario.criarConta('confirmadoA');
+    const confirmadoB = await cenario.criarConta('confirmadoB');
+    const primeiro = await cenario.criarConta('primeiroFila');
+    const segundo = await cenario.criarConta('segundoFila');
+    const evento = await cenario.criarEvento(org, { capacity: 3 });
+    expect((await cenario.inscrever(evento, confirmadoA)).status).toBe('CONFIRMADO');
+    expect((await cenario.inscrever(evento, confirmadoB)).status).toBe('CONFIRMADO');
+    await loginPelaUI(page, primeiro);
+    const card = page.getByTestId(`event-card-${evento.id}`);
+    await card.getByRole('button', { name: /detalhes/i }).click();
+    const modal = page.getByRole('dialog', { name: evento.titulo });
+    const resposta = page.waitForResponse((r) => r.url().endsWith(`/api/eventos/${evento.id}/inscricao`) && r.request().method() === 'POST');
+    await modal.getByRole('button', { name: 'Entrar na lista de espera', exact: true }).click();
+    const response = await resposta;
+    expect(response.status()).toBe(200);
+    expect(await response.json()).toMatchObject({ eventoId: evento.id, usuarioId: primeiro.id, status: 'FILA' });
+    await expect(modal.getByRole('button', { name: 'Sair da lista de espera', exact: true })).toBeVisible();
+    let dto = await cenario.obterEvento(evento);
+    expect(dto.confirmed).toHaveLength(3);
+    expect(dto.confirmed).not.toContain(primeiro.nome);
+    expect(dto.waitlist).toEqual([primeiro.nome]);
+    expect((await cenario.inscrever(evento, segundo)).status).toBe('FILA');
+    expect((await cenario.inscrever(evento, confirmadoA)).status).toBe('CANCELADO');
+    dto = await cenario.obterEvento(evento);
+    expect(dto.confirmed).toHaveLength(3);
+    expect(dto.confirmed).toEqual(expect.arrayContaining([org.nome, confirmadoB.nome, primeiro.nome]));
+    expect(dto.confirmed).not.toContain(confirmadoA.nome);
+    expect(dto.waitlist).toEqual([segundo.nome]);
+    await page.reload();
+    await page.getByTestId(`event-card-${evento.id}`).getByRole('button', { name: /detalhes/i }).click();
+    await expect(page.getByRole('dialog', { name: evento.titulo }).getByRole('button', { name: 'Cancelar presença', exact: true })).toBeVisible();
+  });
+
+  test('CT07 — visitante não encontra formulário e a API rejeita comentário', async ({ page, cenario }) => {
+    const org = await cenario.criarConta('organizador');
+    const visitante = await cenario.criarConta('visitante');
+    const evento = await cenario.criarEvento(org);
+    const texto = cenario.unico('nao-publicado');
+    const comentariosAntes = (await cenario.obterEvento(evento)).comments;
+    await loginPelaUI(page, visitante);
+    await page.getByTestId(`event-card-${evento.id}`).getByRole('button', { name: /detalhes/i }).click();
+    const modal = page.getByRole('dialog', { name: evento.titulo });
+    await expect(modal.locator('form.comment-form')).toHaveCount(0);
+    await expect(modal.getByText('Apenas participantes confirmados ou na lista de espera podem comentar.', { exact: true })).toBeVisible();
+    expect((await cenario.comentario(evento, visitante, texto)).status()).toBe(409);
+    const comentariosDepois = (await cenario.obterEvento(evento)).comments;
+    expect(comentariosDepois).toEqual(comentariosAntes);
+    expect(comentariosDepois).not.toEqual(expect.arrayContaining([expect.objectContaining({ text: texto })]));
+  });
+
+  test('CT08 — avaliação pendente de rolé próprio impede nova inscrição', async ({ page, cenario }) => {
+    const org = await cenario.criarConta('organizador');
+    const participante = await cenario.criarConta('pendente');
+    const anterior = await cenario.criarEvento(org);
+    const alvo = await cenario.criarEvento(org);
+    expect((await cenario.inscrever(anterior, participante)).status).toBe('CONFIRMADO');
+    await cenario.moverParaPassado(anterior);
+    await cenario.marcarPresenca(anterior, participante);
+    await cenario.concluir(anterior);
+    await loginPelaUI(page, participante);
+    const resposta = page.waitForResponse((r) => r.url().endsWith(`/api/eventos/${alvo.id}/inscricao`) && r.request().method() === 'POST');
+    await page.getByTestId(`event-card-${alvo.id}`).getByRole('button', { name: 'Quero participar', exact: true }).click();
+    const response = await resposta;
+    expect(response.status()).toBe(409);
+    expect((await response.json()).message).toMatch(/pendente|avaliar|anterior/i);
+    await expect(page.locator('.notice.alert-error')).toContainText(/pendente|avaliar|anterior/i);
+    const dto = await cenario.obterEvento(alvo);
+    expect(dto.confirmed).toEqual([org.nome]);
+    expect(dto.waitlist).toEqual([]);
+  });
+
+  test('CT09 — senha incorreta recebe 401 e mantém o login', async ({ page, cenario }) => {
+    const conta = await cenario.criarConta('senhaErrada');
+    await page.goto('/');
+    await page.getByTestId('input-email').fill(conta.email);
+    await page.getByTestId('input-password').fill('OutraSenhaIncorreta!');
+    const resposta = page.waitForResponse((r) => r.url().endsWith('/api/auth/login') && r.request().method() === 'POST');
+    await page.getByTestId('btn-login').click();
+    expect((await resposta).status()).toBe(401);
+    await expect(page.locator('.login-error')).toContainText(/inválid|incorret/i);
     await expect(page.getByTestId('input-email')).toBeVisible();
-  });
-
-  // -----------------------------------------------------------------------
-  // CT01
-  // -----------------------------------------------------------------------
-  test('CT01 - Autenticação com credenciais válidas e carregamento do feed', async ({ page }) => {
-    console.log(`Running 'CT01' ${getSimulatedTime(0)}`);
-    console.log(`1.open on / OK ${getSimulatedTime(1)}`);
-
-    await page.getByTestId('input-email').fill('pedro@chegaai.dev');
-    console.log(`2.type on id=email with value pedro@chegaai.dev OK ${getSimulatedTime(2)}`);
-
-    await page.getByTestId('input-password').fill('admin123');
-    await page.getByTestId('btn-login').click();
-    console.log(`3.click on css=button[data-testid="btn-login"] OK ${getSimulatedTime(3)}`);
-
-    await expect(page.locator('section[aria-label="Feed de eventos"]')).toBeVisible();
-    console.log(`4.assertText on css=section[aria-label="Feed de eventos"] with value visible OK ${getSimulatedTime(4)}`);
-
-    console.log(`'CT01' completed successfully`);
-  });
-
-  // -----------------------------------------------------------------------
-  // CT02
-  // -----------------------------------------------------------------------
-  test('CT02 - Criação de um evento válido no sistema', async ({ page }) => {
-    console.log(`Running 'CT02' ${getSimulatedTime(0)}`);
-
-    await page.getByTestId('input-email').fill('pedro@chegaai.dev');
-    console.log(`1.type on id=email with value pedro@chegaai.dev OK ${getSimulatedTime(1)}`);
-
-    await page.getByTestId('input-password').fill('admin123');
-    await page.getByTestId('btn-login').click();
-    console.log(`2.click on css=button[data-testid="btn-login"] OK ${getSimulatedTime(2)}`);
-
-    await page.locator('[aria-label="Navegação principal"]').getByRole('button', { name: 'Criar rolé' }).click();
-    console.log(`3.click on css=button:has-text("Criar rolé") OK ${getSimulatedTime(3)}`);
-
-    await expect(page.locator('section[aria-label="Criar evento"]')).toBeVisible();
-    await page.locator('input[name="title"]').fill('Futebol de Sexta após o Trabalho');
-    console.log(`4.type on css=input[name="title"] with value Futebol de Sexta após o Trabalho OK ${getSimulatedTime(4)}`);
-
-    await page.locator('select[name="category"]').selectOption('Futebol');
-    console.log(`5.select on css=select[name="category"] with value Futebol OK ${getSimulatedTime(5)}`);
-
-    const dataFutura = new Date();
-    dataFutura.setDate(dataFutura.getDate() + 5);
-    const dataStr = dataFutura.toISOString().split('T')[0];
-    await page.locator('input[name="date"]').fill(dataStr);
-    console.log(`6.type on css=input[name="date"] with value ${dataStr} OK ${getSimulatedTime(6)}`);
-
-    await page.locator('input[name="time"]').fill('18:00');
-    console.log(`7.type on css=input[name="time"] with value 18:00 OK ${getSimulatedTime(7)}`);
-
-    await page.locator('input[name="place"]').fill('Quadra do Bairro');
-    console.log(`8.type on css=input[name="place"] with value Quadra do Bairro OK ${getSimulatedTime(8)}`);
-
-    await page.locator('input[name="distance"]').fill('2');
-    console.log(`9.type on css=input[name="distance"] with value 2 OK ${getSimulatedTime(9)}`);
-
-    await page.locator('textarea[name="description"]').fill('Levar camisa branca e preta. Jogo para desestressar da semana!');
-    console.log(`10.type on css=textarea[name="description"] with value Levar camisa branca e preta. Jogo para desestressar da semana! OK ${getSimulatedTime(10)}`);
-
-    await page.getByTestId('input-capacidade').fill('10');
-    console.log(`11.type on css=input[data-testid="input-capacidade"] with value 10 OK ${getSimulatedTime(11)}`);
-
-    await page.getByRole('button', { name: /publicar rolé/i }).click();
-    console.log(`12.click on css=button:has-text("Publicar rolé") OK ${getSimulatedTime(12)}`);
-
-    await expect(page.locator('section[aria-label="Feed de eventos"]')).toBeVisible();
-    console.log(`13.assertText on css=section[aria-label="Feed de eventos"] with value visible OK ${getSimulatedTime(13)}`);
-
-    console.log(`'CT02' completed successfully`);
-  });
-
-  // -----------------------------------------------------------------------
-  // CT03
-  // -----------------------------------------------------------------------
-  test('CT03 - Restrição de criação de evento para usuários com baixa reputação', async ({ page }) => {
-    console.log(`Running 'CT03' ${getSimulatedTime(0)}`);
-
-    await page.getByTestId('input-email').fill('baixa@chegaai.dev');
-    console.log(`1.type on id=email with value baixa@chegaai.dev OK ${getSimulatedTime(1)}`);
-
-    await page.getByTestId('input-password').fill('admin123');
-    await page.getByTestId('btn-login').click();
-    console.log(`2.click on css=button[data-testid="btn-login"] OK ${getSimulatedTime(2)}`);
-
-    await page.locator('[aria-label="Navegação principal"]').getByRole('button', { name: 'Criar rolé' }).click();
-    console.log(`3.click on css=button:has-text("Criar rolé") OK ${getSimulatedTime(3)}`);
-
-    // O Next.js injeta um anunciador de rotas com role="alert"; por isso o seletor mira o aviso da aplicação
-    const alerta = page.locator('.notice.alert-error');
-    await expect(alerta).toBeVisible();
-    await expect(alerta).toContainText(/reputação|honra/i);
-    console.log(`4.assertText on css=.notice.alert-error with value reputação OK ${getSimulatedTime(4)}`);
-
-    console.log(`'CT03' completed successfully`);
-  });
-
-  // -----------------------------------------------------------------------
-  // CT04
-  // -----------------------------------------------------------------------
-  test('CT04 - Inserção de comentário em um evento', async ({ page }) => {
-    console.log(`Running 'CT04' ${getSimulatedTime(0)}`);
-
-    await page.getByTestId('input-email').fill('pedro@chegaai.dev');
-    console.log(`1.type on id=email with value pedro@chegaai.dev OK ${getSimulatedTime(1)}`);
-
-    await page.getByTestId('input-password').fill('admin123');
-    await page.getByTestId('btn-login').click();
-    console.log(`2.click on css=button[data-testid="btn-login"] OK ${getSimulatedTime(2)}`);
-
-    // um rolé aberto conhecido do seed (o primeiro card pode ser um evento já concluído)
-    const cardAberto = page.locator('article.event-card:has-text("Futebol no Aterro")');
-    await expect(cardAberto).toBeVisible();
-    await cardAberto.getByRole('button', { name: /detalhes/i }).click();
-    console.log(`3.click on css=article.event-card button:has-text("Detalhes") OK ${getSimulatedTime(3)}`);
-
-    const modal = page.locator('[role="dialog"]');
-    await expect(modal).toBeVisible();
-
-    const btnParticipar = modal.getByRole('button', { name: /quero participar|entrar na lista|entrar na fila/i });
-    if (await btnParticipar.isVisible()) {
-      await btnParticipar.click();
-      console.log(`4.click on css=button:has-text("Participar") OK ${getSimulatedTime(4)}`);
-      await page.waitForTimeout(500);
-    }
-
-    const formComentario = modal.locator('form.comment-form');
-    await expect(formComentario).toBeVisible();
-    await formComentario.locator('textarea').fill('Excelente iniciativa! Estarei lá com certeza.');
-    console.log(`5.type on css=form.comment-form textarea with value Excelente iniciativa! Estarei lá com certeza. OK ${getSimulatedTime(5)}`);
-
-    await formComentario.getByRole('button', { name: /comentar|enviar/i }).click();
-    console.log(`6.click on css=form.comment-form button:has-text("Enviar") OK ${getSimulatedTime(6)}`);
-
-    await expect(modal.getByText('Excelente iniciativa! Estarei lá com certeza.')).toBeVisible();
-    console.log(`7.assertText on css=[role="dialog"] with value Excelente iniciativa! Estarei lá com certeza. OK ${getSimulatedTime(7)}`);
-
-    console.log(`'CT04' completed successfully`);
-  });
-
-  // -----------------------------------------------------------------------
-  // CT05
-  // -----------------------------------------------------------------------
-  test('CT05 - Filtragem do feed por busca textual e categoria', async ({ page }) => {
-    console.log(`Running 'CT05' ${getSimulatedTime(0)}`);
-
-    await page.getByTestId('input-email').fill('pedro@chegaai.dev');
-    console.log(`1.type on id=email with value pedro@chegaai.dev OK ${getSimulatedTime(1)}`);
-
-    await page.getByTestId('input-password').fill('admin123');
-    await page.getByTestId('btn-login').click();
-    console.log(`2.click on css=button[data-testid="btn-login"] OK ${getSimulatedTime(2)}`);
-
-    const searchInput = page.getByPlaceholder(/buscar|pesquisar|título|nome/i).or(page.locator('input[type="text"]').first());
-    await searchInput.fill('Futebol');
-    console.log(`3.type on css=input[type="text"] with value Futebol OK ${getSimulatedTime(3)}`);
-
-    await page.waitForTimeout(600);
-    const cards = page.locator('article.event-card');
-    if (await cards.count() > 0) {
-      await expect(cards.first()).toBeVisible();
-    }
-
-    // pelo rótulo (o seletor de tema do cabeçalho também é um select); o nome acessível
-    // inclui a opção escolhida ("Categoria Todas"), daí a busca pelo começo
-    const selectCategoria = page.getByRole('combobox', { name: /^Categoria/ });
-    await selectCategoria.selectOption({ label: 'Futebol' });
-    console.log(`4.select on css=select with value Futebol OK ${getSimulatedTime(4)}`);
-
-    await page.waitForTimeout(600);
-    await expect(page.locator('section[aria-label="Feed de eventos"]')).toBeVisible();
-    console.log(`5.assertText on css=section[aria-label="Feed de eventos"] with value visible OK ${getSimulatedTime(5)}`);
-
-    console.log(`'CT05' completed successfully`);
-  });
-
-  // -----------------------------------------------------------------------
-  // CT06
-  // -----------------------------------------------------------------------
-  test('CT06 - Gerenciamento de fila de espera em eventos com capacidade esgotada', async ({ page }) => {
-    console.log(`Running 'CT06' ${getSimulatedTime(0)}`);
-
-    await page.getByTestId('input-email').fill('marcos@chegaai.dev');
-    console.log(`1.type on id=email with value marcos@chegaai.dev OK ${getSimulatedTime(1)}`);
-
-    await page.getByTestId('input-password').fill('admin123');
-    await page.getByTestId('btn-login').click();
-    console.log(`2.click on css=button[data-testid="btn-login"] OK ${getSimulatedTime(2)}`);
-
-    const cardLotado = page.locator('article.event-card:has-text("Lotado")').first();
-    await expect(cardLotado).toBeVisible();
-    await cardLotado.getByRole('button', { name: /detalhes/i }).click();
-    console.log(`3.click on css=article.event-card:has-text("Lotado") button:has-text("Detalhes") OK ${getSimulatedTime(3)}`);
-
-    const modal = page.locator('[role="dialog"]');
-    await expect(modal).toBeVisible();
-
-    const btnParticipar = modal.getByRole('button', { name: /participar|lista|fila/i });
-    await btnParticipar.click();
-    console.log(`4.click on css=button:has-text("Participar") OK ${getSimulatedTime(4)}`);
-
-    await expect(modal).toContainText(/fila|espera|inscrito/i);
-    console.log(`5.assertText on css=[role="dialog"] with value fila|espera OK ${getSimulatedTime(5)}`);
-
-    console.log(`'CT06' completed successfully`);
-  });
-
-  // -----------------------------------------------------------------------
-  // CT07
-  // -----------------------------------------------------------------------
-  test('CT07 - Bloqueio de inserção de comentários para usuários não participantes', async ({ page }) => {
-    console.log(`Running 'CT07' ${getSimulatedTime(0)}`);
-
-    await page.getByTestId('input-email').fill('caio@chegaai.dev');
-    console.log(`1.type on id=email with value caio@chegaai.dev OK ${getSimulatedTime(1)}`);
-
-    await page.getByTestId('input-password').fill('admin123');
-    await page.getByTestId('btn-login').click();
-    console.log(`2.click on css=button[data-testid="btn-login"] OK ${getSimulatedTime(2)}`);
-
-    const cardFechado = page.locator('article.event-card:has-text("Passeio Fechado")').or(page.locator('article.event-card')).first();
-    await expect(cardFechado).toBeVisible();
-    await cardFechado.getByRole('button', { name: /detalhes/i }).click();
-    console.log(`3.click on css=article.event-card:has-text("Passeio Fechado") button:has-text("Detalhes") OK ${getSimulatedTime(3)}`);
-
-    const modal = page.locator('[role="dialog"]');
-    await expect(modal).toBeVisible();
-
-    const textarea = modal.locator('textarea');
-    const isVisible = await textarea.isVisible();
-    if (isVisible) {
-      await expect(textarea).toBeDisabled();
-      console.log(`4.assert on css=textarea with value disabled OK ${getSimulatedTime(4)}`);
-    } else {
-      await expect(textarea).toHaveCount(0);
-      console.log(`4.assert on css=textarea with value not-present OK ${getSimulatedTime(4)}`);
-    }
-
-    console.log(`'CT07' completed successfully`);
-  });
-
-  // -----------------------------------------------------------------------
-  // CT08
-  // -----------------------------------------------------------------------
-  test('CT08 - Bloqueio de nova inscrição devido a avaliações pendentes', async ({ page }) => {
-    console.log(`Running 'CT08' ${getSimulatedTime(0)}`);
-
-    await page.getByTestId('input-email').fill('tester.pendente@chegaai.dev');
-    console.log(`1.type on id=email with value tester.pendente@chegaai.dev OK ${getSimulatedTime(1)}`);
-
-    await page.getByTestId('input-password').fill('admin123');
-    await page.getByTestId('btn-login').click();
-    console.log(`2.click on css=button[data-testid="btn-login"] OK ${getSimulatedTime(2)}`);
-
-    // um rolé aberto conhecido do seed (o primeiro card pode ser um evento já concluído)
-    const cardAberto = page.locator('article.event-card:has-text("Futebol no Aterro")');
-    await expect(cardAberto).toBeVisible();
-    await cardAberto.getByRole('button', { name: /detalhes/i }).click();
-    console.log(`3.click on css=article.event-card button:has-text("Detalhes") OK ${getSimulatedTime(3)}`);
-
-    const modal = page.locator('[role="dialog"]');
-    await expect(modal).toBeVisible();
-
-    const btnParticipar = modal.getByRole('button', { name: /quero participar|entrar na lista|entrar na fila/i });
-    await btnParticipar.click();
-    console.log(`4.click on css=button:has-text("Participar") OK ${getSimulatedTime(4)}`);
-
-    // O Next.js injeta um anunciador de rotas com role="alert"; por isso o seletor mira o aviso da aplicação
-    const alerta = page.locator('.notice.alert-error');
-    await expect(alerta).toBeVisible();
-    await expect(alerta).toContainText(/pendente|avaliar|anterior/i);
-    console.log(`5.assertText on css=.notice.alert-error with value pendente|avaliar OK ${getSimulatedTime(5)}`);
-
-    console.log(`'CT08' completed successfully`);
-  });
-
-  // -----------------------------------------------------------------------
-  // CT09
-  // -----------------------------------------------------------------------
-  test('CT09 - Login recusado com senha incorreta', async ({ page }) => {
-    await page.getByTestId('input-email').fill('pedro@chegaai.dev');
-    await page.getByTestId('input-password').fill('senha-errada');
-    await page.getByTestId('btn-login').click();
-
-    await expect(page.locator('.login-error')).toContainText(/e-mail ou senha inválidos/i);
     await expect(page.locator('section[aria-label="Feed de eventos"]')).toHaveCount(0);
   });
 
-  // -----------------------------------------------------------------------
-  // CT10
-  // -----------------------------------------------------------------------
-  test('CT10 - Cadastro de nova conta e entrada no feed', async ({ page }) => {
+  test('CT10 — cadastro pela UI sem CPF cria sessão persistente', async ({ page, cenario, request }) => {
+    const dados = cenario.dadosConta('cadastro');
+    await page.goto('/');
     await page.getByTestId('link-cadastro').click();
-    await page.getByTestId('input-nome').fill('Ana Teste');
-    await page.getByTestId('input-email-cadastro').fill(`ana.${Date.now()}@exemplo.com`);
-    await page.getByTestId('input-cpf').fill(gerarCpfValido());
-    await page.getByTestId('input-nascimento').fill('2000-01-15');
-    await page.getByTestId('input-senha-cadastro').fill('senhaSegura123');
+    await page.getByTestId('input-nome').fill(dados.name);
+    await page.getByTestId('input-email-cadastro').fill(dados.email);
+    await page.getByTestId('input-nascimento').fill(dados.birthDate);
+    await page.getByTestId('input-senha-cadastro').fill(dados.password);
+    const resposta = page.waitForResponse((r) => r.url().endsWith('/api/auth/cadastro') && r.request().method() === 'POST');
     await page.getByTestId('btn-cadastrar').click();
-
+    const response = await resposta;
+    expect(response.status()).toBe(201);
+    expect(response.request().postDataJSON().cpf).toBeNull();
+    const { user, token } = await response.json();
+    expect(user.id).toMatch(/^[a-f0-9-]{36}$/);
+    expect(user).toMatchObject({ email: dados.email, fullName: dados.name, honor: 3 });
     await expect(page.locator('section[aria-label="Feed de eventos"]')).toBeVisible();
-    await expect(page.locator('.notice.alert-success')).toContainText(/conta criada/i);
+    const me = await request.get(cenario.endpoint('/auth/me'), { headers: { Authorization: `Bearer ${token}` } });
+    expect(me.status()).toBe(200);
+    expect((await me.json()).id).toBe(user.id);
+    await page.reload();
+    await expect(page.locator('section[aria-label="Feed de eventos"]')).toBeVisible();
   });
 
-  // -----------------------------------------------------------------------
-  // CT11
-  // -----------------------------------------------------------------------
-  test('CT11 - Aviso de servidor acordando quando a API demora a responder', async ({ page }) => {
-    // simula a API em repouso: o login só segue depois de 6 segundos
+  test('CT11 — login demorado informa a espera e termina com sessão válida', async ({ page, cenario }) => {
+    const conta = await cenario.criarConta('demora');
     await page.route('**/api/auth/login', async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 6000));
+      await new Promise((resolve) => setTimeout(resolve, 6_000));
       await route.continue();
     });
-    await page.getByTestId('input-email').fill('pedro@chegaai.dev');
-    await page.getByTestId('input-password').fill('admin123');
+    await page.goto('/');
+    await page.getByTestId('input-email').fill(conta.email);
+    await page.getByTestId('input-password').fill(conta.senha);
+    const resposta = page.waitForResponse((r) => r.url().endsWith('/api/auth/login') && r.request().method() === 'POST');
     await page.getByTestId('btn-login').click();
-
-    await expect(page.getByText(/servidor estava em repouso/i)).toBeVisible({ timeout: 8000 });
-    await expect(page.locator('section[aria-label="Feed de eventos"]')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('status')).toContainText(/servidor estava em repouso/i, { timeout: 8_000 });
+    const response = await resposta;
+    expect(response.status()).toBe(200);
+    expect((await response.json()).user.id).toBe(conta.id);
+    await expect(page.locator('section[aria-label="Feed de eventos"]')).toBeVisible();
+    // No modo estático, a requisição do navegador vai direto à outra origem.
+    if (process.env.E2E_MODE === 'static') {
+      expect(new URL(response.url()).origin).toBe(apiURL.origin);
+      expect(response.request().headers().origin).toBe(new URL(page.url()).origin);
+      expect(response.headers()['access-control-allow-origin']).toBe(new URL(page.url()).origin);
+    }
   });
-
 });

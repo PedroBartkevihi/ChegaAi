@@ -29,19 +29,30 @@ jobs:
       - run: ./mvnw -B -ntp verify
 
   e2e:
-    name: Ponta a ponta (Next.js + Playwright)
+    name: Ponta a ponta (export estático + CORS)
     runs-on: ubuntu-latest
+    env:
+      CHEGAAI_DB_URL: jdbc:postgresql://127.0.0.1:5432/chegaai_e2e
+      CHEGAAI_DB_USER: chegaai_e2e
+      CHEGAAI_DB_PASSWORD: chegaai_e2e
+      CHEGAAI_CORS_ORIGENS: http://127.0.0.1:3000
+      E2E_DATABASE_URL: postgresql://chegaai_e2e:chegaai_e2e@127.0.0.1:5432/chegaai_e2e
+      E2E_API_BASE_URL: http://127.0.0.1:8080/api
+      E2E_BASE_URL: http://127.0.0.1:3000
+      E2E_MODE: static
+      NEXT_OUTPUT: export
+      NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8080/api
     services:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_DB: chegaai
-          POSTGRES_USER: chegaai
-          POSTGRES_PASSWORD: chegaai
+          POSTGRES_DB: chegaai_e2e
+          POSTGRES_USER: chegaai_e2e
+          POSTGRES_PASSWORD: chegaai_e2e
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U chegaai -d chegaai"
+          --health-cmd "pg_isready -U chegaai_e2e -d chegaai_e2e"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -61,7 +72,7 @@ jobs:
         run: |
           nohup java -jar target/chegaai-backend-*.jar > api.log 2>&1 &
           for _ in $(seq 1 60); do
-            curl -sf http://localhost:8080/api/actuator/health && exit 0
+            curl -sf http://127.0.0.1:8080/api/actuator/health && exit 0
             sleep 2
           done
           cat api.log
@@ -76,12 +87,12 @@ jobs:
         run: |
           npm ci
           npx playwright install --with-deps chromium
-      - name: Build do Next.js
+      - name: Exportar o site estático
         working-directory: frontend
         run: npm run build
       - name: Testes ponta a ponta
         working-directory: frontend
-        run: npx playwright test
+        run: npx playwright test --repeat-each=2 --retries=0
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
