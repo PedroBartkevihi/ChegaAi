@@ -5,6 +5,9 @@ import chegaai.controller.dto.*;
 import chegaai.controller.dto.AvaliacaoRequestDTO;
 import chegaai.controller.dto.AvaliacaoResponseDTO;
 import chegaai.domain.model.Comentario;
+import chegaai.limite.LimitadorRequisicoes;
+import chegaai.limite.OperacaoLimite;
+import chegaai.limite.ReservaLimite;
 import chegaai.service.ComentarioService;
 import chegaai.service.EventoService;
 import chegaai.service.InscricaoService;
@@ -26,6 +29,7 @@ public class EventoController {
     private final InscricaoService inscricaoService;
     private final ComentarioService comentarioService;
     private final FusoHorario fusoHorario;
+    private final LimitadorRequisicoes limitadorRequisicoes;
     @GetMapping
     public ResponseEntity<List<EventoResponseDTO>> listarTodos() {
         return ResponseEntity.ok(eventoService.listarTodos());
@@ -43,8 +47,11 @@ public class EventoController {
     public ResponseEntity<EventoResponseDTO> criarEvento(
             @Valid @RequestBody EventoRequestDTO dto,
             @UsuarioAutenticado UUID usuarioId) {
-        EventoResponseDTO criado = eventoService.criarEvento(dto, usuarioId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(criado);
+        try (ReservaLimite reserva = limitadorRequisicoes.reservar(OperacaoLimite.CRIAR_EVENTO, usuarioId.toString())) {
+            EventoResponseDTO criado = eventoService.criarEvento(dto, usuarioId);
+            reserva.confirmar();
+            return ResponseEntity.status(HttpStatus.CREATED).body(criado);
+        }
     }
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> excluirEvento(
@@ -100,15 +107,18 @@ public class EventoController {
             @PathVariable UUID id,
             @Valid @RequestBody ComentarioRequestDTO dto,
             @UsuarioAutenticado UUID usuarioId) {
-        Comentario comentario = comentarioService.adicionarComentario(id, usuarioId, dto.text());
-        ComentarioResponseDTO response = new ComentarioResponseDTO(
-            comentario.getId(),
-            comentario.getAutor().getNome().split(" ")[0],
-            comentario.getTexto(),
-            comentario.getDataHoraComentario() != null
-                ? fusoHorario.hora(comentario.getDataHoraComentario())
-                : "00:00"
-        );
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        try (ReservaLimite reserva = limitadorRequisicoes.reservar(OperacaoLimite.COMENTAR, usuarioId.toString())) {
+            Comentario comentario = comentarioService.adicionarComentario(id, usuarioId, dto.text());
+            ComentarioResponseDTO response = new ComentarioResponseDTO(
+                comentario.getId(),
+                comentario.getAutor().getNome().split(" ")[0],
+                comentario.getTexto(),
+                comentario.getDataHoraComentario() != null
+                    ? fusoHorario.hora(comentario.getDataHoraComentario())
+                    : "00:00"
+            );
+            reserva.confirmar();
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        }
     }
 }
