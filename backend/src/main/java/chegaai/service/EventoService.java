@@ -16,8 +16,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -46,17 +44,13 @@ public class EventoService {
     private final CoordenacaoDemonstracaoService coordenacaoDemonstracao;
     private final HonraService honraService;
     private final RegrasEventoService regrasEventoService;
+    private final ApresentacaoEvento apresentacao;
     @Transactional(readOnly = true)
     public List<EventoResponseDTO> listarTodos() {
         List<Evento> eventos = eventoRepository.findAllWithRelations();
         return eventos.stream()
             .map(this::toResponseDTO)
             .collect(Collectors.toList());
-    }
-    @Transactional(readOnly = true)
-    public Page<EventoResponseDTO> listarTodosPaginado(Pageable pageable) {
-        Page<Evento> pagina = eventoRepository.findAllWithRelations(pageable);
-        return pagina.map(this::toResponseDTO);
     }
     @Transactional(readOnly = true)
     public EventoResponseDTO buscarPorId(UUID id) {
@@ -340,39 +334,18 @@ public class EventoService {
                     : "00:00"
             ))
             .collect(Collectors.toList());
-        String statusFront;
-        if (evento.getTravado() != null && evento.getTravado()) {
-            statusFront = "TRAVADO";
-        } else {
-            statusFront = switch (evento.getStatusEvento()) {
-                case ATIVO -> "ABERTO";
-                case CANCELADO -> "CANCELADO";
-                case CONCLUIDO -> "CONCLUIDO";
-            };
-        }
-        String dateStr = fusoHorario.data(evento.getDataHoraRealizacao()).toString();
-        String timeStr = fusoHorario.hora(evento.getDataHoraRealizacao());
-        Endereco end = evento.getEndereco();
-        String placeStr = end.getBairro() + ", " + end.getCidade();
-        Usuario org = evento.getOrganizador();
-        EventoResponseDTO.OrganizerDTO organizerDTO = new EventoResponseDTO.OrganizerDTO(
-            org.getId(),
-            org.getNome().split(" ")[0],
-            org.getHonraMedia().doubleValue(),
-            regrasEventoService.ehEmbaixador(org)
-        );
         return new EventoResponseDTO(
             evento.getId(),
             evento.getTitulo(),
             evento.getCategoria().getNome(),
-            dateStr,
-            timeStr,
-            end.getCep(),
-            placeStr,
+            apresentacao.data(evento),
+            apresentacao.hora(evento),
+            evento.getEndereco().getCep(),
+            apresentacao.local(evento),
             0,
             evento.getLimiteParticipantes(),
-            statusFront,
-            organizerDTO,
+            apresentacao.status(evento),
+            apresentacao.organizador(evento),
             confirmedNames,
             waitlistNames,
             commentDTOs,

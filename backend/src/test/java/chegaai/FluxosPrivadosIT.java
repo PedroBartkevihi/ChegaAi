@@ -62,7 +62,11 @@ class FluxosPrivadosIT extends IntegracaoBase {
             .andExpect(jsonPath("$[0].compareceu").value(false));
         JsonNode fila = json(minhas(beta).andExpect(status().isOk()));
         assertThat(fila.get(0).get("status").asText()).isEqualTo("FILA");
-        assertThat(fila.get(0).size()).isEqualTo(3);
+        // O quarto campo é o resumo público do rolé, o mesmo do feed: sem nomes de participantes nem comentários.
+        assertThat(fila.get(0).size()).isEqualTo(4);
+        assertThat(fila.get(0).get("evento").has("confirmed")).isFalse();
+        assertThat(fila.get(0).get("evento").has("waitlist")).isFalse();
+        assertThat(fila.get(0).get("evento").has("comments")).isFalse();
         mockMvc.perform(get("/auth/me/inscricoes").param("usuarioId", alfa.id().toString())
             .header("Authorization", bearer(beta.token())))
             .andExpect(jsonPath("$[0].status").value("FILA"));
