@@ -66,6 +66,7 @@ No console do Cloud Run, clique em **Criar serviço** e escolha **implantação 
    | `CHEGAAI_DB_POOL_MAX` | `5` |
    | `CHEGAAI_DB_POOL_MIN` | `1` |
    | `LOGGING_LEVEL_CHEGAAI` | `INFO` |
+   | `CHEGAAI_PROXIES_CONFIAVEIS` | `169\.254\.169\.126` (o proxy interno verificado; veja [Proxies e limites de autenticação](#proxies-e-limites-de-autenticação)) |
 
    Para gerar o segredo do JWT:
 
@@ -94,9 +95,17 @@ nenhum proxy. Não há confiança automática em redes privadas nem no primeiro 
 quais peers pertencem à plataforma e como os valores são acrescentados/sanitizados. Use
 somente a expressão explicitamente verificada para essa instalação. Não copie uma regex
 ampla nem suponha uma quantidade de hops. O processo falha ao iniciar no Cloud Run
-(`K_SERVICE` presente) enquanto essa configuração estiver ausente; um proxy compartilhado
-não será apresentado silenciosamente como IP do visitante. A verificação deve ser feita
-separadamente, sem expor endpoints de diagnóstico na aplicação.
+(`K_SERVICE` presente) enquanto essa configuração estiver ausente; assim, a falta dela não
+faz um proxy compartilhado passar silenciosamente por IP do visitante. A verificação deve ser
+feita separadamente, sem expor endpoints de diagnóstico na aplicação.
+
+**Valor verificado nesta instalação (30/10/2026):** com a API acessada direto pela URL
+`run.app`, o Cloud Run entrega as requisições a partir de `169.254.169.126` e acrescenta o
+cliente no fim do `X-Forwarded-For`. Use `CHEGAAI_PROXIES_CONFIAVEIS=169\.254\.169\.126`.
+O resultado e como repetir a verificação estão em
+[docs/verificacao-rede.md](docs/verificacao-rede.md). Se esse endereço mudar, a API continua
+iniciando, mas o limitador passa a ver todos os visitantes com o mesmo IP; um balanceador ou
+domínio próprio na frente da API também exige uma nova verificação.
 
 Os limites locais usam reposição gradual de tokens. Os padrões são 30 tentativas de login
 por minuto/IP, 5 por minuto/par IP+e-mail normalizado e 20 cadastros por hora/IP. IPv6 é
