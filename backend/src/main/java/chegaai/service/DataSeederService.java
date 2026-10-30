@@ -273,13 +273,15 @@ public class DataSeederService implements CommandLineRunner {
         return (Administrador) salvarConta("ADMINISTRADOR", nome, email, cpf, dataNascimento, BigDecimal.valueOf(5.0));
     }
     // Por SQL porque o JPA gera o id sozinho (@GeneratedValue) e não aceita o id fixo.
+    // A base da honra é sempre a daqui: uma revisão anterior à V10 já recriou as contas com o padrão 3,00.
     private Usuario salvarConta(String papel, String nome, String email, String cpf,
                                 String dataNascimento, BigDecimal honra) {
         UUID id = idDeDemonstracao(email);
         jdbc.update("INSERT INTO usuario (id_usuario, nome, email, cpf, senha_hash, data_nascimento, honra_media, "
                 + "status_usuario, papel_sistema, honra_inicial) "
                 + "VALUES (:id, :nome, :email, :cpf, :senha, :nascimento, :honra, 'ATIVO', :papel, :honra) "
-                + "ON CONFLICT (id_usuario) DO UPDATE SET nome=EXCLUDED.nome, senha_hash=EXCLUDED.senha_hash",
+                + "ON CONFLICT (id_usuario) DO UPDATE SET nome=EXCLUDED.nome, senha_hash=EXCLUDED.senha_hash, "
+                + "honra_inicial=EXCLUDED.honra_inicial",
             new MapSqlParameterSource()
                 .addValue("id", id)
                 .addValue("nome", nome)

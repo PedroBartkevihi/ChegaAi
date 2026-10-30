@@ -7,18 +7,30 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.util.ReflectionTestUtils;
+import tools.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class DemonstracaoPenalidadesIT extends IntegracaoBase {
+    // Bases gravadas pelo seed; a tela de login anuncia as de Pedro, Caio, Marcos e Baixa.
+    private static final Map<String, String> BASES_DO_SEED = Map.ofEntries(
+        Map.entry("pedro@chegaai.dev", "4.90"), Map.entry("caio@chegaai.dev", "4.90"),
+        Map.entry("nina@chegaai.dev", "4.70"), Map.entry("marcos@chegaai.dev", "5.00"),
+        Map.entry("lia@chegaai.dev", "4.50"), Map.entry("rafael@chegaai.dev", "4.30"),
+        Map.entry("bia@chegaai.dev", "4.60"), Map.entry("paula@chegaai.dev", "4.20"),
+        Map.entry("bruno@chegaai.dev", "4.10"), Map.entry("baixa@chegaai.dev", "1.50"),
+        Map.entry("moderador@chegaai.dev", "5.00"), Map.entry("tester.pendente@chegaai.dev", "5.00"));
     @Autowired
     private DataSeederService dataSeederService;
     @Autowired
@@ -106,19 +118,41 @@ class DemonstracaoPenalidadesIT extends IntegracaoBase {
     }
 
     @Test
-    @DisplayName("upsert preserva a base individual existente da conta demo")
-    void resetPreservaBaseIndividual() {
-        UUID pedro = DataSeederService.idDeDemonstracao("pedro@chegaai.dev");
-        BigDecimal baseAnterior = jdbcTemplate.queryForObject("SELECT honra_inicial FROM usuario WHERE id_usuario=?", BigDecimal.class, pedro);
-        try {
-            jdbcTemplate.update("UPDATE usuario SET honra_inicial=4.60 WHERE id_usuario=?", pedro);
-            recriar();
-            recriar();
-            assertValorUsuario(pedro, "honra_inicial", "4.60");
-            assertValorUsuario(pedro, "honra_media", "4.60");
-        } finally {
-            jdbcTemplate.update("UPDATE usuario SET honra_inicial=? WHERE id_usuario=?", baseAnterior, pedro);
+    @DisplayName("reset devolve a base do seed as contas demo recriadas sem ela, como em producao")
+    void resetRestauraBaseDoSeed() throws Exception {
+        assertThat(BASES_DO_SEED).containsOnlyKeys(DataSeederService.EMAILS_DEMO);
+        Map<String, BigDecimal> honraAntes = honraDasContasDemo();
+        long embaixadoresAntes = embaixadoresNoResumo();
+        // Estado da producao em 30/10/2026: uma revisao anterior a V10 recriou as contas sem honra_inicial
+        // (padrao da coluna, 3,00), e o recalculo seguinte levou a honra de todas para 3,00.
+        for (String email : DataSeederService.EMAILS_DEMO) {
+            jdbcTemplate.update("UPDATE usuario SET honra_inicial=DEFAULT, honra_media=3.00 WHERE email=?", email);
         }
+        assertThat(embaixadoresNoResumo()).isLessThan(embaixadoresAntes);
+
+        recriar();
+
+        BASES_DO_SEED.forEach((email, base) ->
+            assertValorUsuario(DataSeederService.idDeDemonstracao(email), "honra_inicial", base));
+        assertThat(honraDasContasDemo()).isEqualTo(honraAntes);
+        UUID futebol = jdbcTemplate.queryForObject("SELECT id_evento FROM evento WHERE titulo=?", UUID.class,
+            "Futebol no Aterro");
+        JsonNode caio = buscarEvento(futebol).get("organizer");
+        assertThat(caio.get("honor").asDouble()).isEqualTo(4.9);
+        assertThat(caio.get("isAmbassador").asBoolean()).isTrue();
+        assertThat(embaixadoresNoResumo()).isEqualTo(embaixadoresAntes);
+    }
+
+    private Map<String, BigDecimal> honraDasContasDemo() {
+        Map<String, BigDecimal> honras = new HashMap<>();
+        for (String email : DataSeederService.EMAILS_DEMO) {
+            honras.put(email, jdbcTemplate.queryForObject("SELECT honra_media FROM usuario WHERE email=?", BigDecimal.class, email));
+        }
+        return honras;
+    }
+
+    private long embaixadoresNoResumo() throws Exception {
+        return json(mockMvc.perform(get("/eventos/resumo")).andExpect(status().isOk())).get("ambassadors").asLong();
     }
 
     private UUID criarEventoDemo(String token, String titulo) throws Exception {

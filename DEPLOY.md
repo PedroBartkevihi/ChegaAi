@@ -229,7 +229,7 @@ Referências: [cabeçalhos do Render](https://render.com/docs/static-site-header
 ## Limites e comportamento da versão online
 
 - **API em repouso:** sem acessos por alguns minutos, o Cloud Run desliga a instância. A próxima visita leva cerca de 30 s. O front-end chama o health check assim que a página abre, para adiantar esse tempo, e mostra um aviso se o login demorar.
-- **Demonstração reiniciada:** com `CHEGAAI_DEMO_RECRIAR=true`, cada inicialização renova os cenários fictícios com datas atuais e preserva a identidade das contas demo. O histórico concluído que envolve visitantes é mantido, inclusive os descontos originais por ausência. As contas demo voltam a ativas e seus cancelamentos tardios fictícios são removidos. Contas reais não são resetadas; retirar uma inscrição demo de um rolé futuro promove a fila normalmente.
+- **Demonstração reiniciada:** com `CHEGAAI_DEMO_RECRIAR=true`, cada inicialização renova os cenários fictícios com datas atuais e preserva a identidade das contas demo. O histórico concluído que envolve visitantes é mantido, inclusive os descontos originais por ausência. As contas demo voltam a ativas e à honra inicial definida no seed, e seus cancelamentos tardios fictícios são removidos. Contas reais não são resetadas; retirar uma inscrição demo de um rolé futuro promove a fila normalmente.
 - **GraphDB:** não é usado na versão online. `GET /api/recomendacoes/status` responde `available: false` e a busca semântica fica indisponível; o resto da aplicação não depende dele.
 
 ## Produção local com Docker
