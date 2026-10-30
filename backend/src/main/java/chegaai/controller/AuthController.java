@@ -1,5 +1,9 @@
 package chegaai.controller;
 import chegaai.config.UsuarioAutenticado;
+import chegaai.limite.IdentidadeCliente;
+import chegaai.limite.LimitadorRequisicoes;
+import chegaai.limite.OperacaoLimite;
+import jakarta.servlet.http.HttpServletRequest;
 import chegaai.controller.dto.AuthResponseDTO;
 import chegaai.controller.dto.CadastroRequestDTO;
 import chegaai.controller.dto.LoginRequestDTO;
@@ -21,8 +25,11 @@ import java.util.UUID;
 public class AuthController {
     private final AuthService authService;
     private final PerfilService perfilService;
+    private final LimitadorRequisicoes limitador;
+    private final IdentidadeCliente identidade;
     @PostMapping("/login")
-    public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody LoginRequestDTO request) {
+    public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody LoginRequestDTO request, HttpServletRequest http) {
+        limitador.consumir(OperacaoLimite.LOGIN_PAR, identidade.ip(http), IdentidadeCliente.email(request.email()));
         return ResponseEntity.ok(authService.login(request));
     }
     @PostMapping("/cadastro")

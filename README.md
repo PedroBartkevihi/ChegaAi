@@ -80,6 +80,15 @@ Os limites ficam em `application.properties` (`chegaai.regras.*`) e podem ser aj
 | Honra | Base definida no cadastro (**3.0** por padrão; contas de demonstração têm bases próprias) até receber **3 avaliações** entre quaisquer rolés; depois, média das notas. Em ambos os casos, desconta as penalidades acumuladas, com mínimo **0** |
 | Comentários | Só confirmados ou quem está na fila de espera |
 
+### Proteção de autenticação
+
+Login e cadastro têm cotas temporárias configuráveis, incluindo tentativas inválidas:
+30 logins/minuto por IP, 5/minuto por par IP+e-mail e 20 cadastros/hora por IP. IPv6 é
+agrupado por /64. Ao exceder uma cota, a API responde 429 com `Retry-After`, sem banir
+nem suspender a conta. Os tokens são repostos gradualmente; não são janelas de calendário.
+Os contadores ficam na memória da JVM, com tamanho limitado, e reiniciam com a instância.
+Configuração de proxies confiáveis e limitações durante rollout estão em [DEPLOY.md](DEPLOY.md#proxies-e-limites-de-autenticação).
+
 ## Tecnologias
 
 | Camada | Tecnologias |

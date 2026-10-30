@@ -82,6 +82,37 @@ No console do Cloud Run, clique em **Criar serviço** e escolha **implantação 
    Senha do banco e segredo do JWT também podem ir para o Secret Manager e ser
    referenciados no serviço, em vez de ficarem como variáveis de texto.
 
+### Proxies e limites de autenticação
+
+A API usa o `RemoteIpValve` nativo do Tomcat, com `X-Forwarded-For` e
+`X-Forwarded-Proto`. A lista de proxies internos confiáveis vem exclusivamente de
+`CHEGAAI_PROXIES_CONFIAVEIS` (expressão regular); o padrão `(?!)` não confia em
+nenhum proxy. Não há confiança automática em redes privadas nem no primeiro IP de XFF.
+`Forwarded` e `X-Real-IP` não escolhem a identidade usada pelo limitador.
+
+**Antes de integrar essa configuração no Cloud Run**, verifique o caminho real de entrada,
+quais peers pertencem à plataforma e como os valores são acrescentados/sanitizados. Use
+somente a expressão explicitamente verificada para essa instalação. Não copie uma regex
+ampla nem suponha uma quantidade de hops. O processo falha ao iniciar no Cloud Run
+(`K_SERVICE` presente) enquanto essa configuração estiver ausente; um proxy compartilhado
+não será apresentado silenciosamente como IP do visitante. A verificação deve ser feita
+separadamente, sem expor endpoints de diagnóstico na aplicação.
+
+Os limites locais usam reposição gradual de tokens. Os padrões são 30 tentativas de login
+por minuto/IP, 5 por minuto/par IP+e-mail normalizado e 20 cadastros por hora/IP. IPv6 é
+agrupado por prefixo /64. Contas demo seguem as mesmas regras. JSON/DTO inválidos contam
+na cota de IP; o par de login só é contado depois do DTO válido, antes de consultar o
+banco e o BCrypt. A resposta 429 traz `Retry-After`, `Cache-Control: no-store` e mensagem
+genérica, sem registrar IP/e-mail nas chaves ou nos logs.
+
+Capacidades e períodos podem ser ajustados pelas variáveis `CHEGAAI_LIMITE_LOGIN_IP`,
+`CHEGAAI_LIMITE_LOGIN_PAR`, `CHEGAAI_LIMITE_CADASTRO_IP` e suas versões com sufixo
+`_PERIODO` (duração ISO-8601). O registro usa até `CHEGAAI_LIMITE_MAX_CHAVES` (máximo 10000)
+e rejeita chaves novas quando saturado, preservando as existentes. Entradas ociosas expiram
+somente após a recuperação da cota; reservas em voo são preservadas. O estado usa HMAC
+com segredo efêmero e reinicia junto com a JVM. Durante um rollout, revisões podem ter
+contadores independentes; isso não constitui uma cota global persistente.
+
 ### Permissões da conta de serviço (projetos novos)
 
 Em projetos novos, o Google não dá mais papéis automáticos à conta de serviço padrão
