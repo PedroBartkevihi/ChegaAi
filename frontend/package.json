@@ -8,7 +8,10 @@
     "build": "next build",
     "start": "next start",
     "test:e2e": "playwright test",
-    "test:session": "node --test tests/session.test.mjs"
+    "test:session": "node --test tests/session.test.mjs",
+    "postbuild": "node scripts/secure-export.mjs",
+    "security:export": "node scripts/secure-export.mjs",
+    "test:security": "node --test tests/security.test.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.562.0",
@@ -20,6 +23,8 @@
     "@playwright/test": "^1.60.0",
     "@types/node": "^25.9.2",
     "@types/pg": "^8.23.1",
-    "pg": "^8.23.1"
+    "parse5": "8.0.1",
+    "pg": "^8.23.1",
+    "yaml": "2.9.1"
   }
 }

@@ -209,6 +209,7 @@ Rotas autenticadas recebem o token no cabeçalho `Authorization: Bearer <token>`
 |---|---|
 | Unitários (JUnit + Mockito) | `cd backend && ./mvnw test` |
 | Integração (PostgreSQL real com Testcontainers; precisa do Docker) | `cd backend && ./mvnw verify` |
+| Sessão, CSP e cabeçalhos (Node.js) | `cd frontend && npm run test:session && npm run test:security` |
 | Ponta a ponta (Playwright + API + banco descartável local) | [Preparar o ambiente e executar](frontend/tests/README.md) |
 
 Os E2E criam contas, rolés e comentários próprios por tentativa. O único ajuste direto no banco é
@@ -218,7 +219,9 @@ As fixtures aceitam somente destinos de loopback e o banco `chegaai_e2e`.
 O GitHub Actions executa `verify` no back-end e toda a suíte Playwright duas vezes, sem retries,
 em cada pull request e push na `main`. O front é exportado para `out/` e servido como arquivos
 estáticos, chamando a API em outra origem. O CORS permitido é conferido no navegador; o rejeitado, nos testes de integração da API.
-O modo de desenvolvimento com proxy continua disponível localmente.
+O modo de desenvolvimento com proxy continua disponível localmente. O servidor estático dos E2E
+lê os cabeçalhos diretamente do `render.yaml`, e os cenários de CSP verificam o bloqueio real
+de scripts não autorizados, o tema antes da hidratação e os links de mapa e agenda.
 
 Os testes de carga com k6 e os relatórios de desempenho foram produzidos durante a disciplina,
 ainda com o nome ChegAê: scripts em [`tests/load`](tests/load) e resultados em [`docs/sla`](docs/sla/README.md).
@@ -226,5 +229,7 @@ ainda com o nome ChegAê: scripts em [`tests/load`](tests/load) e resultados em 
 ## Deploy
 
 A [versão online](https://chegaai-web.onrender.com) usa Neon (PostgreSQL), Google Cloud Run (API)
-e Render (site estático), com deploy automático a cada merge na `main`. O passo a passo está em
+e Render (site estático), com deploy automático a cada merge na `main`. O export inclui uma CSP
+com hashes dos scripts gerados; os cabeçalhos do site bloqueiam incorporação em iframes e
+definem proteção de MIME e política de referência. O passo a passo está em
 [`DEPLOY.md`](DEPLOY.md).

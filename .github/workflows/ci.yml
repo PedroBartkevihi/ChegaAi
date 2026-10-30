@@ -1,5 +1,8 @@
 name: CI
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main]
@@ -93,11 +96,14 @@ jobs:
       - name: Instalar dependências do front-end
         working-directory: frontend
         run: |
-          npm ci
+          npm ci --include=dev
           npx playwright install --with-deps chromium
       - name: Testes da proteção de sessão
         working-directory: frontend
         run: npm run test:session
+      - name: Testes da CSP e dos cabeçalhos
+        working-directory: frontend
+        run: npm run test:security
       - name: Exportar o site estático
         working-directory: frontend
         run: npm run build
