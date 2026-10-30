@@ -85,6 +85,8 @@ test('head e charset precisam estar explícitos, íntegros e antes dos recursos'
 
 test('URL aceita HTTPS e apenas os hosts explícitos de loopback em HTTP', () => {
   assert.equal(validateApiOrigin(API), 'https://api.example.invalid');
+  assert.equal(validateApiOrigin('HTTPS://API.EXAMPLE.INVALID:443/api'), 'https://api.example.invalid');
+  assert.equal(validateApiOrigin('http://LOCALHOST:80/api'), 'http://localhost');
   for (const host of ['127.0.0.1', 'localhost', '[::1]']) {
     assert.equal(validateApiOrigin(`http://${host}:8080/api`), `http://${host}:8080`);
   }
@@ -92,6 +94,16 @@ test('URL aceita HTTPS e apenas os hosts explícitos de loopback em HTTP', () =>
     'http://0.0.0.0/api', 'https://u:p@api.example.invalid/api', 'https://api.example.invalid/api?x=1',
     'https://api.example.invalid/api#x', 'https://api.example.invalid/api/', 'https://api.example.invalid', 'javascript:alert(1)', ` ${API}`]) {
     assert.throws(() => validateApiOrigin(value), /NEXT_PUBLIC_API_BASE_URL/);
+  }
+});
+
+test('URL rejeita delimitadores vazios de query e fragmento', () => {
+  for (const base of [API, 'http://127.0.0.1:8086/api']) {
+    for (const suffix of ['?', '#', '?#', '#?']) {
+      const value = base + suffix;
+      assert.throws(() => validateApiOrigin(value), /NEXT_PUBLIC_API_BASE_URL/, value);
+      assert.throws(() => secureHtml(document(), value), /NEXT_PUBLIC_API_BASE_URL/, value);
+    }
   }
 });
 

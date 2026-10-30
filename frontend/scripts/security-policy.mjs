@@ -10,7 +10,8 @@ export function validateApiOrigin(value) {
   if (typeof value !== 'string' || !value || value !== value.trim()) throw new Error(message);
   let url;
   try { url = new URL(value); } catch { throw new Error(message); }
-  if (url.username || url.password || url.search || url.hash || url.pathname !== '/api'
+  // href preserva também os delimitadores vazios de query e fragmento.
+  if (url.username || url.password || /[?#]/.test(url.href) || url.pathname !== '/api'
       || (url.protocol !== 'https:' && !(url.protocol === 'http:' && LOCAL_HOSTS.has(url.hostname)))) {
     throw new Error(message);
   }
