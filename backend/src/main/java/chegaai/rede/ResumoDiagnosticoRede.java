@@ -108,7 +108,8 @@ record ResumoDiagnosticoRede(String estrategia, Classe baseClasse, String basePe
         InetAddress endereco;
         try {
             if (v4 != null) endereco = InetAddress.getByAddress(v4);
-            else if (literal.indexOf(':') >= 0 && literal.matches("[0-9a-fA-F:.]+")) endereco = InetAddress.getByName(literal);
+            // No JDK 17, um ponto inicial pode encaminhar getByName ao resolvedor de nomes.
+            else if (literal.indexOf(':') >= 0 && literal.matches("[0-9a-fA-F:][0-9a-fA-F:.]*")) endereco = InetAddress.getByName(literal);
             else return null;
         } catch (UnknownHostException | IllegalArgumentException e) { return null; }
         byte[] bytes = endereco.getAddress();

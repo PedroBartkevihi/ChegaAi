@@ -20,10 +20,11 @@ O teto é de **três tentativas de observação por JVM**, compartilhado pelos c
 aplicação nessa JVM. Uma falha ao observar ou registrar também usa uma tentativa; não produz
 repetições ilimitadas. O marcador é público e não funciona como autenticação.
 
-O plano abaixo permite ao operador **no máximo três GETs marcados por fase**, em duas fases
-(`framework` e `native`): **até seis probes no total**. Isso não é um teto global de logs:
-réplicas, reinícios e revisões diferentes têm JVMs e cotas próprias. Leituras normais do health,
-sem o marcador, não consomem a cota.
+O plano completo prevê **no máximo três GETs marcados por fase** (`framework` e `native`):
+**até seis probes no total**, se ambas forem autorizadas. A primeira aprovação proposta cobre
+somente `framework`, com **até três probes**, e a restauração ao final. Isso não é um teto global
+de logs: réplicas, reinícios e revisões diferentes têm JVMs e cotas próprias. Leituras normais
+do health, sem o marcador, não consomem a cota.
 
 ## Dados observados e privacidade
 
@@ -50,9 +51,11 @@ não desfaz essa transformação. Os testes com Tomcat real demonstram essa dife
 
 ## Escopo da aprovação necessária
 
-A autorização deve abranger o hash revisado e o PR separado do diagnóstico, sua integração
-na `main`, o deploy temporário, as configurações das duas fases, os probes abaixo, a leitura
-dos resumos e a restauração ao final. Nenhuma dessas ações foi realizada nesta preparação.
+A primeira autorização proposta deve abranger o hash revisado e o PR separado do diagnóstico,
+sua integração na `main`, o deploy temporário, a fase `framework` com até três probes abaixo,
+a leitura dos resumos e a restauração ao final. A fase `native` e seu candidato de proxy serão
+apresentados para decisão específica após as observações, se os dados permitirem essa escolha.
+Nenhuma dessas ações foi realizada nesta preparação.
 
 Antes de começar, registrar a revisão e a configuração anteriores da API, sem copiar valores
 de banco, JWT ou outros segredos. Manter a escala existente. A ordem proposta é:
@@ -66,8 +69,9 @@ de banco, JWT ou outros segredos. Manter a escala existente. A ordem proposta é
    privadas inteiras, primeiro XFF, número presumido de hops ou ranges públicos genéricos.
    Se o dado não permitir estabelecer um candidato, parar antes dessa fase e apresentar a
    lacuna. Nenhum candidato está escolhido neste documento.
-5. Se autorizado e viável, aplicar `native` com esse candidato restrito, em nova revisão/JVM,
-   e executar até três probes. A base observada agora será posterior à Valve.
+5. Sem autorização específica para a fase `native`, seguir diretamente para a restauração.
+   Se essa fase for autorizada e viável, aplicar `native` com o candidato restrito, em nova
+   revisão/JVM, e executar até três probes. A base observada agora será posterior à Valve.
 6. Restaurar `CHEGAAI_REDE_DIAGNOSTICO=false` e a estratégia/configuração anteriores
    registradas. Confirmar o deploy e o health normal. A revisão anterior é a referência de
    rollback se a verificação prejudicar a disponibilidade.
@@ -76,15 +80,15 @@ de banco, JWT ou outros segredos. Manter a escala existente. A ordem proposta é
 
 O mesmo trio é usado em cada fase. A URL é a existente; não se usa login, cookie ou token.
 O IP esperado deve ser conhecido pelo operador e fornecido voluntariamente somente para
-comparação. Não o descobrir por serviço externo nem copiá-lo para o relatório.
+comparação. Não o descobrir por serviço externo nem copiá-lo para o relatório. Se ele não for
+conhecido, omitir esse cabeçalho e registrar a comparação como **pendente**. Nesse caso,
+`esperadoValido=false` e `esperadoResolvido=false` não provam divergência ou resolução correta.
 
 ```powershell
 $health = 'https://chegaai-api-966787539425.southamerica-east1.run.app/api/actuator/health'
-$ipEsperado = '<literal público conhecido do operador>'
-$comum = @{
-  'X-Chegaai-Diagnostico' = 'proxy-v1'
-  'X-Chegaai-Cliente-Esperado' = $ipEsperado
-}
+$comum = @{ 'X-Chegaai-Diagnostico' = 'proxy-v1' }
+# Opcional: somente se já conhecido e fornecido voluntariamente pelo operador.
+# $comum['X-Chegaai-Cliente-Esperado'] = '<literal público conhecido do operador>'
 # Probe 1: sem Forwarded/XFF fornecido pelo operador.
 (Invoke-WebRequest -UseBasicParsing -Uri $health -Headers $comum -TimeoutSec 45).StatusCode
 # Probe 2: marcador IPv4 TEST-NET em XFF.
@@ -108,4 +112,6 @@ nem o IP esperado.
 `cd backend; ./mvnw.cmd -B -ntp test` executa os unitários e os testes de Tomcat real em
 loopback/porta aleatória, sem banco. Os testes cobrem flag desligada, rota/método/marcador,
 teto concorrente, privacidade e parsing limitado, falha do registro sem alterar o health,
-wrapper do Spring e Valve nativa. A verificação local não caracteriza a topologia do Cloud Run.
+wrapper do Spring e Valve nativa. Uma regressão intercepta `InetAddress.getByName` e exige
+zero chamadas para entradas iniciadas por ponto em XFF, `Forwarded` e cliente esperado.
+A verificação local não caracteriza a topologia do Cloud Run.

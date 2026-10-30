@@ -1,6 +1,9 @@
 package chegaai.rede;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import java.net.InetAddress;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -10,6 +13,10 @@ import java.util.Collections;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 
 class DiagnosticoRedeTest {
     private MockHttpServletRequest request() {
@@ -175,5 +182,30 @@ class DiagnosticoRedeTest {
         assertThat(resumo.xff().marcadores()).isEmpty();
         assertThat(resumo.xff().truncado()).isTrue();
         assertThat(resumo.toString()).doesNotContain("192.0.2", "8.8.4.4", "xxxx");
+    }
+
+    @ParameterizedTest
+    @CsvSource({"xff,.:1", "xff,..:", "forwarded,.:1", "forwarded,..:", "esperado,.:1", "esperado,..:"})
+    void pontoInicialNaoAcionaResolvedor(String origem, String literal) {
+        var r = request();
+        switch (origem) {
+            case "xff" -> r.addHeader("X-Forwarded-For", literal);
+            case "forwarded" -> r.addHeader("Forwarded", "for=\"[" + literal + "]\"");
+            case "esperado" -> r.addHeader("X-Chegaai-Cliente-Esperado", literal);
+            default -> throw new AssertionError("Origem de teste desconhecida");
+        }
+        try (var rede = mockStatic(InetAddress.class, CALLS_REAL_METHODS)) {
+            rede.when(() -> InetAddress.getByName(anyString()))
+                .thenThrow(new AssertionError("Entrada inválida não pode chamar o resolvedor"));
+            rede.clearInvocations();
+            var resumo = ResumoDiagnosticoRede.observar(r, r, "framework");
+            if (origem.equals("xff"))
+                assertThat(resumo.xff().classes()).containsExactly(ResumoDiagnosticoRede.Classe.INVALIDO);
+            if (origem.equals("forwarded"))
+                assertThat(resumo.forwarded().classes()).containsExactly(ResumoDiagnosticoRede.Classe.INVALIDO);
+            assertThat(resumo.esperadoValido()).isFalse();
+            assertThat(resumo.esperadoResolvido()).isFalse();
+            rede.verify(() -> InetAddress.getByName(anyString()), never());
+        }
     }
 }
