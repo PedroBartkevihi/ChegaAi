@@ -8,17 +8,17 @@ import chegaai.domain.model.Comentario;
 import chegaai.limite.LimitadorRequisicoes;
 import chegaai.limite.OperacaoLimite;
 import chegaai.limite.ReservaLimite;
+import chegaai.repository.FiltroFeed;
 import chegaai.service.ComentarioService;
 import chegaai.service.EventoService;
+import chegaai.service.FeedService;
 import chegaai.service.InscricaoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 @RestController
@@ -26,6 +26,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class EventoController {
     private final EventoService eventoService;
+    private final FeedService feedService;
     private final InscricaoService inscricaoService;
     private final ComentarioService comentarioService;
     private final FusoHorario fusoHorario;
@@ -34,10 +35,25 @@ public class EventoController {
     public ResponseEntity<List<EventoResponseDTO>> listarTodos() {
         return ResponseEntity.ok(eventoService.listarTodos());
     }
-    @GetMapping("/paginado")
-    public ResponseEntity<Page<EventoResponseDTO>> listarPaginado(
-            @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(eventoService.listarTodosPaginado(pageable));
+    /**
+     * Feed paginado: resumos dos rolés, com filtros e ordem no servidor. {@code secao} separa os
+     * próximos (abertos, com início por vir) dos anteriores e indisponíveis.
+     */
+    @GetMapping("/feed")
+    public ResponseEntity<FeedPaginaDTO> feed(
+            @RequestParam(defaultValue = "proximos") String secao,
+            @RequestParam(required = false) String categoria,
+            @RequestParam(required = false) BigDecimal honraMinima,
+            @RequestParam(defaultValue = "false") boolean embaixador,
+            @RequestParam(required = false) String busca,
+            @RequestParam(defaultValue = "0") int pagina,
+            @RequestParam(defaultValue = "12") int tamanho) {
+        return ResponseEntity.ok(feedService.pagina(
+            FiltroFeed.de(secao, categoria, honraMinima, embaixador, busca, pagina, tamanho)));
+    }
+    @GetMapping("/resumo")
+    public ResponseEntity<FeedResumoDTO> resumo() {
+        return ResponseEntity.ok(feedService.resumo());
     }
     @GetMapping("/{id}")
     public ResponseEntity<EventoResponseDTO> buscarPorId(@PathVariable UUID id) {

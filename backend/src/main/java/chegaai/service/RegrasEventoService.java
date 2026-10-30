@@ -36,6 +36,10 @@ public class RegrasEventoService {
         return honraMinimaCriacao;
     }
 
+    public BigDecimal honraEmbaixador() {
+        return honraEmbaixador;
+    }
+
     public boolean ehEmbaixador(Usuario usuario) {
         return usuario.qualificaEmbaixador(honraEmbaixador);
     }
