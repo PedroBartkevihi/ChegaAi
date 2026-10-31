@@ -3,7 +3,7 @@
 //     escreve no destino: metadados.json, resumo.json (as métricas do k6), por-segundo.csv, latencia.svg e medicao.md
 //   node tests/load/tools/relatorio.mjs comparar <arquivo.md> <destino1> <destino2> ...
 //     escreve uma tabela que compara medições já geradas
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -37,6 +37,24 @@ export function lerSerie(texto) {
     else if (registro.metric === "vus") vus.push({ tempo, valor });
   }
   return { duracoes, vus };
+}
+
+// Pausas do coletor de lixo no api.log (-Xlog:gc:stdout:time) que caíram entre inicio e fim (ms desde 1970).
+export function pausasDoGc(texto, inicio, fim) {
+  const pausas = [];
+  for (const linha of texto.split(/\r?\n/)) {
+    const m = linha.match(/^\[([^\]]+)\].*GC\(\d+\) Pause (Young|Full)\b.*?([\d.]+)ms\s*$/);
+    if (!m) continue;
+    // A JVM escreve o fuso como +0000; o Date.parse quer +00:00.
+    const tempo = Date.parse(m[1].replace(/([+-]\d{2})(\d{2})$/, "$1:$2"));
+    if (tempo >= inicio && tempo <= fim) pausas.push({ tipo: m[2], ms: Number(m[3]) });
+  }
+  return {
+    quantidade: pausas.length,
+    completas: pausas.filter((pausa) => pausa.tipo === "Full").length,
+    maior: pausas.reduce((maior, pausa) => (maior === null || pausa.ms > maior ? pausa.ms : maior), null),
+    total: Number(pausas.reduce((soma, pausa) => soma + pausa.ms, 0).toFixed(3)),
+  };
 }
 
 export function porSegundo({ duracoes, vus }) {
@@ -165,8 +183,10 @@ function descricao(metadados) {
 }
 
 export function textoMedicao(metadados, metricas) {
-  const { base, ambiente, memoriaMiB: memoria } = metadados;
+  const { base, ambiente, memoriaMiB: memoria, gcDuranteACarga: gc } = metadados;
   const falhas = metricas.limites.filter((limite) => !limite.ok);
+  const textoGc = gc ? `; pausas do coletor de lixo durante a carga: ${gc.quantidade} (${gc.completas} completas)`
+    + `${gc.maior === null ? "" : `, a maior de ${ms(gc.maior)} ms`}` : "";
   return [
     `# ${descricao(metadados)}`,
     "",
@@ -179,7 +199,7 @@ export function textoMedicao(metadados, metricas) {
     `| API | ${ambiente.api} |`,
     `| Banco e k6 | ${ambiente.banco}; ${ambiente.k6} |`,
     `| Máquina | ${ambiente.cpuDoHost}; Docker com ${ambiente.docker} |`,
-    `| Memória da API | pico de ${memoria.pico === null ? "–" : `${Math.round(memoria.pico)} MiB`} de 512 MiB (${memoria.amostras} amostras)${memoria.oom ? ", **com OOM**" : ", sem OOM"} |`,
+    `| Memória da API | pico de ${memoria.pico === null ? "–" : `${Math.round(memoria.pico)} MiB`} de 512 MiB (${memoria.amostras} amostras)${memoria.oom ? ", **com OOM**" : ", sem OOM"}${textoGc} |`,
     "",
     "| Rota | Requisições | Média (ms) | p90 (ms) | p95 (ms) | Máximo (ms) |",
     "|---|---:|---:|---:|---:|---:|",
@@ -205,10 +225,17 @@ function gerarMedicao(origem, destino) {
   const arquivoResumo = readdirSync(origem).find((nome) => nome.endsWith("-summary.json"));
   if (!arquivoResumo) throw new Error(`Sem o resumo do k6 (*-summary.json) em ${origem}`);
   const resumo = JSON.parse(readFileSync(join(origem, arquivoResumo), "utf8"));
-  const linhas = porSegundo(lerSerie(readFileSync(join(origem, "serie.jsonl"), "utf8")));
+  const serie = lerSerie(readFileSync(join(origem, "serie.jsonl"), "utf8"));
+  const linhas = porSegundo(serie);
   const metricas = metricasDoResumo(resumo);
+  // A janela da carga vai do primeiro ao último pedido, com um segundo de folga de cada lado.
+  const inicio = serie.duracoes.reduce((menor, ponto) => Math.min(menor, ponto.tempo), Infinity) - 1000;
+  const fim = serie.duracoes.reduce((maior, ponto) => Math.max(maior, ponto.tempo), -Infinity) + 1000;
+  if (existsSync(join(origem, "api.log"))) {
+    metadados.gcDuranteACarga = pausasDoGc(readFileSync(join(origem, "api.log"), "utf8"), inicio, fim);
+  }
   mkdirSync(destino, { recursive: true });
-  copyFileSync(join(origem, "metadados.json"), join(destino, "metadados.json"));
+  writeFileSync(join(destino, "metadados.json"), `${JSON.stringify(metadados, null, 2)}\n`);
   writeFileSync(join(destino, "resumo.json"), `${JSON.stringify({ state: { testRunDurationMs: resumo.state?.testRunDurationMs },
     metrics: resumo.metrics }, null, 2)}\n`);
   writeFileSync(join(destino, "por-segundo.csv"), ["segundo,vus,requisicoes,media_ms,p95_ms",
@@ -220,14 +247,14 @@ function gerarMedicao(origem, destino) {
 
 export function textoComparacao(medicoes, arquivo) {
   return [
-    "| Medição | Requisições | Vazão (req/s) | Média (ms) | p95 (ms) | Abertura p95 (ms) | Recebido por iteração | Erros | Pico de memória |",
-    "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+    "| Medição | Requisições | Vazão (req/s) | Média (ms) | p95 (ms) | Abertura p95 (ms) | Recebido por iteração | Erros | Pico de memória | Maior pausa do GC (ms) |",
+    "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ...medicoes.map(({ pasta, metadados, metricas }) => {
       const todas = metricas.rotas.find((r) => r.rota === "Todas") || {};
       const link = relative(join(arquivo, ".."), join(pasta, "medicao.md")).replaceAll("\\", "/");
       return `| [${descricao(metadados)}](${link}) | ${metricas.requisicoes ?? "–"} | ${metricas.vazao === null ? "–" : metricas.vazao.toFixed(1).replace(".", ",")}`
         + ` | ${ms(todas.media)} | ${ms(todas.p95)} | ${ms(metricas.grupos[0]?.p95)} | ${kb(metricas.kbPorIteracao)} | ${pct(metricas.erros)}`
-        + ` | ${metadados.memoriaMiB.pico === null ? "–" : `${Math.round(metadados.memoriaMiB.pico)} MiB`} |`;
+        + ` | ${metadados.memoriaMiB.pico === null ? "–" : `${Math.round(metadados.memoriaMiB.pico)} MiB`} | ${ms(metadados.gcDuranteACarga?.maior ?? null)} |`;
     }),
     "",
   ].join("\n");
