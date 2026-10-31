@@ -26,8 +26,10 @@ const selectedStages = STAGES[LOAD_PROFILE] || STAGES.academic;
 const ROTAS = ROTEIRO === "lista"
   ? ["GET /eventos"]
   : ["GET /eventos/feed", "GET /eventos/feed?busca", "GET /eventos/resumo", "GET /eventos/{id}"];
+// Um grupo por abertura do feed: o tempo dele soma os pedidos daquela abertura, e é ele que compara o antes e o depois.
+const GRUPO = ROTEIRO === "lista" ? "lista completa" : "abrir o feed";
 const feedErrors = new Rate("eventos_feed_errors");
-// Um limite por rota faz o resumo do k6 trazer os números de cada uma.
+// Um limite por rota (e um para o grupo) faz o resumo do k6 trazer os números de cada um.
 const porRota = Object.fromEntries(ROTAS.map((rota) => [`http_req_duration{name:${rota}}`, ["avg<800", "p(95)<2000"]]));
 export const options = {
   scenarios: {
@@ -43,6 +45,7 @@ export const options = {
     http_req_failed: ["rate<0.02"],
     "http_req_duration{operation:read}": ["avg<800", "p(95)<2000"],
     eventos_feed_errors: ["rate<0.02"],
+    [`group_duration{group:::${GRUPO}}`]: ["avg<800", "p(95)<2000"],
     ...porRota,
   },
   summaryTrendStats: ["avg", "min", "med", "p(90)", "p(95)", "max", "count"],
@@ -70,11 +73,11 @@ export function setup() {
 }
 export default function () {
   if (ROTEIRO === "lista") {
-    group("lista completa", () => {
+    group(GRUPO, () => {
       ler(`${BASE_URL}/eventos`, "GET /eventos", Array.isArray);
     });
   } else {
-    group("abrir o feed", () => {
+    group(GRUPO, () => {
       const comBusca = Math.random() < 0.25;
       const busca = BUSCAS[Math.floor(Math.random() * BUSCAS.length)];
       const pagina = ler(

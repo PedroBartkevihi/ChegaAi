@@ -1,0 +1,39 @@
+{
+  "data": "2026-10-31T13:32:01Z",
+  "versaoApi": "b1d9b9b",
+  "versaoScripts": "79861d3",
+  "script": "eventos-feed",
+  "perfil": "academic",
+  "roteiro": "site",
+  "base": {
+    "nome": "maior",
+    "eventos": 203,
+    "inscricoes": 899,
+    "comentarios": 116
+  },
+  "ambiente": {
+    "api": "backend/Dockerfile, 1 CPU, 512 MiB, pool de 5 (mínimo 1)",
+    "banco": "postgres:15-alpine",
+    "k6": "k6 v2.2.0 (commit/00a9a1b7f5, go1.26.5, linux/amd64)",
+    "docker": "16 CPUs e 7,7 GiB, Docker Desktop (containerized)",
+    "cpuDoHost": "AMD Ryzen 7 5700X 8-Core Processor"
+  },
+  "memoriaMiB": {
+    "amostras": 30,
+    "pico": 278.1,
+    "oom": false
+  },
+  "k6CodigoDeSaida": 0,
+  "gcDuranteACarga": {
+    "quantidade": 28,
+    "completas": 0,
+    "maior": 24.517,
+    "total": 120.316
+  },
+  "bancoDuranteACarga": {
+    "quantidade": 0,
+    "commits": 0,
+    "maior": null,
+    "maiorCommit": null
+  }
+}
