@@ -4,9 +4,9 @@ import { Rate, Trend } from "k6/metrics";
 import { makeSummary } from "./lib/report.js";
 const BASE_URL = __ENV.BASE_URL || "http://localhost:8080/api";
 const LOAD_PROFILE = __ENV.LOAD_PROFILE || "academic";
-const REPORT_DIR = __ENV.REPORT_DIR || "docs/sla/reports";
-const USER_EMAIL = __ENV.K6_USER_EMAIL || "pedro@chegaai.dev";
-const EVENT_ID = __ENV.K6_EVENT_ID || "";
+const REPORT_DIR = __ENV.REPORT_DIR || "tests/load/resultados";
+const ROTA = "POST /eventos/{id}/comentarios";
+const JSON_HEADERS = { "Content-Type": "application/json" };
 const STAGES = {
   smoke: [
     { duration: "5s", target: 1 },
@@ -32,81 +32,56 @@ export const options = {
       tags: { service: "comentarios-write", operation: "write" },
     },
   },
+  // A marca do cenário (operation) fica só nos pedidos da carga, fora do setup e do teardown.
   thresholds: {
     http_req_failed: ["rate<0.05"],
-    http_req_duration: ["avg<1200", "p(95)<3000"],
+    "http_req_duration{operation:write}": ["avg<1200", "p(95)<3000"],
     comentarios_write_errors: ["rate<0.05"],
     comentarios_write_latency: ["avg<1000", "p(95)<2500"],
   },
   summaryTrendStats: ["avg", "min", "med", "p(90)", "p(95)", "max", "count"],
 };
-function login() {
-  const response = http.post(
-    `${BASE_URL}/auth/login`,
-    JSON.stringify({ email: USER_EMAIL }),
-    {
-      headers: { "Content-Type": "application/json" },
-      tags: { phase: "setup", service: "auth-login" },
-    },
-  );
-  const ok = check(response, {
-    "login retornou 200": (res) => res.status === 200,
-    "login retornou id": (res) => Boolean(res.json("id")),
-  });
-  if (!ok) {
-    throw new Error(`Falha no login de teste para ${USER_EMAIL}: status ${response.status}`);
-  }
-  return response.json();
+function autorizado(token) {
+  return { ...JSON_HEADERS, Authorization: `Bearer ${token}` };
 }
-function discoverWritableEvent(user) {
-  if (EVENT_ID) {
-    return EVENT_ID;
-  }
-  const response = http.get(`${BASE_URL}/eventos`, {
-    tags: { phase: "setup", service: "eventos-feed" },
-  });
-  const ok = check(response, {
-    "eventos retornou 200": (res) => res.status === 200,
-  });
-  if (!ok) {
-    throw new Error(`Falha ao listar eventos para setup: status ${response.status}`);
-  }
-  const events = response.json();
-  const event = events.find((item) =>
-    item.status === "ABERTO"
-      && (item.confirmed.includes(user.name) || item.waitlist.includes(user.name)),
-  );
-  if (!event) {
-    throw new Error(
-      `Nenhum evento aberto encontrado com inscricao para ${user.name}. Informe K6_EVENT_ID ou use outro K6_USER_EMAIL.`,
-    );
-  }
-  return event.id;
-}
+// Conta e rolé próprios, criados pela API: quem organiza já fica confirmado e pode comentar.
+// A API local da medição precisa dos limites de cadastro, criação e comentário elevados.
 export function setup() {
-  const user = login();
-  const eventId = discoverWritableEvent(user);
-  return {
-    user,
-    eventId,
-    baseUrl: BASE_URL,
-  };
+  const marca = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+  const cadastro = http.post(`${BASE_URL}/auth/cadastro`, JSON.stringify({
+    name: `Carga k6 ${marca}`,
+    email: `carga-${marca}@example.invalid`,
+    birthDate: "1995-05-10",
+    password: `SenhaCarga-${marca}!`,
+  }), { headers: JSON_HEADERS, tags: { phase: "setup", name: "POST /auth/cadastro" } });
+  if (!check(cadastro, { "cadastro retornou 201": (res) => res.status === 201 })) {
+    throw new Error(`Falha no cadastro da conta de carga: status ${cadastro.status}`);
+  }
+  const token = cadastro.json("token");
+  const data = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const evento = http.post(`${BASE_URL}/eventos`, JSON.stringify({
+    title: `Rolé de carga ${marca}`,
+    category: "Lazer",
+    date: data,
+    time: "18:00",
+    cep: "",
+    place: "Parque de testes, Rio de Janeiro",
+    capacity: 10,
+    distance: 1,
+    description: "Rolé fictício criado pelo teste de carga para receber comentários.",
+  }), { headers: autorizado(token), tags: { phase: "setup", name: "POST /eventos" } });
+  if (!check(evento, { "rolé de carga criado": (res) => res.status === 201 })) {
+    throw new Error(`Falha ao criar o rolé de carga: status ${evento.status}`);
+  }
+  return { token, eventId: evento.json("id") };
 }
 export default function (data) {
-  group("POST /eventos/{id}/comentarios", () => {
-    const body = {
-      text: `k6-test comentario vu=${__VU} iter=${__ITER} ts=${Date.now()}`,
-    };
+  group(ROTA, () => {
+    const texto = `k6-test comentario vu=${__VU} iter=${__ITER} ts=${Date.now()}`;
     const response = http.post(
       `${BASE_URL}/eventos/${data.eventId}/comentarios`,
-      JSON.stringify(body),
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "X-User-Id": data.user.id,
-        },
-        tags: { service: "comentarios-write", endpoint: "POST /eventos/{id}/comentarios" },
-      },
+      JSON.stringify({ text: texto }),
+      { headers: autorizado(data.token), tags: { name: ROTA } },
     );
     commentLatency.add(response.timings.duration);
     const ok = check(response, {
@@ -114,8 +89,7 @@ export default function (data) {
       "resposta em JSON": (res) => res.headers["Content-Type"] && res.headers["Content-Type"].includes("application/json"),
       "comentario aparece no retorno": (res) => {
         try {
-          const parsed = JSON.parse(res.body);
-          return parsed.text && parsed.text.includes("k6-test");
+          return JSON.parse(res.body).text === texto;
         } catch (e) {
           return false;
         }
@@ -125,11 +99,15 @@ export default function (data) {
   });
   sleep(Math.random() * 1.0 + 0.3);
 }
+// Apaga o rolé de carga, com os comentários dele.
+export function teardown(data) {
+  http.del(`${BASE_URL}/eventos/${data.eventId}`, null, { headers: autorizado(data.token), tags: { phase: "teardown", name: "DELETE /eventos/{id}" } });
+}
 export function handleSummary(data) {
   return makeSummary("SLA - Escrita de comentarios", data, {
     service: "Publicacao de comentarios",
     operation: "Insercao",
-    endpoint: "POST /api/eventos/{id}/comentarios",
+    endpoint: `${ROTA.replace("/eventos", "/api/eventos")}`,
     baseUrl: BASE_URL,
     profile: LOAD_PROFILE,
     stages: selectedStages,
