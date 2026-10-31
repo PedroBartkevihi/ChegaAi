@@ -2,6 +2,7 @@
 #   Front-end: http://localhost:3000   API: http://localhost:8080/api   Swagger: http://localhost:8080/api/swagger-ui.html
 # Só o banco, para desenvolver API e front-end fora do Docker: docker compose up -d db
 # GraphDB (recomendações, opcional): docker compose --profile graphdb up -d graphdb
+# As portas só aceitam conexões deste computador (127.0.0.1): o banco usa a senha padrão abaixo.
 name: chegaai
 
 services:
@@ -12,7 +13,7 @@ services:
       POSTGRES_USER: chegaai
       POSTGRES_PASSWORD: chegaai
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -33,7 +34,7 @@ services:
       # Para manter os tokens entre reinícios, defina CHEGAAI_JWT_SECRET no shell ou num arquivo .env.
       CHEGAAI_JWT_SECRET: ${CHEGAAI_JWT_SECRET:-}
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
 
   web:
     build:
@@ -44,13 +45,13 @@ services:
       api:
         condition: service_healthy
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
 
   graphdb:
     image: ontotext/graphdb:10.6.0
     profiles: ["graphdb"]
     ports:
-      - "7200:7200"
+      - "127.0.0.1:7200:7200"
     volumes:
       - graphdb:/opt/graphdb/home
 

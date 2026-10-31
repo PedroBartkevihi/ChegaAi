@@ -185,7 +185,9 @@ Todas usam a senha `admin123`.
 
 ## API
 
-A documentação interativa fica no Swagger (`/api/swagger-ui.html`). Principais rotas:
+A documentação interativa fica no Swagger (`/api/swagger-ui.html`). Na versão online, ela também
+fica pública, de propósito: quem avalia o projeto pode explorar a API sem instalar nada. O Swagger só
+documenta: cada rota mantém as regras de acesso da tabela abaixo. Principais rotas:
 
 | Método | Rota | Acesso |
 |---|---|---|
