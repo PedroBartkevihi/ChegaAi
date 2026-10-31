@@ -74,7 +74,6 @@ public class FeedService {
                 apresentacao.data(evento),
                 apresentacao.hora(evento),
                 apresentacao.local(evento),
-                0,
                 evento.getLimiteParticipantes(),
                 apresentacao.status(evento),
                 apresentacao.organizador(evento),

@@ -8,7 +8,6 @@ public record EventoResumoDTO(
     String date,
     String time,
     String place,
-    int distance,
     int capacity,
     String status,
     EventoResponseDTO.OrganizerDTO organizer,

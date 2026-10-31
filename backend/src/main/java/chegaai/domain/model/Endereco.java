@@ -16,6 +16,8 @@ import java.util.UUID;
 @ToString(exclude = "eventos")
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Endereco {
+    /** Gravado quando o organizador não informa um CEP válido, porque a coluna é obrigatória; a API nunca o mostra. */
+    public static final String CEP_NAO_INFORMADO = "00000000";
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id_endereco", nullable = false, updatable = false)

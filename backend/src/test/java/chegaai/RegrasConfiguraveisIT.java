@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.TestPropertySource;
 import java.util.UUID;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,7 +28,10 @@ class RegrasConfiguraveisIT extends IntegracaoBase {
 
         definirHonra(usuario, "4.0");
         assertThat(usuarioAtual(usuario).get("canCreateEvents").asBoolean()).isTrue();
-        criarEvento(usuario.token(), "Capacidade comum configurada", 75)
+        criarEvento(usuario.token(), "Capacidade comum acima do configurado", 9)
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message", containsString("até 8 participantes")));
+        criarEvento(usuario.token(), "Capacidade comum configurada", 8)
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.capacity").value(8))
             .andExpect(jsonPath("$.organizer.isAmbassador").value(false));
@@ -36,7 +40,10 @@ class RegrasConfiguraveisIT extends IntegracaoBase {
         var embaixador = usuarioAtual(usuario);
         assertThat(embaixador.get("isAmbassador").asBoolean()).isTrue();
         assertThat(embaixador.get("capacityLimit").asInt()).isEqualTo(60);
-        var evento = json(criarEvento(usuario.token(), "Capacidade de embaixador configurada", 75)
+        criarEvento(usuario.token(), "Capacidade de embaixador acima do configurado", 61)
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message", containsString("até 60 participantes")));
+        var evento = json(criarEvento(usuario.token(), "Capacidade de embaixador configurada", 60)
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.capacity").value(60))
             .andExpect(jsonPath("$.organizer.isAmbassador").value(true)));

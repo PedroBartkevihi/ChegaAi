@@ -48,9 +48,9 @@ public class GraphDBService {
                 .body(String.class);
             return result == null || result.isBlank() ? emptySparqlResult() : result;
         } catch (RestClientResponseException ex) {
-            throw new IllegalStateException("GraphDB respondeu com erro " + ex.getStatusCode().value(), ex);
+            throw new GraphDBIndisponivelException("GraphDB respondeu com erro " + ex.getStatusCode().value(), ex);
         } catch (RuntimeException ex) {
-            throw new IllegalStateException("Não foi possível consultar o GraphDB.", ex);
+            throw new GraphDBIndisponivelException("Não foi possível consultar o GraphDB.", ex);
         }
     }
     private RestClient restClient() {

@@ -24,13 +24,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Base dos testes de integração: sobe a aplicação inteira contra um PostgreSQL real
  * (Testcontainers), com as mesmas migrations do Flyway usadas em produção.
  * O contêiner é compartilhado entre as classes de teste; cada teste cria os próprios
- * usuários e eventos para não depender da ordem de execução.
+ * usuários e eventos para não depender da ordem de execução. O GraphDB aponta para uma porta
+ * fechada, como na versão online, onde ele não existe: um GraphDB local não muda os testes.
  */
 @SpringBootTest(properties = {
     "chegaai.limites.login-ip.capacidade=1000000", "chegaai.limites.login-par.capacidade=1000000",
     "chegaai.limites.cadastro-ip.capacidade=1000000", "chegaai.limites.criar-evento.capacidade=1000000",
     "chegaai.limites.criar-evento.longo-capacidade=1000000", "chegaai.limites.comentar.capacidade=1000000",
-    "chegaai.limites.comentar.longo-capacidade=1000000"
+    "chegaai.limites.comentar.longo-capacidade=1000000", "chegaai.graphdb.url=http://127.0.0.1:1"
 })
 @AutoConfigureMockMvc
 public abstract class IntegracaoBase {
@@ -97,7 +98,6 @@ public abstract class IntegracaoBase {
         corpo.put("cep", "");
         corpo.put("place", "Quadra do Aterro, Rio de Janeiro");
         corpo.put("capacity", capacidade);
-        corpo.put("distance", 3);
         corpo.put("description", "Evento criado pelo teste de integração.");
         return corpo;
     }

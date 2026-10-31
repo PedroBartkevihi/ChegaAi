@@ -128,6 +128,8 @@ class FeedIT extends IntegracaoBase {
         assertThat(item.get("waitlistCount").asLong()).isEqualTo(1).isEqualTo(detalhe.get("waitlist").size());
         assertThat(item.has("confirmed")).isFalse();
         assertThat(item.has("comments")).isFalse();
+        assertThat(item.has("distance")).isFalse();
+        assertThat(detalhe.has("distance")).isFalse();
         assertThat(detalhe.get("comments").size()).isPositive();
     }
 

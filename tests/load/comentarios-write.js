@@ -67,7 +67,6 @@ export function setup() {
     cep: "",
     place: "Parque de testes, Rio de Janeiro",
     capacity: 10,
-    distance: 1,
     description: "Rolé fictício criado pelo teste de carga para receber comentários.",
   }), { headers: autorizado(token), tags: { phase: "setup", name: "POST /eventos" } });
   if (!check(evento, { "rolé de carga criado": (res) => res.status === 201 })) {

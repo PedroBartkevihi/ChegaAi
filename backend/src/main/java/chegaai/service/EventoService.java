@@ -59,7 +59,7 @@ public class EventoService {
             throw new IllegalArgumentException("A data de realização deve ser uma data futura.");
         }
         // Recusa antes do ViaCEP o que já se sabe que vai falhar; a transação confere de novo.
-        organizadorApto(usuarioId);
+        exigirCapacidadePermitida(organizadorApto(usuarioId), dto.capacity());
         categoriaPorNome(dto.category());
         Endereco endereco = montarEndereco(dto);
         return transacao.execute(status -> criarEventoNoBanco(dto, usuarioId, dataHora, endereco));
@@ -69,10 +69,9 @@ public class EventoService {
         coordenacaoDemonstracao.aguardarRecriacao();
         contaService.travarAtivo(usuarioId);
         Usuario organizador = organizadorApto(usuarioId);
+        exigirCapacidadePermitida(organizador, dto.capacity());
         Categoria categoria = categoriaPorNome(dto.category());
         Endereco enderecoSalvo = enderecoRepository.save(endereco);
-        int limiteMax = regrasEventoService.limiteVagas(organizador);
-        int capacidade = Math.min(dto.capacity(), limiteMax);
         Evento evento = new Evento();
         evento.setOrganizador(organizador);
         evento.setCategoria(categoria);
@@ -80,7 +79,7 @@ public class EventoService {
         evento.setTitulo(dto.title());
         evento.setDescricao(dto.description());
         evento.setDataHoraRealizacao(dataHora);
-        evento.setLimiteParticipantes(capacidade);
+        evento.setLimiteParticipantes(dto.capacity());
         evento.setStatusEvento(StatusEvento.ATIVO);
         evento.setTravado(false);
         evento = eventoRepository.save(evento);
@@ -105,7 +104,7 @@ public class EventoService {
         boolean organizador = evento.getOrganizador().getId().equals(usuarioId);
         boolean moderador = usuario.getPapelSistema() == PapelSistema.ADMINISTRADOR;
         if (!organizador && !moderador) {
-            throw new IllegalStateException("Apenas o organizador ou um moderador pode excluir este rolé.");
+            throw new AccessDeniedException("Apenas o organizador ou um moderador pode excluir este rolé.");
         }
         // O moderador de demonstração tem a senha publicada na tela de entrada: ele só modera os
         // rolés da demonstração, para nenhum visitante apagar o que outras pessoas criaram.
@@ -124,8 +123,7 @@ public class EventoService {
         Evento evento = eventoRepository.findByIdForUpdate(eventoId)
             .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + eventoId));
         if (!evento.getOrganizador().getId().equals(usuarioId)) {
-            throw new IllegalStateException(
-                "Apenas o organizador pode concluir o evento.");
+            throw new AccessDeniedException("Apenas o organizador pode concluir o evento.");
         }
         List<Inscricao> confirmadas = inscricaoRepository
             .findByEventoIdAndStatusInscricao(eventoId, StatusInscricao.CONFIRMADA);
@@ -233,6 +231,14 @@ public class EventoService {
         }
         return organizador;
     }
+    // Acima do limite da honra, o pedido é recusado: cortar em silêncio criaria um rolé diferente do pedido.
+    private void exigirCapacidadePermitida(Usuario organizador, int capacidade) {
+        int limite = regrasEventoService.limiteVagas(organizador);
+        if (capacidade > limite) {
+            throw new IllegalArgumentException(
+                "Com a sua reputação atual, o rolé pode ter até " + limite + " participantes.");
+        }
+    }
     private Categoria categoriaPorNome(String nome) {
         return categoriaRepository.findByNome(nome)
             .orElseThrow(() -> new NoSuchElementException("Categoria não encontrada: " + nome));
@@ -284,7 +290,7 @@ public class EventoService {
             }
             log.warn("ViaCEP indisponível ou CEP '{}' não encontrado. Usando preenchimento manual.", cepLimpo);
         }
-        endereco.setCep(cepValido ? cepLimpo : "00000000");
+        endereco.setCep(cepValido ? cepLimpo : Endereco.CEP_NAO_INFORMADO);
         endereco.setLogradouro(dto.place() != null ? dto.place() : "Local informado pelo organizador");
         endereco.setBairro(extrairPrimeiraParte(dto.place(), "Centro"));
         endereco.setCidade(extrairSegundaParte(dto.place(), "Cidade não informada"));
@@ -333,9 +339,8 @@ public class EventoService {
             evento.getCategoria().getNome(),
             apresentacao.data(evento),
             apresentacao.hora(evento),
-            evento.getEndereco().getCep(),
+            apresentacao.cep(evento),
             apresentacao.local(evento),
-            0,
             evento.getLimiteParticipantes(),
             apresentacao.status(evento),
             apresentacao.organizador(evento),
