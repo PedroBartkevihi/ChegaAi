@@ -101,6 +101,9 @@ jobs:
       - name: Testes da proteção de sessão
         working-directory: frontend
         run: npm run test:session
+      - name: Testes do feed paginado
+        working-directory: frontend
+        run: npm run test:feed
       - name: Testes da CSP e dos cabeçalhos
         working-directory: frontend
         run: npm run test:security

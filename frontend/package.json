@@ -9,6 +9,7 @@
     "start": "next start",
     "test:e2e": "playwright test",
     "test:session": "node --test tests/session.test.mjs",
+    "test:feed": "node --test tests/feed.test.mjs",
     "postbuild": "node scripts/secure-export.mjs",
     "security:export": "node scripts/secure-export.mjs",
     "test:security": "node --test tests/security.test.mjs"

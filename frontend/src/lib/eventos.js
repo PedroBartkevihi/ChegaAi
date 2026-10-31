@@ -15,7 +15,7 @@ export function getEnrollmentActionLabel(event, enrollment) {
   if (eventTimestamp(event) <= Date.now()) return "Inscrições encerradas";
   if (enrollment === "CONFIRMADO") return "Cancelar presença";
   if (enrollment === "FILA") return "Sair da lista de espera";
-  return event.confirmed.length >= event.capacity ? "Entrar na lista de espera" : "Quero participar";
+  return event.confirmedCount >= event.capacity ? "Entrar na lista de espera" : "Quero participar";
 }
 export function hasActiveFilters(filters) {
   return filters.search !== "" || filters.category !== "todos" || filters.honor !== "0";
@@ -42,11 +42,6 @@ export function createId() {
 }
 export function eventTimestamp(event) {
   return new Date(`${event.date}T${event.time || "00:00"}:00${UTC_OFFSET}`).getTime();
-}
-// Aberto e com início ainda por vir. Passado o horário de início, o rolé vai para "anteriores":
-// a API não informa a duração, então não dá para saber se ainda está acontecendo.
-export function isUpcoming(event, now = Date.now()) {
-  return event.status === "ABERTO" && eventTimestamp(event) >= now;
 }
 // Data do rolé (sáb., 30 de out. / Hoje / Amanhã) e lista em ordem de data, Embaixador como desempate.
 export function sortByDate(events) {
