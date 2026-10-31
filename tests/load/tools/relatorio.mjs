@@ -91,18 +91,27 @@ export function metricasDoResumo(resumo) {
   // Requisições e vazão também só da carga, como a linha "Todas".
   const duracao = resumo.state?.testRunDurationMs ? resumo.state.testRunDurationMs / 1000 : null;
   const carga = metricas[total]?.values?.count ?? null;
+  // Grupos com limite próprio (group_duration{group:::...}): o tempo de cada abertura do feed, somando os pedidos dela.
+  const grupos = Object.entries(metricas)
+    .filter(([nome]) => nome.startsWith("group_duration{group:::"))
+    .map(([nome, metrica]) => ({ ...linha(nome.slice("group_duration{group:::".length, -1), metrica) }));
+  const iteracoes = metricas.iterations?.values?.count ?? null;
+  const recebidos = metricas.data_received?.values?.count ?? null;
   return {
     rotas,
+    grupos,
     vazao: carga !== null && duracao ? carga / duracao : metricas.http_reqs?.values?.rate ?? null,
     requisicoes: carga ?? metricas.http_reqs?.values?.count ?? null,
     erros: metricas.http_req_failed?.values?.rate ?? null,
     vusMax: metricas.vus_max?.values?.max ?? null,
+    kbPorIteracao: iteracoes && recebidos !== null ? recebidos / iteracoes / 1024 : null,
     limites,
   };
 }
 
 const ms = (valor) => (valor === null || valor === undefined ? "–" : valor.toFixed(1).replace(".", ","));
 const pct = (valor) => (valor === null || valor === undefined ? "–" : `${(valor * 100).toFixed(2).replace(".", ",")} %`);
+const kb = (valor) => (valor === null || valor === undefined ? "–" : `${valor.toFixed(1).replace(".", ",")} KB`);
 
 // Marcas redondas (1, 2 ou 5 vezes uma potência de 10) que cobrem o máximo em cerca de 4 passos.
 export function escala(maximo, inteira = false) {
@@ -175,8 +184,15 @@ export function textoMedicao(metadados, metricas) {
     "| Rota | Requisições | Média (ms) | p90 (ms) | p95 (ms) | Máximo (ms) |",
     "|---|---:|---:|---:|---:|---:|",
     ...metricas.rotas.map((r) => `| ${r.rota} | ${r.contagem ?? "–"} | ${ms(r.media)} | ${ms(r.p90)} | ${ms(r.p95)} | ${ms(r.maximo)} |`),
+    ...(metricas.grupos.length ? [
+      "",
+      "| Abertura (grupo do k6, soma dos pedidos) | Aberturas | Média (ms) | p90 (ms) | p95 (ms) | Máximo (ms) |",
+      "|---|---:|---:|---:|---:|---:|",
+      ...metricas.grupos.map((g) => `| ${g.rota} | ${g.contagem ?? "–"} | ${ms(g.media)} | ${ms(g.p90)} | ${ms(g.p95)} | ${ms(g.maximo)} |`),
+    ] : []),
     "",
     `Vazão média: ${metricas.vazao === null ? "–" : metricas.vazao.toFixed(1).replace(".", ",")} req/s. Erros: ${pct(metricas.erros)}.`
+      + ` Recebido por iteração: ${kb(metricas.kbPorIteracao)}.`
       + ` Limites do SLA: ${falhas.length ? `falharam ${falhas.map((f) => `\`${f.metrica}\` ${f.regra}`).join(", ")}` : "todos dentro"}.`,
     "",
     "![Latência e usuários virtuais por segundo](latencia.svg)",
@@ -204,13 +220,14 @@ function gerarMedicao(origem, destino) {
 
 export function textoComparacao(medicoes, arquivo) {
   return [
-    "| Medição | Requisições | Vazão (req/s) | Média (ms) | p95 (ms) | Erros | Pico de memória |",
-    "|---|---:|---:|---:|---:|---:|---:|",
+    "| Medição | Requisições | Vazão (req/s) | Média (ms) | p95 (ms) | Abertura p95 (ms) | Recebido por iteração | Erros | Pico de memória |",
+    "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
     ...medicoes.map(({ pasta, metadados, metricas }) => {
       const todas = metricas.rotas.find((r) => r.rota === "Todas") || {};
       const link = relative(join(arquivo, ".."), join(pasta, "medicao.md")).replaceAll("\\", "/");
       return `| [${descricao(metadados)}](${link}) | ${metricas.requisicoes ?? "–"} | ${metricas.vazao === null ? "–" : metricas.vazao.toFixed(1).replace(".", ",")}`
-        + ` | ${ms(todas.media)} | ${ms(todas.p95)} | ${pct(metricas.erros)} | ${metadados.memoriaMiB.pico === null ? "–" : `${Math.round(metadados.memoriaMiB.pico)} MiB`} |`;
+        + ` | ${ms(todas.media)} | ${ms(todas.p95)} | ${ms(metricas.grupos[0]?.p95)} | ${kb(metricas.kbPorIteracao)} | ${pct(metricas.erros)}`
+        + ` | ${metadados.memoriaMiB.pico === null ? "–" : `${Math.round(metadados.memoriaMiB.pico)} MiB`} |`;
     }),
     "",
   ].join("\n");

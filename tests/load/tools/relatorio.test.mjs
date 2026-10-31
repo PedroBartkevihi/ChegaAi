@@ -49,9 +49,12 @@ test("o resumo do k6 vira uma linha por rota e a lista de limites", () => {
       "http_req_duration{operation:read}": { values: valores(5, 30), thresholds: { "avg<800": { ok: true } } },
       "http_req_duration{name:GET /eventos/resumo}": { values: valores(2, 10), thresholds: { "p(95)<2000": { ok: true } } },
       "http_req_duration{name:GET /eventos/feed}": { values: valores(8, 20), thresholds: { "p(95)<2000": { ok: false } } },
+      "group_duration{group:::abrir o feed}": { values: valores(12, 15), thresholds: { "p(95)<2000": { ok: true } } },
       http_reqs: { values: { rate: 12.5, count: 31 } },
       http_req_failed: { values: { rate: 0 } },
       vus_max: { values: { max: 30 } },
+      iterations: { values: { count: 15 } },
+      data_received: { values: { count: 15 * 3 * 1024 } },
     },
   });
   // O total é o da carga (sem o setup), e as rotas vêm das mais pedidas para as menos.
@@ -60,6 +63,9 @@ test("o resumo do k6 vira uma linha por rota e a lista de limites", () => {
   assert.equal(metricas.rotas[1].p95, 24);
   assert.equal(metricas.requisicoes, 30);
   assert.equal(metricas.vazao, 2);
+  // Cada abertura do feed é um grupo do k6; o recebido por iteração vem de data_received / iterations.
+  assert.deepEqual(metricas.grupos.map((g) => [g.rota, g.contagem, g.p95]), [["abrir o feed", 15, 36]]);
+  assert.equal(metricas.kbPorIteracao, 3);
   assert.equal(metricas.limites.filter((l) => !l.ok).length, 1);
   const texto = textoMedicao({
     data: "2026-10-31T12:00:00Z", versaoApi: "abc1234", versaoScripts: "def5678", script: "eventos-feed", perfil: "smoke",
@@ -70,5 +76,7 @@ test("o resumo do k6 vira uma linha por rota e a lista de limites", () => {
   assert.match(texto, /# Leitura do feed, feed paginado, base demonstracao, código abc1234/);
   assert.match(texto, /\| GET \/eventos\/feed \| 20 \| 8,0 \| 16,0 \| 24,0 \| 32,0 \|/);
   assert.match(texto, /pico de 300 MiB de 512 MiB \(3 amostras\), sem OOM/);
+  assert.match(texto, /\| abrir o feed \| 15 \| 12,0 \| 24,0 \| 36,0 \| 48,0 \|/);
+  assert.match(texto, /Recebido por iteração: 3,0 KB\./);
   assert.match(texto, /falharam `http_req_duration\{name:GET \/eventos\/feed\}` p\(95\)<2000/);
 });
