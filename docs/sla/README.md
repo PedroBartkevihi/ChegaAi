@@ -8,6 +8,7 @@
   * [`backend/src/main/java/chegaai/repository/EventoRepository.java`](../../backend/src/main/java/chegaai/repository/EventoRepository.java)
 * **Arquivos com o código fonte de medição do SLA:**
   * [`tests/load/eventos-feed.js`](../../tests/load/eventos-feed.js)
+* **Observação (30/10/2026):** as medições abaixo foram feitas na antiga `GET /api/eventos`, que devolvia a lista completa e foi removida. O `eventos-feed.js` passou a medir a primeira página de `GET /api/eventos/feed`.
 * **Descrição das configurações:**
   * **MEDIÇÃO 1 (Base):** Microsoft Windows 11 Pro executado localmente. Engine de banco de dados PostgreSQL 15 instanciada via Docker Compose dividindo ciclos de CPU e barramento de memória I/O com a aplicação Spring Boot e o executor k6 no mesmo host.
   * **MEDIÇÃO 2 (Otimizado):** Sistema Operacional Fedora Linux nativo. PostgreSQL 15 rodando em ambiente de container Docker isolado, permitindo acesso direto aos recursos do Kernel do Linux e isolamento de threads de execução concorrentes. Código-fonte compactado e sem comentários.

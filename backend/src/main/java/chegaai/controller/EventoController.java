@@ -19,7 +19,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.UUID;
 @RestController
 @RequestMapping("/eventos")
@@ -31,10 +30,6 @@ public class EventoController {
     private final ComentarioService comentarioService;
     private final FusoHorario fusoHorario;
     private final LimitadorRequisicoes limitadorRequisicoes;
-    @GetMapping
-    public ResponseEntity<List<EventoResponseDTO>> listarTodos() {
-        return ResponseEntity.ok(eventoService.listarTodos());
-    }
     /**
      * Feed paginado: resumos dos rolés, com filtros e ordem no servidor. {@code secao} separa os
      * próximos (abertos, com início por vir) dos anteriores e indisponíveis.

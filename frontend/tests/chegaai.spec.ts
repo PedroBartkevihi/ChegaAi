@@ -39,18 +39,15 @@ test.describe('ChegaAí — fluxos com dados próprios', () => {
     await expect(page.getByTestId(`event-card-${evento.id}`)).toBeVisible();
   });
 
-  test('CT03 — honra baixa bloqueia a criação sem alterar a conta demo', async ({ page, cenario, request }) => {
+  test('CT03 — honra baixa bloqueia a criação sem alterar a conta demo', async ({ page, cenario }) => {
     // Única demo usada: cenário de honra inicial explícita, somente leitura.
     const user = await loginPelaUI(page, { email: 'baixa@chegaai.dev', senha: 'admin123' });
     expect(user.honor).toBeLessThan(2);
-    const antes = await request.get(cenario.endpoint('/eventos'));
-    expect(antes.status()).toBe(200);
-    const idsAntes = (await antes.json()).map((e: EventoDTO) => e.id).sort();
+    const idsAntes = await cenario.idsDeTodosOsRoles();
     await page.locator('[aria-label="Navegação principal"]').getByRole('button', { name: 'Criar rolé', exact: true }).click();
     await expect(page.locator('.notice.alert-error')).toContainText(/reputação|honra/i);
     await expect(page.locator('section[aria-label="Criar evento"]')).toHaveCount(0);
-    const depois = await request.get(cenario.endpoint('/eventos'));
-    expect((await depois.json()).map((e: EventoDTO) => e.id).sort()).toEqual(idsAntes);
+    expect(await cenario.idsDeTodosOsRoles()).toEqual(idsAntes);
   });
 
   test('CT04 — participante envia comentário próprio e o reencontra após recarregar', async ({ page, cenario }) => {

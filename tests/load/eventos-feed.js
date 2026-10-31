@@ -39,28 +39,28 @@ export const options = {
   summaryTrendStats: ["avg", "min", "med", "p(90)", "p(95)", "max", "count"],
 };
 export function setup() {
-  const response = http.get(`${BASE_URL}/eventos`, {
+  const response = http.get(`${BASE_URL}/eventos/feed`, {
     tags: { phase: "setup", service: "eventos-feed" },
   });
   check(response, {
-    "setup listou eventos": (res) => res.status === 200,
+    "setup leu o feed": (res) => res.status === 200,
   });
   return {
     baseUrl: BASE_URL,
   };
 }
 export default function () {
-  group("GET /eventos", () => {
-    const response = http.get(`${BASE_URL}/eventos`, {
-      tags: { service: "eventos-feed", endpoint: "GET /eventos" },
+  group("GET /eventos/feed", () => {
+    const response = http.get(`${BASE_URL}/eventos/feed?secao=proximos&pagina=0&tamanho=12`, {
+      tags: { service: "eventos-feed", endpoint: "GET /eventos/feed" },
     });
     feedLatency.add(response.timings.duration);
     const ok = check(response, {
       "status 200": (res) => res.status === 200,
       "resposta em JSON": (res) => res.headers["Content-Type"] && res.headers["Content-Type"].includes("application/json"),
-      "payload e lista": (res) => {
+      "payload e pagina": (res) => {
         try {
-          return Array.isArray(JSON.parse(res.body));
+          return Array.isArray(JSON.parse(res.body).items);
         } catch (e) {
           return false;
         }
@@ -74,7 +74,7 @@ export function handleSummary(data) {
   return makeSummary("SLA - Listagem de eventos", data, {
     service: "Listagem de eventos",
     operation: "Leitura",
-    endpoint: "GET /api/eventos",
+    endpoint: "GET /api/eventos/feed",
     baseUrl: BASE_URL,
     profile: LOAD_PROFILE,
     stages: selectedStages,

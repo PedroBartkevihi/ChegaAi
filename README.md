@@ -192,7 +192,7 @@ A documentação interativa fica no Swagger (`/api/swagger-ui.html`). Principais
 | `GET` | `/api/auth/me`, `/api/auth/me/inscricoes`, `/api/auth/me/avaliacoes-pendentes` | Autenticado; somente dados da própria conta |
 | `GET` | `/api/eventos/feed` | Público; página de resumos com `secao` (`proximos` ou `anteriores`), `categoria`, `honraMinima`, `embaixador`, `busca`, `pagina` e `tamanho` (até 50) |
 | `GET` | `/api/eventos/resumo` | Público; total de rolés, abertos, pessoas na fila e rolés de Embaixadores |
-| `GET` | `/api/eventos`, `/api/eventos/{id}` | Público; o site usa só o detalhe por id, e a lista completa será removida |
+| `GET` | `/api/eventos/{id}` | Público; detalhe do rolé, com os nomes de confirmados e da fila e os comentários |
 | `POST` | `/api/eventos` | Autenticado (honra ≥ 2.0) |
 | `DELETE` | `/api/eventos/{id}` | Organizador ou moderador |
 | `POST` | `/api/eventos/{id}/inscricao` | Autenticado (inscreve ou cancela) |

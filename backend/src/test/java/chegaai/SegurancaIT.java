@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.UUID;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
@@ -27,9 +28,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 class SegurancaIT extends IntegracaoBase {
     @Test
-    @DisplayName("o feed de eventos é público")
+    @DisplayName("o feed de eventos e o resumo são públicos")
     void feedEhPublico() throws Exception {
-        mockMvc.perform(get("/eventos")).andExpect(status().isOk());
+        mockMvc.perform(get("/eventos/feed")).andExpect(status().isOk());
+        mockMvc.perform(get("/eventos/resumo")).andExpect(status().isOk());
+    }
+    @Test
+    @DisplayName("a lista completa saiu: GET /eventos devolve 405, também sem token")
+    void listaCompletaRemovida() throws Exception {
+        mockMvc.perform(get("/eventos"))
+            .andExpect(status().isMethodNotAllowed())
+            .andExpect(header().string("Allow", allOf(containsString("POST"), not(containsString("GET")))))
+            .andExpect(jsonPath("$.message").value("Método GET não é aceito nesta rota."));
     }
     @Test
     @DisplayName("criar evento sem token devolve 401")
@@ -60,7 +70,7 @@ class SegurancaIT extends IntegracaoBase {
     void tokenForjadoComChavePadraoAntigaDevolve401() throws Exception {
         UsuarioTeste ana = cadastrar("Ana");
         // A chave era o padrão do application.properties: com ela, qualquer pessoa assinava um token
-        // para o id de um organizador, que aparece em GET /eventos.
+        // para o id de um organizador, que aparece no feed (GET /eventos/feed).
         String forjado = assinar("chave-de-desenvolvimento-local-nao-usar-em-producao", ana.id());
         mockMvc.perform(get("/auth/me").header("Authorization", bearer(forjado)))
             .andExpect(status().isUnauthorized());
@@ -74,7 +84,7 @@ class SegurancaIT extends IntegracaoBase {
         jdbcTemplate.update("DELETE FROM usuario WHERE id_usuario = ?", helo.id());
         mockMvc.perform(get("/auth/me").header("Authorization", bearer(helo.token())))
             .andExpect(status().isUnauthorized());
-        mockMvc.perform(get("/eventos").header("Authorization", bearer(helo.token())))
+        mockMvc.perform(get("/eventos/feed").header("Authorization", bearer(helo.token())))
             .andExpect(status().isUnauthorized());
     }
     @Test
@@ -235,7 +245,7 @@ class SegurancaIT extends IntegracaoBase {
         UsuarioTeste ana = cadastrar("Ana");
         mockMvc.perform(put("/eventos").header("Authorization", bearer(ana.token())))
             .andExpect(status().isMethodNotAllowed())
-            .andExpect(header().string("Allow", allOf(containsString("GET"), containsString("POST"))))
+            .andExpect(header().string("Allow", containsString("POST")))
             .andExpect(jsonPath("$.message").value("Método PUT não é aceito nesta rota."));
     }
     private static String assinar(String segredo, UUID usuarioId) {
