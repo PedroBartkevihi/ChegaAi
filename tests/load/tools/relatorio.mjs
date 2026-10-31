@@ -57,6 +57,24 @@ export function pausasDoGc(texto, inicio, fim) {
   };
 }
 
+// Consultas acima de 100 ms no banco.log (log_min_duration_statement) que caíram entre inicio e fim.
+export function consultasLentas(texto, inicio, fim) {
+  const lentas = [];
+  for (const linha of texto.split(/\r?\n/)) {
+    const m = linha.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}\.\d+) UTC \[\d+\] LOG: {2}duration: ([\d.]+) ms {2}\S+ [^:]*: (.*)$/);
+    if (!m) continue;
+    const tempo = Date.parse(`${m[1]}T${m[2]}Z`);
+    if (tempo >= inicio && tempo <= fim) lentas.push({ ms: Number(m[3]), commit: /^COMMIT\b/i.test(m[4].trim()) });
+  }
+  const maior = (lista) => lista.reduce((atual, item) => (atual === null || item.ms > atual ? item.ms : atual), null);
+  return {
+    quantidade: lentas.length,
+    commits: lentas.filter((item) => item.commit).length,
+    maior: maior(lentas),
+    maiorCommit: maior(lentas.filter((item) => item.commit)),
+  };
+}
+
 export function porSegundo({ duracoes, vus }) {
   if (!duracoes.length) return [];
   // Sem espalhar os pontos num Math.min: uma medição longa passa do limite de argumentos.
@@ -183,7 +201,10 @@ function descricao(metadados) {
 }
 
 export function textoMedicao(metadados, metricas) {
-  const { base, ambiente, memoriaMiB: memoria, gcDuranteACarga: gc } = metadados;
+  const { base, ambiente, memoriaMiB: memoria, gcDuranteACarga: gc, bancoDuranteACarga: banco } = metadados;
+  const textoBanco = !banco ? null : banco.quantidade === 0 ? "nenhuma"
+    : `${banco.quantidade}, a maior de ${ms(banco.maior)} ms; ${banco.commits} delas foram COMMIT`
+      + `${banco.maiorCommit === null ? "" : `, o maior de ${ms(banco.maiorCommit)} ms`}`;
   const falhas = metricas.limites.filter((limite) => !limite.ok);
   const textoGc = gc ? `; pausas do coletor de lixo durante a carga: ${gc.quantidade} (${gc.completas} completas)`
     + `${gc.maior === null ? "" : `, a maior de ${ms(gc.maior)} ms`}` : "";
@@ -200,6 +221,7 @@ export function textoMedicao(metadados, metricas) {
     `| Banco e k6 | ${ambiente.banco}; ${ambiente.k6} |`,
     `| Máquina | ${ambiente.cpuDoHost}; Docker com ${ambiente.docker} |`,
     `| Memória da API | pico de ${memoria.pico === null ? "–" : `${Math.round(memoria.pico)} MiB`} de 512 MiB (${memoria.amostras} amostras)${memoria.oom ? ", **com OOM**" : ", sem OOM"}${textoGc} |`,
+    ...(textoBanco ? [`| Consultas acima de 100 ms no banco, durante a carga | ${textoBanco} |`] : []),
     "",
     "| Rota | Requisições | Média (ms) | p90 (ms) | p95 (ms) | Máximo (ms) |",
     "|---|---:|---:|---:|---:|---:|",
@@ -233,6 +255,9 @@ function gerarMedicao(origem, destino) {
   const fim = serie.duracoes.reduce((maior, ponto) => Math.max(maior, ponto.tempo), -Infinity) + 1000;
   if (existsSync(join(origem, "api.log"))) {
     metadados.gcDuranteACarga = pausasDoGc(readFileSync(join(origem, "api.log"), "utf8"), inicio, fim);
+  }
+  if (existsSync(join(origem, "banco.log"))) {
+    metadados.bancoDuranteACarga = consultasLentas(readFileSync(join(origem, "banco.log"), "utf8"), inicio, fim);
   }
   mkdirSync(destino, { recursive: true });
   writeFileSync(join(destino, "metadados.json"), `${JSON.stringify(metadados, null, 2)}\n`);

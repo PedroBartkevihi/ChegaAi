@@ -43,6 +43,7 @@ IMAGEM_API="chegaai-medicao-api:$SHA"
 limpar() {
   [ -n "${AMOSTRADOR:-}" ] && kill "$AMOSTRADOR" 2>/dev/null || true
   docker logs "$ID-api" > "$SAIDA/api.log" 2>&1 || true
+  docker logs "$ID-db" > "$SAIDA/banco.log" 2>&1 || true
   docker rm -f "$ID-api" "$ID-db" > /dev/null 2>&1 || true
   docker network rm "$REDE" > /dev/null 2>&1 || true
 }
@@ -53,8 +54,10 @@ if ! docker image inspect "$IMAGEM_API" > /dev/null 2>&1; then
   git archive "$SHA:backend" | docker build -q -t "$IMAGEM_API" - > /dev/null
 fi
 docker network create "$REDE" > /dev/null
+# O banco.log guarda as consultas acima de 100 ms e os checkpoints, para explicar picos de latência.
 docker run -d --name "$ID-db" --network "$REDE" --network-alias db \
-  -e POSTGRES_DB=chegaai -e POSTGRES_USER=chegaai -e POSTGRES_PASSWORD=chegaai postgres:15-alpine > /dev/null
+  -e POSTGRES_DB=chegaai -e POSTGRES_USER=chegaai -e POSTGRES_PASSWORD=chegaai postgres:15-alpine \
+  -c log_min_duration_statement=100 -c log_checkpoints=on > /dev/null
 until docker exec "$ID-db" pg_isready -U chegaai -d chegaai > /dev/null 2>&1; do sleep 1; done
 
 # Como no Cloud Run: 1 CPU, 512 MiB e pool de 5 (mínimo 1). Os limites de escrita sobem só aqui.
