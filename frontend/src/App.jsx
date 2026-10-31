@@ -509,7 +509,7 @@ export default function App() {
         title: form.get("title").trim(), category: form.get("category"), date: form.get("date"), time: form.get("time"),
         cep: form.get("cep")?.trim() || "", place: form.get("place").trim(),
         capacity: Math.min(Number(form.get("capacity")), profile.capacityLimit),
-        distance: Number(form.get("distance")), description: form.get("description").trim(),
+        description: form.get("description").trim(),
       };
       const created = await sessionApi(scope, "/eventos", { method: "POST", body: JSON.stringify(dto) });
       setEnrollments((current) => guard.isCurrent(scope) ? { ...current, [created.id]: "CONFIRMADO" } : current);

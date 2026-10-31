@@ -25,7 +25,7 @@ export default function EventCard({ event, enrollment, enrollmentsReady = true, 
             <CalendarDays size={16} aria-hidden="true" />
             <span><time dateTime={`${event.date}T${event.time}`}>{formatEventDay(event.date)} · {event.time}</time></span>
           </li>
-          <li><MapPin size={16} aria-hidden="true" /><span>{event.place}{event.distance > 0 ? ` - ${event.distance} km` : ""}</span></li>
+          <li><MapPin size={16} aria-hidden="true" /><span>{event.place}</span></li>
           {event.confirmedCount >= event.capacity ? (
             <li>
               <span className="waitlist-pill">

@@ -27,7 +27,6 @@ export default function CreateView({ categoryOptions, capacityLimit, onSubmit, s
             <label>Horário<input name="time" required type="time" /></label>
             <label>CEP<input name="cep" inputMode="numeric" maxLength="9" placeholder="22290-240" /></label>
             <label>Cidade / bairro<input name="place" required maxLength="90" placeholder="Botafogo, Rio de Janeiro" /></label>
-            <label>Distância estimada (km)<input name="distance" required min="1" max="80" type="number" defaultValue="8" /></label>
           </div>
         </fieldset>
         <fieldset>

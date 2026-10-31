@@ -23,7 +23,8 @@ test.describe('ChegaAí — fluxos com dados próprios', () => {
     await form.locator('input[name="date"]').fill(dados.date);
     await form.locator('input[name="time"]').fill(dados.time);
     await form.locator('input[name="place"]').fill(dados.place);
-    await form.locator('input[name="distance"]').fill(String(dados.distance));
+    // A distância saiu: a API a ignorava e devolvia sempre 0.
+    await expect(form.locator('input[name="distance"]')).toHaveCount(0);
     await form.locator('textarea[name="description"]').fill(dados.description);
     await form.getByTestId('input-capacidade').fill(String(dados.capacity));
     const resposta = page.waitForResponse((r) => r.url().endsWith('/api/eventos') && r.request().method() === 'POST');

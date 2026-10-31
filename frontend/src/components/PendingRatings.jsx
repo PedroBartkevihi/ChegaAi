@@ -49,7 +49,7 @@ function RatingForm({ person, eventId, canRate, submitting, sendRating }) {
         <option value="" disabled>Selecione a nota</option>{[1, 2, 3, 4, 5].map((value) => <option key={value} value={value}>{value}</option>)}
       </select>
       <label htmlFor={`${formId}-comentario`}>Comentário (opcional)</label>
-      <textarea id={`${formId}-comentario`} value={comment} disabled={!canRate || submitting} rows="3" onChange={(event) => setComment(event.target.value)} />
+      <textarea id={`${formId}-comentario`} value={comment} disabled={!canRate || submitting} rows="3" maxLength="180" onChange={(event) => setComment(event.target.value)} />
       <button className="secondary-action" type="submit" disabled={!canRate || submitting}>{submitting ? "Enviando..." : "Enviar avaliação"}</button>
     </form>
   );
