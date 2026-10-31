@@ -34,13 +34,26 @@ class RegrasDeHonraIT extends IntegracaoBase {
             .andExpect(jsonPath("$.message", containsString("abaixo do mínimo")));
     }
     @Test
-    @DisplayName("quem fica com honra alta tem limite ampliado de vagas (Embaixador)")
+    @DisplayName("quem fica com honra alta tem limite ampliado de vagas (Embaixador); acima do limite, 400 sem criar")
     void embaixadorTemLimiteAmpliado() throws Exception {
         UsuarioTeste comum = cadastrar("Comum");
         UsuarioTeste embaixador = cadastrar("Embaixador");
         definirHonra(embaixador, "4.90");
-        criarEvento(comum.token(), "Pelada comum", 50).andExpect(jsonPath("$.capacity").value(20));
-        criarEvento(embaixador.token(), "Pelada grande", 50).andExpect(jsonPath("$.capacity").value(50));
+        String acimaDoLimite = "Pelada grande demais " + comum.primeiroNome();
+        criarEvento(comum.token(), acimaDoLimite, 21)
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Com a sua reputação atual, o rolé pode ter até 20 participantes."));
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM evento WHERE titulo = ?", Long.class, acimaDoLimite))
+            .isZero();
+        criarEvento(comum.token(), "Pelada comum", 20)
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.capacity").value(20));
+        criarEvento(embaixador.token(), "Pelada grande demais", 51)
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message", containsString("até 50 participantes")));
+        criarEvento(embaixador.token(), "Pelada grande", 50)
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.capacity").value(50));
     }
     @Test
     @DisplayName("confirmado que não comparece perde 0.5 de honra quando o evento é concluído (RN008)")
@@ -54,14 +67,14 @@ class RegrasDeHonraIT extends IntegracaoBase {
         assertThat(usuarioAtual(faltou).get("honor").asDouble()).isEqualTo(2.5);
     }
     @Test
-    @DisplayName("só o organizador conclui o evento")
+    @DisplayName("só o organizador conclui o evento: os outros recebem 403")
     void soOrganizadorConclui() throws Exception {
         UsuarioTeste organizador = cadastrar("Org");
         UsuarioTeste outro = cadastrar("Outro");
         UUID eventoId = criarEventoValido(organizador, 10);
         moverParaOPassado(eventoId);
         concluir(outro, eventoId)
-            .andExpect(status().isConflict())
+            .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.message", containsString("Apenas o organizador")));
     }
     private void definirHonra(UsuarioTeste usuarioTeste, String honra) {

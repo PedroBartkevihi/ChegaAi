@@ -175,13 +175,13 @@ class SegurancaIT extends IntegracaoBase {
             .andExpect(jsonPath("$.message", containsString("Não foi possível concluir o cadastro")));
     }
     @Test
-    @DisplayName("só o organizador ou a moderação excluem um evento")
+    @DisplayName("só o organizador ou a moderação excluem um evento: os outros recebem 403")
     void exclusaoDeEventoRespeitaPermissoes() throws Exception {
         UsuarioTeste organizador = cadastrar("Dani");
         UsuarioTeste outro = cadastrar("Edu");
         UUID eventoId = criarEventoValido(organizador, 10);
         mockMvc.perform(delete("/eventos/{id}", eventoId).header("Authorization", bearer(outro.token())))
-            .andExpect(status().isConflict())
+            .andExpect(status().isForbidden())
             .andExpect(jsonPath("$.message", containsString("organizador ou um moderador")));
         UsuarioTeste moderadora = cadastrar("Fabi");
         jdbcTemplate.update("UPDATE usuario SET papel_sistema = 'ADMINISTRADOR' WHERE id_usuario = ?", moderadora.id());

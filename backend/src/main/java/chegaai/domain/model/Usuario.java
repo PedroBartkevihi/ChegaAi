@@ -118,13 +118,6 @@ public abstract class Usuario {
         return estaAtivo(OffsetDateTime.now())
                && honraMedia.compareTo(honraMinimaParaCriacao) >= 0;
     }
-    public boolean podeSeInscrever() {
-        return estaAtivo(OffsetDateTime.now());
-    }
-    public int registrarDenunciaValidada() {
-        this.qtdDenunciasValidadas++;
-        return this.qtdDenunciasValidadas;
-    }
     public boolean qualificaEmbaixador(BigDecimal thresholdEmbaixador) {
         return honraMedia.compareTo(thresholdEmbaixador) >= 0;
     }

@@ -87,11 +87,30 @@ class AvaliacaoIT extends IntegracaoBase {
             .andExpect(jsonPath("$.message", containsString("antes de concluir")));
         assertThat(usuarioAtual(organizador).get("honor").asDouble()).isEqualTo(3.0);
     }
+    @Test
+    @DisplayName("o comentário da avaliação aceita até 180 caracteres, como o comentário do rolé")
+    void comentarioDaAvaliacaoTemLimite() throws Exception {
+        UsuarioTeste organizador = cadastrar("Org");
+        UsuarioTeste alfa = cadastrar("Alfa");
+        UUID eventoId = criarEventoValido(organizador, 10);
+        alternarInscricao(alfa, eventoId).andExpect(status().isOk());
+        moverParaOPassado(eventoId);
+        registrarPresenca(organizador, eventoId, alfa).andExpect(status().isNoContent());
+        concluir(organizador, eventoId).andExpect(status().isOk());
+        avaliar(alfa, eventoId, Map.of("avaliadoId", organizador.id(), "nota", 5, "comentario", "x".repeat(181)))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message", containsString("até 180 caracteres")));
+        avaliar(alfa, eventoId, Map.of("avaliadoId", organizador.id(), "nota", 5, "comentario", "x".repeat(180)))
+            .andExpect(status().isCreated());
+    }
     private ResultActions avaliar(UsuarioTeste avaliador, UUID eventoId, UsuarioTeste avaliado, int nota)
             throws Exception {
+        return avaliar(avaliador, eventoId, Map.of("avaliadoId", avaliado.id(), "nota", nota));
+    }
+    private ResultActions avaliar(UsuarioTeste avaliador, UUID eventoId, Map<String, Object> corpo) throws Exception {
         return mockMvc.perform(post("/eventos/{id}/avaliacoes", eventoId)
             .header("Authorization", bearer(avaliador.token()))
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(Map.of("avaliadoId", avaliado.id(), "nota", nota))));
+            .content(objectMapper.writeValueAsString(corpo)));
     }
 }

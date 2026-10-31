@@ -1,6 +1,7 @@
 package chegaai.controller.exception;
 import chegaai.service.AuthService;
 import chegaai.limite.LimiteExcedidoException;
+import chegaai.service.external.GraphDBIndisponivelException;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +43,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             .header(HttpHeaders.RETRY_AFTER, Long.toString(ex.getTentarAposSegundos()))
             .header(HttpHeaders.CACHE_CONTROL, "no-store")
             .body(buildBody(HttpStatus.TOO_MANY_REQUESTS, LimiteExcedidoException.MENSAGEM));
+    }
+    @ExceptionHandler(GraphDBIndisponivelException.class)
+    public ResponseEntity<Map<String, Object>> handleGraphDbIndisponivel(GraphDBIndisponivelException ex) {
+        // A causa vai como texto: passada direto, o SLF4J a trataria como exceção e logaria a pilha a cada pedido.
+        log.warn("Recomendações indisponíveis: {} ({})", ex.getMessage(), String.valueOf(ex.getCause()));
+        return buildResponse(HttpStatus.SERVICE_UNAVAILABLE, GraphDBIndisponivelException.MENSAGEM);
     }
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(NoSuchElementException ex) {

@@ -1,11 +1,11 @@
 package chegaai.controller.dto;
-import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+/** Os limites de tamanho são os mesmos do formulário de criação do site (CreateView.jsx). */
 public record EventoRequestDTO(
-    @NotBlank @Size(min = 3, max = 150, message = "o título deve ter entre 3 e 150 caracteres")
+    @NotBlank @Size(min = 3, max = 80, message = "o título deve ter entre 3 e 80 caracteres")
     String title,
     @NotBlank
     String category,
@@ -15,12 +15,10 @@ public record EventoRequestDTO(
     String time,
     @Size(max = 9)
     String cep,
-    @NotBlank @Size(max = 150)
+    @NotBlank @Size(max = 90, message = "o local deve ter até 90 caracteres")
     String place,
     @Min(3)
     int capacity,
-    @Min(0) @Max(80)
-    int distance,
-    @NotBlank @Size(min = 10, max = 3000, message = "a descrição deve ter entre 10 e 3000 caracteres")
+    @NotBlank @Size(min = 10, max = 260, message = "a descrição deve ter entre 10 e 260 caracteres")
     String description
 ) {}

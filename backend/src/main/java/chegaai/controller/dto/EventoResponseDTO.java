@@ -9,7 +9,6 @@ public record EventoResponseDTO(
     String time,
     String cep,
     String place,
-    int distance,
     int capacity,
     String status,
     OrganizerDTO organizer,

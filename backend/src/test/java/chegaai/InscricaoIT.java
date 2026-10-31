@@ -1,6 +1,7 @@
 package chegaai;
 import chegaai.controller.exception.GlobalExceptionHandler;
 import chegaai.domain.enums.StatusInscricao;
+import chegaai.domain.model.Endereco;
 import chegaai.domain.model.Inscricao;
 import chegaai.repository.EventoRepository;
 import chegaai.repository.InscricaoRepository;
@@ -260,6 +261,58 @@ class InscricaoIT extends IntegracaoBase {
         criarEvento(organizador.token(), "Pe", 10)
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message", containsString("título")));
+    }
+    @ParameterizedTest(name = "{0}: até {1} caracteres")
+    @CsvSource({
+        "title, 80, título",
+        "place, 90, local",
+        "description, 260, descrição"
+    })
+    @DisplayName("título, local e descrição seguem os limites do formulário do site")
+    void camposSeguemOsLimitesDoSite(String campo, int limite, String mensagem) throws Exception {
+        UsuarioTeste organizador = cadastrar("Org");
+        Map<String, Object> corpo = corpoDeEvento("Pelada no limite", 10);
+        corpo.put(campo, "x".repeat(limite + 1));
+        criarEvento(organizador.token(), corpo)
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message", containsString(mensagem)));
+        corpo.put(campo, "x".repeat(limite));
+        criarEvento(organizador.token(), corpo).andExpect(status().isCreated());
+    }
+    @Test
+    @DisplayName("comentário segue o limite do site: 180 caracteres")
+    void comentarioSegueOLimiteDoSite() throws Exception {
+        UsuarioTeste organizador = cadastrar("Org");
+        UUID eventoId = criarEventoValido(organizador, 10);
+        comentar(organizador, eventoId, "x".repeat(181))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message", containsString("até 180 caracteres")));
+        comentar(organizador, eventoId, "x".repeat(180)).andExpect(status().isCreated());
+    }
+    @ParameterizedTest(name = "CEP \"{0}\"")
+    @ValueSource(strings = {"", "123"})
+    @DisplayName("sem CEP válido, a API devolve o CEP vazio, e o banco guarda o 00000000 de sempre, sem migração")
+    void semCepValidoDevolveCepVazio(String cep) throws Exception {
+        UsuarioTeste organizador = cadastrar("Org");
+        Map<String, Object> corpo = corpoDeEvento("Pelada sem CEP", 10);
+        corpo.put("cep", cep);
+        JsonNode criado = json(criarEvento(organizador.token(), corpo).andExpect(status().isCreated()));
+        UUID eventoId = UUID.fromString(criado.get("id").asText());
+        assertThat(criado.get("cep").asText()).isEmpty();
+        assertThat(buscarEvento(eventoId).get("cep").asText()).isEmpty();
+        assertThat(jdbcTemplate.queryForObject("SELECT en.cep FROM evento ev JOIN endereco en "
+            + "ON en.id_endereco = ev.id_endereco WHERE ev.id_evento = ?", String.class, eventoId))
+            .isEqualTo(Endereco.CEP_NAO_INFORMADO);
+    }
+    @Test
+    @DisplayName("a distância saiu da API, e o site publicado antes dessa mudança, que ainda a envia, continua criando rolés")
+    void distanciaSaiuEOSiteAntigoContinuaCriando() throws Exception {
+        UsuarioTeste organizador = cadastrar("Org");
+        Map<String, Object> corpo = corpoDeEvento("Pelada com distância", 10);
+        corpo.put("distance", 3);
+        JsonNode criado = json(criarEvento(organizador.token(), corpo).andExpect(status().isCreated()));
+        assertThat(criado.has("distance")).isFalse();
+        assertThat(buscarEvento(UUID.fromString(criado.get("id").asText())).has("distance")).isFalse();
     }
     @ParameterizedTest(name = "{0} = {1}")
     @CsvSource({

@@ -30,6 +30,11 @@ public class ApresentacaoEvento {
     public String hora(Evento evento) {
         return fusoHorario.hora(evento.getDataHoraRealizacao());
     }
+    /** Vazio quando o organizador não informou um CEP válido (o banco guarda {@link Endereco#CEP_NAO_INFORMADO}). */
+    public String cep(Evento evento) {
+        String cep = evento.getEndereco().getCep();
+        return cep == null || Endereco.CEP_NAO_INFORMADO.equals(cep) ? "" : cep;
+    }
     public String local(Evento evento) {
         Endereco end = evento.getEndereco();
         return end.getBairro() + ", " + end.getCidade();
