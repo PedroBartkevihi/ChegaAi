@@ -118,8 +118,9 @@ backend/                 API Spring Boot (Maven Wrapper, Dockerfile)
 frontend/                Next.js (Dockerfile, testes Playwright em tests/)
 database/graphdb/        scripts SPARQL do GraphDB (opcional)
 docs/uml/                diagramas UML
-docs/sla/, reports/      relatórios de desempenho da disciplina (k6)
-tests/load/              scripts de carga k6
+docs/sla/                medições de carga (k6) e o histórico da disciplina
+reports/                 PDFs das medições da disciplina
+tests/load/              scripts de carga k6, roteiro de medição e gerador de relatório
 docker-compose.yml       aplicação completa
 ```
 
@@ -225,8 +226,11 @@ O modo de desenvolvimento com proxy continua disponível localmente. O servidor 
 lê os cabeçalhos diretamente do `render.yaml`, e os cenários de CSP verificam o bloqueio real
 de scripts não autorizados, o tema antes da hidratação e os links de mapa e agenda.
 
-Os testes de carga com k6 e os relatórios de desempenho foram produzidos durante a disciplina,
-ainda com o nome ChegAê: scripts em [`tests/load`](tests/load) e resultados em [`docs/sla`](docs/sla/README.md).
+Os testes de carga usam o k6 contra a API num contêiner parecido com o Cloud Run (1 CPU, 512 MiB),
+e o relatório sai só dos dados de cada execução: resultados e comparação do antes e depois do feed
+paginado em [`docs/sla`](docs/sla/README.md); como medir em [`tests/load`](tests/load/README.md).
+Os relatórios feitos durante a disciplina, ainda com o nome ChegAê, ficam lá como histórico.
+O CI roda alguns segundos de cada script de carga, para eles não quebrarem sem ninguém ver.
 
 ## Deploy
 
