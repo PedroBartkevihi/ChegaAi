@@ -10,7 +10,7 @@ const ana = usuario("conta-a", "Ana");
 const bruna = usuario("conta-b", "Bruna");
 const evento = {
   id: "role-de-sessao", title: "Rolé para conferir sessão", category: "Futebol",
-  date: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10), time: "18:00", cep: "", place: "Praça de teste", distance: 0,
+  date: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10), time: "18:00", cep: "", place: "Praça de teste",
   capacity: 10, status: "ABERTO", organizer: { id: "organizador", name: "Organizador", honor: 3, isAmbassador: false },
   confirmed: ["Organizador", "Ana", "Bruna"], waitlist: [], comments: [], reports: 0, description: "Evento fictício para isolar respostas de sessões."
 };

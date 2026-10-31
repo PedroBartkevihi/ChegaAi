@@ -1,5 +1,4 @@
 export const categories = ["Futebol", "Pets", "Patinação", "Passeio", "Esporte", "Cultura", "Lazer"];
-// Sem filtro de distância: a API devolve a distância sempre 0 (ver EventoService), então ele não filtrava nada.
 export const initialFilters = {
   search: "",
   category: "todos",

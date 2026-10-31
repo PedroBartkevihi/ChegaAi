@@ -83,7 +83,10 @@ test("última avaliação remove pendência e permite nova inscrição sem recar
   const formulario = pendencias.getByRole("form").filter({ hasText: organizador.nome });
   await expect(formulario.getByRole("combobox")).toBeEnabled();
   await formulario.getByRole("combobox").selectOption("5");
-  await formulario.getByRole("textbox", { name: "Comentário (opcional)" }).fill("Bom encontro.");
+  const comentario = formulario.getByRole("textbox", { name: "Comentário (opcional)" });
+  // O mesmo limite da API (180), como o comentário do rolé.
+  await expect(comentario).toHaveAttribute("maxlength", "180");
+  await comentario.fill("Bom encontro.");
   await formulario.getByRole("button", { name: "Enviar avaliação", exact: true }).click();
   await expect(pendencias).toContainText("Nenhuma avaliação pendente");
   await page.getByRole("navigation", { name: "Navegação principal" }).getByRole("button", { name: "Feed", exact: true }).click();

@@ -12,7 +12,7 @@ export type EventoDTO = {
 };
 export type Evento = { id: string; titulo: string; organizador: Conta; futuro: boolean };
 type DadosEvento = { title: string; category: string; date: string; time: string; cep: string;
-  place: string; capacity: number; distance: number; description: string };
+  place: string; capacity: number; description: string };
 
 export class Cenario {
   readonly prefixo: string;
@@ -35,7 +35,7 @@ export class Cenario {
     const data = new Date();
     data.setDate(data.getDate() + 5);
     return { title: this.unico('role'), category: 'Futebol', date: data.toISOString().slice(0, 10),
-      time: '18:00', cep: '', place: 'Campo de testes, Rio de Janeiro', capacity: 3, distance: 2,
+      time: '18:00', cep: '', place: 'Campo de testes, Rio de Janeiro', capacity: 3,
       description: 'Rolé fictício exclusivo desta tentativa de teste.', ...overrides };
   }
   endpoint(path: string): string { return `${apiURL.href}${path}`; }
