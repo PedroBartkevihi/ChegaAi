@@ -214,7 +214,7 @@ class LimitesEscritaIT extends IntegracaoBase {
         for (int i = 0; i < 2; i++) comentar(org, primeiro, prefixo + i).andExpect(status().isCreated());
         limite(criarEvento(org.token(), "Criação esgotada", 10));
         limite(comentar(org, primeiro, prefixo + "-recusado"));
-        mockMvc.perform(get("/eventos")).andExpect(status().isOk());
+        mockMvc.perform(get("/eventos/feed")).andExpect(status().isOk());
         usuarioAtual(org);
         mockMvc.perform(get("/auth/me/inscricoes").header("Authorization", bearer(org.token()))).andExpect(status().isOk());
         mockMvc.perform(get("/auth/me/avaliacoes-pendentes").header("Authorization", bearer(org.token()))).andExpect(status().isOk());

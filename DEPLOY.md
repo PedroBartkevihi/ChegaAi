@@ -147,7 +147,7 @@ Depois do primeiro deploy, confira:
 
 - `https://SEU-SERVICO.run.app/api/actuator/health` responde `{"status":"UP"}`;
 - `https://SEU-SERVICO.run.app/api/swagger-ui.html` mostra a documentação da API;
-- `https://SEU-SERVICO.run.app/api/eventos` traz os rolés de demonstração (as migrations e o seed rodaram).
+- `https://SEU-SERVICO.run.app/api/eventos/feed` traz a primeira página dos rolés de demonstração (as migrations e o seed rodaram).
 
 Cada push na `main` gera uma nova imagem e uma nova revisão. As imagens ficam no
 Artifact Registry (repositório `cloud-run-source-deploy`), e cada uma tem cerca de 400 MB,

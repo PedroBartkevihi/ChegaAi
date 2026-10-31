@@ -46,13 +46,6 @@ public class EventoService {
     private final RegrasEventoService regrasEventoService;
     private final ApresentacaoEvento apresentacao;
     @Transactional(readOnly = true)
-    public List<EventoResponseDTO> listarTodos() {
-        List<Evento> eventos = eventoRepository.findAllWithRelations();
-        return eventos.stream()
-            .map(this::toResponseDTO)
-            .collect(Collectors.toList());
-    }
-    @Transactional(readOnly = true)
     public EventoResponseDTO buscarPorId(UUID id) {
         Evento evento = eventoRepository.findByIdWithRelations(id)
             .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + id));

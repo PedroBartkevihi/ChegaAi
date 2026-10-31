@@ -55,7 +55,7 @@ public class SecurityConfig {
                 .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/cadastro").permitAll()
                 .requestMatchers(HttpMethod.GET, "/eventos/*/participantes").authenticated()
-                .requestMatchers(HttpMethod.GET, "/eventos", "/eventos/**", "/recomendacoes/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/eventos/**", "/recomendacoes/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
                 .anyRequest().authenticated()

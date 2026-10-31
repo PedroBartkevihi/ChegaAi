@@ -77,6 +77,20 @@ export class Cenario {
     expect(dto.id).toBe(evento.id);
     return dto;
   }
+  // Ids de todos os rolés, próximos e anteriores, percorrendo o feed página por página.
+  async idsDeTodosOsRoles(): Promise<string[]> {
+    const ids: string[] = [];
+    for (const secao of ['proximos', 'anteriores']) {
+      for (let pagina = 0; ; pagina += 1) {
+        const response = await this.request.get(this.endpoint(`/eventos/feed?secao=${secao}&pagina=${pagina}&tamanho=50`));
+        expect(response.status()).toBe(200);
+        const { items, hasNext } = await response.json();
+        ids.push(...items.map((item: { id: string }) => item.id));
+        if (!hasNext) break;
+      }
+    }
+    return ids.sort();
+  }
   async inscrever(evento: Evento, conta: Conta) {
     this.proprio(evento);
     const response = await this.request.post(this.endpoint(`/eventos/${evento.id}/inscricao`), { headers: this.auth(conta) });
