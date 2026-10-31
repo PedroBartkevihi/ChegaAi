@@ -1,6 +1,6 @@
 # Atualizações uma vez por mês, num PR por ecossistema. No npm e no Maven, as versões maiores vêm em
 # PRs próprios; nas Actions, entram no mesmo PR (o CI as confere); nas imagens Docker (troca de Node
-# ou de Java), ficam de fora.
+# ou de Java), ficam de fora, e a imagem de compilação da API (maven) fica toda de fora.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -49,3 +49,7 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # Na tag maven:3.9-eclipse-temurin-17, o número do fim é o Java, e o Dependabot propõe trocá-lo
+      # (17 → 26) sem classificar a atualização, então a regra de cima não pega. Essa imagem só compila
+      # o jar; a que vai para o ar (eclipse-temurin:17-jre-alpine) continua sendo atualizada.
+      - dependency-name: "maven"
