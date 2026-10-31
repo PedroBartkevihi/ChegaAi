@@ -70,10 +70,17 @@ public class SecurityConfig {
     /**
      * Chave HMAC dos tokens. Sem CHEGAAI_JWT_SECRET, gera uma chave aleatória a cada inicialização:
      * nada no repositório assina tokens válidos, mas todos são deslogados quando a API reinicia.
+     * No Cloud Run (K_SERVICE definido), a API não sobe sem o segredo: lá ela reinicia a cada
+     * revisão nova e sempre que acorda, e ninguém perceberia a chave aleatória.
      */
     @Bean
-    public SecretKey jwtSecretKey(@Value("${chegaai.jwt.secret:}") String secret) {
+    public SecretKey jwtSecretKey(@Value("${chegaai.jwt.secret:}") String secret,
+                                  @Value("${K_SERVICE:}") String cloudRun) {
         if (secret.isBlank()) {
+            if (!cloudRun.isBlank()) {
+                throw new IllegalStateException("No Cloud Run, a API exige CHEGAAI_JWT_SECRET: com uma chave "
+                    + "aleatória, todos seriam deslogados a cada reinício. Configure a variável (veja o DEPLOY.md).");
+            }
             log.warn("CHEGAAI_JWT_SECRET não definido: usando uma chave aleatória gerada nesta inicialização. "
                 + "Os tokens emitidos deixam de valer quando a API reinicia.");
             byte[] aleatoria = new byte[TAMANHO_MINIMO_CHAVE];

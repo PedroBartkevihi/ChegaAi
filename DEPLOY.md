@@ -74,9 +74,10 @@ No console do Cloud Run, clique em **Criar serviço** e escolha **implantação 
    node -e "console.log(require('node:crypto').randomBytes(48).toString('base64url'))"
    ```
 
-   Não deixe o `CHEGAAI_JWT_SECRET` de fora: sem ele, a API gera uma chave aleatória a
-   cada inicialização e todo mundo é deslogado sempre que a instância reinicia (no Cloud Run,
-   a cada vez que ela acorda). A API se recusa a subir com
+   O `CHEGAAI_JWT_SECRET` é obrigatório: no Cloud Run, que define a variável `K_SERVICE`, a
+   API não sobe sem ele. Fora do Cloud Run, a API gera uma chave aleatória a cada
+   inicialização, e todo mundo é deslogado sempre que ela reinicia. A API também se recusa a
+   subir com
    `chave-de-desenvolvimento-local-nao-usar-em-producao`, que já foi o padrão do repositório
    e é pública: com ela, qualquer pessoa assinaria tokens válidos.
 

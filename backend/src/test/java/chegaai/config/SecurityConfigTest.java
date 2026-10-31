@@ -22,8 +22,8 @@ class SecurityConfigTest {
     @Test
     @DisplayName("sem segredo configurado, gera uma chave aleatória diferente a cada inicialização")
     void semSegredoGeraChaveAleatoria() {
-        SecretKey primeira = config.jwtSecretKey("");
-        SecretKey segunda = config.jwtSecretKey("  ");
+        SecretKey primeira = config.jwtSecretKey("", "");
+        SecretKey segunda = config.jwtSecretKey("  ", "");
         assertThat(primeira.getEncoded()).hasSize(32);
         assertThat(primeira.getEncoded()).isNotEqualTo(segunda.getEncoded());
     }
@@ -31,19 +31,29 @@ class SecurityConfigTest {
     @DisplayName("usa o segredo configurado quando ele tem pelo menos 32 bytes")
     void usaSegredoConfigurado() {
         String segredo = "um-segredo-de-producao-com-mais-de-32-bytes";
-        assertThat(config.jwtSecretKey(segredo).getEncoded()).isEqualTo(segredo.getBytes(StandardCharsets.UTF_8));
+        assertThat(config.jwtSecretKey(segredo, "").getEncoded()).isEqualTo(segredo.getBytes(StandardCharsets.UTF_8));
+    }
+    @Test
+    @DisplayName("no Cloud Run (K_SERVICE definido), recusa subir sem segredo em vez de gerar uma chave aleatória")
+    void cloudRunExigeSegredo() {
+        assertThatThrownBy(() -> config.jwtSecretKey(" ", "chegaai-api"))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("CHEGAAI_JWT_SECRET");
+        String segredo = "um-segredo-de-producao-com-mais-de-32-bytes";
+        assertThat(config.jwtSecretKey(segredo, "chegaai-api").getEncoded())
+            .isEqualTo(segredo.getBytes(StandardCharsets.UTF_8));
     }
     @Test
     @DisplayName("recusa subir com a antiga chave padrão, que é pública no repositório")
     void recusaChavePadraoAntiga() {
-        assertThatThrownBy(() -> config.jwtSecretKey("chave-de-desenvolvimento-local-nao-usar-em-producao"))
+        assertThatThrownBy(() -> config.jwtSecretKey("chave-de-desenvolvimento-local-nao-usar-em-producao", ""))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("pública");
     }
     @Test
     @DisplayName("recusa segredo com menos de 32 bytes")
     void recusaSegredoCurto() {
-        assertThatThrownBy(() -> config.jwtSecretKey("curto-demais"))
+        assertThatThrownBy(() -> config.jwtSecretKey("curto-demais", ""))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("32 bytes");
     }
