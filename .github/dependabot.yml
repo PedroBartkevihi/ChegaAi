@@ -1,5 +1,6 @@
-# Atualizações uma vez por mês, num PR por ecossistema com as versões menores e as correções.
-# Versões maiores vêm em PRs próprios; nas imagens Docker (troca de Node ou de Java), ficam de fora.
+# Atualizações uma vez por mês, num PR por ecossistema. No npm e no Maven, as versões maiores vêm em
+# PRs próprios; nas Actions, entram no mesmo PR (o CI as confere); nas imagens Docker (troca de Node
+# ou de Java), ficam de fora.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -33,7 +34,6 @@ updates:
     groups:
       actions:
         patterns: ["*"]
-        update-types: [minor, patch]
 
   - package-ecosystem: docker
     directories:
