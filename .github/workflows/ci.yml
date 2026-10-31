@@ -104,6 +104,8 @@ jobs:
       - name: Testes do feed paginado
         working-directory: frontend
         run: npm run test:feed
+      - name: Testes do gerador de relatório de carga
+        run: node --test tests/load/tools/relatorio.test.mjs
       - name: Testes da CSP e dos cabeçalhos
         working-directory: frontend
         run: npm run test:security
@@ -113,6 +115,14 @@ jobs:
       - name: Testes ponta a ponta
         working-directory: frontend
         run: npx playwright test --repeat-each=2 --retries=0
+      # Alguns segundos de cada script do k6 contra a API deste job, para eles não quebrarem sem ninguém ver.
+      - name: Teste rápido dos scripts de carga (k6)
+        run: |
+          for script in eventos-feed comentarios-write; do
+            docker run --rm --network host -v "$PWD/tests/load:/scripts:ro" \
+              -e BASE_URL=http://127.0.0.1:8080/api -e LOAD_PROFILE=smoke -e REPORT_DIR=/tmp \
+              grafana/k6:2.2.0 run --quiet "/scripts/$script.js"
+          done
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

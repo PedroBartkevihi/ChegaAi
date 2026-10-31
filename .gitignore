@@ -31,6 +31,9 @@ target/
 # Logs do Spring/Tomcat
 *.log
 
+# Saída bruta do tests/load/medir.sh (a série do k6 passa de alguns MB); o relatório gerado vai para docs/sla
+tests/load/resultados/
+
 # ====================================================================
 # IDEs E ARQUIVOS DO SISTEMA
 # ====================================================================
