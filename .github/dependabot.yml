@@ -1,0 +1,51 @@
+# Atualizações uma vez por mês, num PR por ecossistema com as versões menores e as correções.
+# Versões maiores vêm em PRs próprios; nas imagens Docker (troca de Node ou de Java), ficam de fora.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      npm:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: maven
+    directory: /backend
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      maven:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      actions:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directories:
+      - /backend
+      - /frontend
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "chore(docker)"
+    groups:
+      docker:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
