@@ -4,6 +4,7 @@ import {
   ExternalLink,
   Flag,
   MapPin,
+  RefreshCw,
   Star,
   Trash2,
   UsersRound,
@@ -17,7 +18,8 @@ import { getEnrollmentActionLabel, formatEventDateLong, categorySlug, eventTimes
 import { downloadIcs, mapUrl } from "../lib/agenda";
 import { returnFocus } from "../lib/foco";
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-export default function EventModal({ event, enrollment, enrollmentsReady = true, pending = {}, close, notice, onCloseNotice, toggleEnrollment, addComment, deleteEvent, reportEvent, currentUser, inactive = false, management, reloadManagement, changePresence, concludeEvent, hasPendingRatings, openRatings }) {
+// Abre com o resumo do card; CEP e comentários chegam com o detalhe (GET /eventos/{id}), em detailState.
+export default function EventModal({ event, detailState = "ready", reloadDetail, enrollment, enrollmentsReady = true, pending = {}, close, notice, onCloseNotice, toggleEnrollment, addComment, deleteEvent, reportEvent, currentUser, inactive = false, management, reloadManagement, changePresence, concludeEvent, hasPendingRatings, openRatings }) {
   const [comment, setComment] = useState("");
   const dialogRef = useRef(null);
   const closeRef = useRef(null);
@@ -25,7 +27,8 @@ export default function EventModal({ event, enrollment, enrollmentsReady = true,
   // abaixo (e devolver o foco ao botão de fechar) toda vez que a lista de eventos atualiza.
   const onCloseRef = useRef(close);
   onCloseRef.current = close;
-  const canComment = enrollmentsReady && (enrollment === "CONFIRMADO" || enrollment === "FILA");
+  const detailReady = detailState === "ready";
+  const canComment = detailReady && enrollmentsReady && (enrollment === "CONFIRMADO" || enrollment === "FILA");
   const isOrganizer = event.organizer.id === currentUser?.id;
   const activeRef = useRef(!inactive);
   activeRef.current = !inactive;
@@ -92,11 +95,11 @@ export default function EventModal({ event, enrollment, enrollmentsReady = true,
               <strong><time dateTime={`${event.date}T${event.time}`}>{formatEventDateLong(event.date)}</time></strong>
               <span>às {event.time}</span>
             </div>
-            <div><UsersRound size={18} aria-hidden="true" /><strong>{event.confirmed.length}/{event.capacity}</strong><span>confirmados</span></div>
-            <div><UsersRound size={18} aria-hidden="true" /><strong>{event.waitlist.length}</strong><span>na lista de espera</span></div>
+            <div><UsersRound size={18} aria-hidden="true" /><strong>{event.confirmedCount}/{event.capacity}</strong><span>confirmados</span></div>
+            <div><UsersRound size={18} aria-hidden="true" /><strong>{event.waitlistCount}</strong><span>na lista de espera</span></div>
           </div>
           <div className="organizer-line">
-            <span><MapPin size={15} aria-hidden="true" /> {event.place} - CEP {event.cep || "não informado"}</span>
+            <span><MapPin size={15} aria-hidden="true" /> {event.place}{detailReady && ` - CEP ${event.cep || "não informado"}`}</span>
             <span className="organizer-rating"><Star size={14} aria-hidden="true" />Reputação {event.organizer.honor.toFixed(1)}</span>
           </div>
           <div className="dialog-links">
@@ -129,7 +132,17 @@ export default function EventModal({ event, enrollment, enrollmentsReady = true,
           {event.status === "CONCLUIDO" && hasPendingRatings && <button className="primary-action" type="button" onClick={() => openRatings(event.id)}>Avaliar participantes</button>}
           <section className="comments-box">
             <h3>Comentários do rolé</h3>
-            {event.comments.length ? (
+            {detailState === "loading" ? (
+              <div className="empty-state" role="status">Carregando comentários...</div>
+            ) : detailState === "error" ? (
+              <div className="empty-state">
+                <p>Não foi possível carregar os comentários.</p>
+                <button className="secondary-action" type="button" onClick={reloadDetail}>
+                  <RefreshCw size={16} aria-hidden="true" />
+                  Tentar de novo
+                </button>
+              </div>
+            ) : event.comments.length ? (
               event.comments.map((item, index) => (
                 <article className="comment-item" key={`${item.author}-${item.time}-${index}`}>
                   <header><strong>{item.author}</strong><span className="muted">{item.time}</span></header>
@@ -139,7 +152,7 @@ export default function EventModal({ event, enrollment, enrollmentsReady = true,
             ) : (
               <div className="empty-state">Sem comentários ainda.</div>
             )}
-            {canComment ? (
+            {!detailReady ? null : canComment ? (
               <form className="comment-form" onSubmit={submitComment}>
                 <label>
                   Novo comentário

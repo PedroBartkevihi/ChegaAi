@@ -3,12 +3,13 @@ import StackItem from "./StackItem";
 import PendingRatings from "./PendingRatings";
 import { formatEventDay, eventTimestamp, sortByDate } from "../lib/eventos";
 const STATUS_LABELS = { CONFIRMADO: "Confirmado", FILA: "Lista de espera", AUSENTE: "Ausente" };
-export default function ProfileView({ events, enrollments, currentUser, openEvent, onLogout, ratings, ratingsEventId, pending, sendRating, accountLoading, accountError, refreshAccount }) {
+export default function ProfileView({ registrations, enrollments, currentUser, openEvent, onLogout, ratings, ratingsEventId, pending, sendRating, accountLoading, accountError, refreshAccount }) {
   const now = Date.now();
+  // Cada inscrição traz o resumo do rolé; uma saída recente some antes de a lista voltar da API.
   const myEnrollments = sortByDate(
-    Object.keys(enrollments)
-      .map((eventId) => events.find((item) => item.id === eventId))
-      .filter(Boolean)
+    registrations
+      .filter((item) => item.evento && enrollments[item.eventoId])
+      .map((item) => item.evento)
   );
   const upcoming = myEnrollments.filter((event) => eventTimestamp(event) >= now);
   const past = myEnrollments.filter((event) => eventTimestamp(event) < now).reverse();

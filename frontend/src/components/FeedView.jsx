@@ -8,18 +8,16 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 import EventCard from "./EventCard";
 import Landscape from "./Landscape";
-import { buildFilterSummary, categories, hasActiveFilters, isUpcoming } from "../lib/eventos";
+import { buildFilterSummary, categories, hasActiveFilters } from "../lib/eventos";
 import { AVISO_SERVIDOR_ACORDANDO } from "../lib/useDemora";
-export default function FeedView({ events, totalEvents, loadState, loadingSlow, retryLoad, metrics, filters, updateFilter, enrollments, enrollmentsReady, pending, currentUser, resetFilters, openEvent, toggleEnrollment, deleteEvent, onCreate }) {
-  const [showPast, setShowPast] = useState(false);
-  const now = Date.now();
-  const upcoming = events.filter((event) => isUpcoming(event, now));
-  // Anteriores e indisponíveis: os mais recentes primeiro.
-  const past = events.filter((event) => !isUpcoming(event, now)).reverse();
+// A API separa e ordena as seções; os anteriores só são pedidos quando a seção é aberta.
+export default function FeedView({ feed, summary, loadingSlow, showPast, togglePast, loadMore, retryLoad, retryPast, filters, updateFilter, enrollments, enrollmentsReady, pending, currentUser, resetFilters, openEvent, toggleEnrollment, deleteEvent, onCreate }) {
+  const { proximos, anteriores } = feed;
   const filtering = hasActiveFilters(filters);
+  const pastCount = anteriores.state === "ready" || anteriores.items.length ? ` (${anteriores.total})` : "";
   const renderCard = (event) => (
     <EventCard
       key={event.id}
@@ -48,9 +46,9 @@ export default function FeedView({ events, totalEvents, loadState, loadingSlow, 
         </div>
       </div>
       <dl className="metric-row">
-        <Metric icon={<CalendarDays size={18} aria-hidden="true" />} label="Rolés abertos" value={metrics.active} />
-        <Metric icon={<UsersRound size={18} aria-hidden="true" />} label="Na lista de espera" value={metrics.waitlist} />
-        <Metric icon={<Star size={18} aria-hidden="true" />} label="Rolés de Embaixadores" value={metrics.ambassadors} />
+        <Metric icon={<CalendarDays size={18} aria-hidden="true" />} label="Rolés abertos" value={summary?.active} />
+        <Metric icon={<UsersRound size={18} aria-hidden="true" />} label="Na lista de espera" value={summary?.waitlist} />
+        <Metric icon={<Star size={18} aria-hidden="true" />} label="Rolés de Embaixadores" value={summary?.ambassadors} />
       </dl>
       <div className="section-heading">
         <div>
@@ -63,9 +61,9 @@ export default function FeedView({ events, totalEvents, loadState, loadingSlow, 
         </button>
       </div>
       <FeedFilters filters={filters} updateFilter={updateFilter} />
-      {loadState === "loading" && !totalEvents ? (
+      {proximos.state === "loading" && !proximos.items.length ? (
         <div className="empty-state" role="status">{loadingSlow ? AVISO_SERVIDOR_ACORDANDO : "Carregando rolés..."}</div>
-      ) : loadState === "error" && !totalEvents ? (
+      ) : proximos.state === "error" && !proximos.items.length ? (
         <div className="empty-state">
           <p>Não foi possível carregar os rolés. Verifique sua conexão e tente de novo.</p>
           <button className="secondary-action" type="button" onClick={retryLoad}>
@@ -73,8 +71,8 @@ export default function FeedView({ events, totalEvents, loadState, loadingSlow, 
             Tentar de novo
           </button>
         </div>
-      ) : upcoming.length ? (
-        <div className="event-grid">{upcoming.map(renderCard)}</div>
+      ) : proximos.items.length ? (
+        <CardList section={proximos} renderCard={renderCard} loadMore={() => loadMore("proximos")} />
       ) : filtering ? (
         <div className="empty-state">
           <p>Nenhum rolé aberto com os filtros atuais.</p>
@@ -85,29 +83,83 @@ export default function FeedView({ events, totalEvents, loadState, loadingSlow, 
         </div>
       ) : (
         <div className="empty-state">
-          <p>{totalEvents ? "Nenhum rolé aberto por enquanto." : "Ainda não há rolés."} Que tal organizar o próximo?</p>
+          <p>{summary?.total === 0 ? "Ainda não há rolés." : "Nenhum rolé aberto por enquanto."} Que tal organizar o próximo?</p>
           <button className="primary-action" type="button" onClick={onCreate}>
             <Plus size={16} aria-hidden="true" />
             Organizar um rolé
           </button>
         </div>
       )}
-      {past.length > 0 && (
+      {summary?.total !== 0 && (
         <section className="past-events" aria-label="Rolés anteriores e indisponíveis">
           <button
             className="past-toggle"
             type="button"
             aria-expanded={showPast}
             aria-controls="roles-anteriores"
-            onClick={() => setShowPast((current) => !current)}
+            onClick={togglePast}
           >
             <ChevronDown size={18} aria-hidden="true" />
-            {showPast ? "Ocultar" : "Mostrar"} rolés anteriores e indisponíveis ({past.length})
+            {showPast ? "Ocultar" : "Mostrar"} rolés anteriores e indisponíveis{pastCount}
           </button>
-          {showPast && <div id="roles-anteriores" className="event-grid">{past.map(renderCard)}</div>}
+          {showPast && (
+            <div id="roles-anteriores">
+              {anteriores.items.length ? (
+                <CardList section={anteriores} renderCard={renderCard} loadMore={() => loadMore("anteriores")} />
+              ) : anteriores.state === "error" ? (
+                <div className="empty-state">
+                  <p>Não foi possível carregar os rolés anteriores.</p>
+                  <button className="secondary-action" type="button" onClick={retryPast}>
+                    <RefreshCw size={16} aria-hidden="true" />
+                    Tentar de novo
+                  </button>
+                </div>
+              ) : anteriores.state === "ready" ? (
+                <div className="empty-state">{filtering ? "Nenhum rolé anterior com os filtros atuais." : "Nenhum rolé anterior por enquanto."}</div>
+              ) : (
+                <div className="empty-state" role="status">Carregando rolés anteriores...</div>
+              )}
+            </div>
+          )}
         </section>
       )}
     </section>
+  );
+}
+// A grade de uma seção e o "Carregar mais". Na última página o botão some, e o foco vai para o primeiro rolé que chegou.
+function CardList({ section, renderCard, loadMore }) {
+  const gridRef = useRef(null);
+  const focusFromRef = useRef(null);
+  const loading = section.more === "loading";
+  useEffect(() => {
+    if (focusFromRef.current === null || loading) return;
+    const from = focusFromRef.current;
+    focusFromRef.current = null;
+    if (!section.hasNext) gridRef.current?.querySelectorAll(".event-card")[from]?.querySelector("button")?.focus();
+  }, [loading, section.hasNext]);
+  return (
+    <>
+      <div ref={gridRef} className="event-grid" aria-busy={section.state === "loading" || undefined}>{section.items.map(renderCard)}</div>
+      {(section.hasNext || section.pages > 1) && (
+        <div className="load-more">
+          <p className="muted" role="status">Mostrando {section.items.length} de {Math.max(section.total, section.items.length)} rolés</p>
+          {section.hasNext && (
+            <button
+              className="secondary-action"
+              type="button"
+              aria-disabled={loading || section.state === "loading" || undefined}
+              onClick={() => {
+                focusFromRef.current = section.items.length;
+                loadMore();
+              }}
+            >
+              <ChevronDown size={16} aria-hidden="true" />
+              {loading ? "Carregando..." : "Carregar mais rolés"}
+            </button>
+          )}
+        </div>
+      )}
+    </>
   );
 }
 function FeedFilters({ filters, updateFilter }) {
@@ -121,6 +173,7 @@ function FeedFilters({ filters, updateFilter }) {
             data-testid="search-input"
             value={filters.search}
             type="search"
+            maxLength={100}
             placeholder="Buscar rolés, lugares ou atividades..."
             onChange={(event) => updateFilter("search", event.target.value)}
           />
@@ -152,7 +205,7 @@ function Metric({ icon, label, value }) {
   return (
     <div>
       <dt>{icon}{label}</dt>
-      <dd>{value}</dd>
+      <dd>{value ?? "–"}</dd>
     </div>
   );
 }

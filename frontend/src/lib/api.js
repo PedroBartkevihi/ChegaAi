@@ -12,8 +12,9 @@ export class ApiError extends Error {
 // responder 401 antes mesmo de olhar e-mail e senha.
 export async function api(path, { semToken = false, token: requestedToken, isCurrentSession, ...options } = {}) {
   const token = semToken ? null : (requestedToken === undefined ? localStorage.getItem(TOKEN_KEY) : requestedToken);
+  // Content-Type só com corpo: uma leitura sem token e sem cabeçalhos extras não precisa do preflight de CORS.
   const headers = {
-    "Content-Type": "application/json",
+    ...(options.body !== undefined && { "Content-Type": "application/json" }),
     ...(token && { Authorization: `Bearer ${token}` }),
     ...options.headers,
   };

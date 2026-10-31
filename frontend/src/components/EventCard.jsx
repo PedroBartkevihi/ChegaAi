@@ -2,8 +2,8 @@ import { Award, CalendarDays, MapPin, Star, Trash2, UsersRound } from "lucide-re
 import CategoryIcon from "./CategoryIcon";
 import { getEnrollmentActionLabel, formatEventDay, categorySlug, eventTimestamp } from "../lib/eventos";
 export default function EventCard({ event, enrollment, enrollmentsReady = true, pending = {}, currentUser, openEvent, toggleEnrollment, deleteEvent }) {
-  const seats = Math.max(event.capacity - event.confirmed.length, 0);
-  const percent = Math.min((event.confirmed.length / event.capacity) * 100, 100);
+  const seats = Math.max(event.capacity - event.confirmedCount, 0);
+  const percent = Math.min((event.confirmedCount / event.capacity) * 100, 100);
   const featured = event.organizer.isAmbassador;
   const isOrganizer = event.organizer.id === currentUser?.id;
   const locked = !enrollmentsReady || isOrganizer || event.status !== "ABERTO" || eventTimestamp(event) <= Date.now();
@@ -26,14 +26,14 @@ export default function EventCard({ event, enrollment, enrollmentsReady = true, 
             <span><time dateTime={`${event.date}T${event.time}`}>{formatEventDay(event.date)} · {event.time}</time></span>
           </li>
           <li><MapPin size={16} aria-hidden="true" /><span>{event.place}{event.distance > 0 ? ` - ${event.distance} km` : ""}</span></li>
-          {event.confirmed.length >= event.capacity ? (
+          {event.confirmedCount >= event.capacity ? (
             <li>
               <span className="waitlist-pill">
-                <UsersRound size={14} aria-hidden="true" /> Lista de espera ativa: {event.waitlist.length} {event.waitlist.length === 1 ? "pessoa" : "pessoas"} na fila
+                <UsersRound size={14} aria-hidden="true" /> Lista de espera ativa: {event.waitlistCount} {event.waitlistCount === 1 ? "pessoa" : "pessoas"} na fila
               </span>
             </li>
           ) : (
-            <li><UsersRound size={16} aria-hidden="true" /><span>{event.confirmed.length}/{event.capacity} confirmados · {seats} vaga(s) restante(s)</span></li>
+            <li><UsersRound size={16} aria-hidden="true" /><span>{event.confirmedCount}/{event.capacity} confirmados · {seats} vaga(s) restante(s)</span></li>
           )}
         </ul>
         <div className="progress-track" aria-hidden="true">
@@ -71,6 +71,6 @@ function EnrollmentBadge({ event, enrollment }) {
   if (event.status === "CONCLUIDO") return <span className="enrollment-badge done">Concluído</span>;
   if (enrollment === "CONFIRMADO") return <span className="enrollment-badge confirmed">Confirmado</span>;
   if (enrollment === "FILA") return <span className="enrollment-badge waiting">Lista de Espera</span>;
-  if (event.confirmed.length >= event.capacity) return <span className="enrollment-badge waiting">Esgotado</span>;
+  if (event.confirmedCount >= event.capacity) return <span className="enrollment-badge waiting">Esgotado</span>;
   return <span className="enrollment-badge open">Vagas Abertas</span>;
 }

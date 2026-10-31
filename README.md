@@ -36,7 +36,7 @@ Pedro Farias continuou o projeto neste repositório:
 ## Funcionalidades
 
 - Cadastro e login com JWT; contas de demonstração prontas para testar.
-- Feed de rolés com busca e filtros por categoria e honra do organizador.
+- Feed de rolés com busca e filtros por categoria e honra do organizador, 12 por vez ("Carregar mais"), com filtros e ordem aplicados pela API.
 - Criação de rolés com limite de vagas, CEP (consultado no ViaCEP) e descrição.
 - Inscrição com **fila de espera automática**: quando alguém confirmado sai, o primeiro da fila é promovido.
 - Comentários restritos a confirmados e a quem está na fila.
@@ -192,7 +192,7 @@ A documentação interativa fica no Swagger (`/api/swagger-ui.html`). Principais
 | `GET` | `/api/auth/me`, `/api/auth/me/inscricoes`, `/api/auth/me/avaliacoes-pendentes` | Autenticado; somente dados da própria conta |
 | `GET` | `/api/eventos/feed` | Público; página de resumos com `secao` (`proximos` ou `anteriores`), `categoria`, `honraMinima`, `embaixador`, `busca`, `pagina` e `tamanho` (até 50) |
 | `GET` | `/api/eventos/resumo` | Público; total de rolés, abertos, pessoas na fila e rolés de Embaixadores |
-| `GET` | `/api/eventos`, `/api/eventos/{id}` | Público; a lista completa sai quando o site passar a usar o feed paginado |
+| `GET` | `/api/eventos`, `/api/eventos/{id}` | Público; o site usa só o detalhe por id, e a lista completa será removida |
 | `POST` | `/api/eventos` | Autenticado (honra ≥ 2.0) |
 | `DELETE` | `/api/eventos/{id}` | Organizador ou moderador |
 | `POST` | `/api/eventos/{id}/inscricao` | Autenticado (inscreve ou cancela) |

@@ -1425,6 +1425,23 @@ legend {
   transform: rotate(180deg);
 }
 
+/* Enquanto os filtros novos não voltam da API, os cards anteriores ficam esmaecidos. */
+.event-grid[aria-busy="true"] {
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.load-more {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.load-more p {
+  margin: 0;
+}
+
 .dialog-notice {
   position: sticky;
   top: 0;

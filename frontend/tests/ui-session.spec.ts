@@ -14,6 +14,8 @@ const evento = {
   capacity: 10, status: "ABERTO", organizer: { id: "organizador", name: "Organizador", honor: 3, isAmbassador: false },
   confirmed: ["Organizador", "Ana", "Bruna"], waitlist: [], comments: [], reports: 0, description: "Evento fictício para isolar respostas de sessões."
 };
+// O feed e as inscrições trazem só as contagens; o detalhe (GET /eventos/{id}) traz nomes e comentários.
+const resumo = ({ confirmed, waitlist, comments, reports, cep, ...dados }) => ({ ...dados, confirmedCount: confirmed.length, waitlistCount: waitlist.length });
 async function preparar(page, { profileGate = null, profileStatus = 200, comments = null, feedGate = null, eventData = evento, pendingRatings = { podeAvaliar: true, eventos: [] } } = {}) {
   await page.addInitScript(({ user }) => {
     localStorage.setItem("chegaai.token", "token-a");
@@ -25,7 +27,8 @@ async function preparar(page, { profileGate = null, profileStatus = 200, comment
   let heldFeed = false;
   await page.route("**/api/**", async (route) => {
     const request = route.request();
-    const path = new URL(request.url()).pathname.replace(/^.*\/api/, "");
+    const url = new URL(request.url());
+    const path = url.pathname.replace(/^.*\/api/, "");
     const token = request.headers().authorization;
     const current = token === "Bearer token-b" ? bruna : ana;
     const json = async (body, status = 200) => {
@@ -36,17 +39,21 @@ async function preparar(page, { profileGate = null, profileStatus = 200, comment
       if (profileGate && token === "Bearer token-a" && !held) { held = true; profileGate.started.resolve(); await profileGate.release.promise; return json(profileStatus === 401 ? { message: "Token antigo" } : ana, profileStatus); }
       return json(current);
     }
-    if (path === "/auth/me/inscricoes") return json([{ eventoId: evento.id, status: "CONFIRMADO", compareceu: false }]);
+    if (path === "/auth/me/inscricoes") return json([{ eventoId: evento.id, status: "CONFIRMADO", compareceu: false, evento: resumo(eventData) }]);
     if (path === "/auth/me/avaliacoes-pendentes") return json(pendingRatings);
-    if (path === "/eventos") {
+    if (path === "/eventos/resumo") return json({ total: 1, active: eventData.status === "ABERTO" ? 1 : 0, waitlist: 0, ambassadors: 0 });
+    if (path === "/eventos/feed") {
       if (feedGate) {
         if (heldFeed) return json({ message: "Falha do refresh" }, 503);
         heldFeed = true;
         feedGate.started.resolve();
         await feedGate.release.promise;
       }
-      return json([eventData]);
+      // Aberto fica nos próximos; concluído, nos anteriores.
+      const items = (url.searchParams.get("secao") === "anteriores") === (eventData.status !== "ABERTO") ? [resumo(eventData)] : [];
+      return json({ items, page: 0, size: 12, total: items.length, hasNext: false });
     }
+    if (path === `/eventos/${evento.id}`) return json(eventData);
     if (path === `/eventos/${evento.id}/comentarios` && comments) {
       const gate = token === "Bearer token-a" ? comments.old : comments.current;
       gate.started.resolve();
@@ -110,7 +117,7 @@ test("refresh que substitui o carregamento inicial e falha encerra a espera", as
   await gate.started.promise;
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   await expect(page.getByRole("button", { name: "Tentar de novo", exact: true })).toBeVisible();
-  const respostaAntiga = page.waitForResponse((response) => response.url().endsWith("/api/eventos") && response.status() === 200);
+  const respostaAntiga = page.waitForResponse((response) => new URL(response.url()).pathname.endsWith("/api/eventos/feed") && response.status() === 200);
   gate.release.resolve();
   await respostaAntiga;
   await expect(page.getByTestId(`event-card-${evento.id}`)).toHaveCount(0);
