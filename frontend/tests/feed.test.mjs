@@ -26,7 +26,7 @@ test("a página seguinte não repete rolés que já estão na tela", () => {
 });
 
 test("o detalhe vira resumo com as contagens do card", () => {
-  const detalhe = { id: "x", title: "Rolé", cep: "20000-000", reports: 0, confirmed: ["Ana", "Bia"], waitlist: ["Caio"], comments: [{ text: "oi" }] };
+  const detalhe = { id: "x", title: "Rolé", cep: "20000-000", confirmed: ["Ana", "Bia"], waitlist: ["Caio"], comments: [{ text: "oi" }] };
   assert.deepEqual(withCounts(detalhe), { ...detalhe, confirmedCount: 2, waitlistCount: 1 });
   assert.deepEqual(toSummary(detalhe), { id: "x", title: "Rolé", confirmedCount: 2, waitlistCount: 1 });
   const resumo = { id: "y", confirmedCount: 1, waitlistCount: 0 };

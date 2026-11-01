@@ -1,4 +1,4 @@
-import { CalendarPlus, Compass, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { CalendarPlus, Compass, LogOut, UserRound } from "lucide-react";
 import Brand from "./Brand";
 // Barra lateral no computador; no celular, o CSS deixa só a navegação, como barra de abas fixa embaixo
 // (o "Sair" passa para o Meu perfil). A navegação é uma só no DOM, para não duplicar os botões.
@@ -7,7 +7,6 @@ export default function Sidebar({ view, setView, currentUser, onLogout }) {
     ["feed", "Feed", Compass],
     ["create", "Criar rolé", CalendarPlus],
     ["profile", "Meu perfil", UserRound],
-    ...(currentUser.isModerator ? [["moderation", "Moderação", ShieldCheck]] : []),
   ];
   return (
     <aside className="sidebar">

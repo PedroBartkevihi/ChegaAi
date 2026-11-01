@@ -29,6 +29,6 @@ export function withCounts(event) {
 }
 export function toSummary(event) {
   if ("confirmedCount" in event) return event;
-  const { confirmed, waitlist, comments, reports, cep, ...summary } = withCounts(event);
+  const { confirmed, waitlist, comments, cep, ...summary } = withCounts(event);
   return summary;
 }

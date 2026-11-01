@@ -15,7 +15,6 @@ public record EventoResponseDTO(
     List<String> confirmed,
     List<String> waitlist,
     List<CommentDTO> comments,
-    int reports,
     String description
 ) {
     public record OrganizerDTO(

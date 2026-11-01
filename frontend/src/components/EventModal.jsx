@@ -2,7 +2,6 @@ import {
   CalendarDays,
   CalendarPlus,
   ExternalLink,
-  Flag,
   MapPin,
   RefreshCw,
   Star,
@@ -19,7 +18,7 @@ import { downloadIcs, mapUrl } from "../lib/agenda";
 import { returnFocus } from "../lib/foco";
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 // Abre com o resumo do card; CEP e comentários chegam com o detalhe (GET /eventos/{id}), em detailState.
-export default function EventModal({ event, detailState = "ready", reloadDetail, enrollment, enrollmentsReady = true, pending = {}, close, notice, onCloseNotice, toggleEnrollment, addComment, deleteEvent, reportEvent, currentUser, inactive = false, management, reloadManagement, changePresence, concludeEvent, hasPendingRatings, openRatings }) {
+export default function EventModal({ event, detailState = "ready", reloadDetail, enrollment, enrollmentsReady = true, pending = {}, close, notice, onCloseNotice, toggleEnrollment, addComment, deleteEvent, currentUser, inactive = false, management, reloadManagement, changePresence, concludeEvent, hasPendingRatings, openRatings }) {
   const [comment, setComment] = useState("");
   const dialogRef = useRef(null);
   const closeRef = useRef(null);
@@ -119,10 +118,6 @@ export default function EventModal({ event, detailState = "ready", reloadDetail,
           <div className="card-actions">
             <button className="primary-action" type="button" disabled={!enrollmentsReady || isOrganizer || event.status !== "ABERTO" || eventTimestamp(event) <= Date.now()} aria-disabled={enrolling || undefined} onClick={() => toggleEnrollment(event.id)}>
               {enrolling ? "Enviando..." : !enrollmentsReady ? "Carregando inscrição..." : isOrganizer ? "Você organiza este rolé" : getEnrollmentActionLabel(event, enrollment)}
-            </button>
-            <button className="secondary-action" type="button" onClick={() => reportEvent(event.id)}>
-              <Flag size={16} aria-hidden="true" />
-              Denunciar
             </button>
             {canManage && event.status !== "CONCLUIDO" && (
               <button className="danger-action" type="button" aria-disabled={deleting || undefined} onClick={() => deleteEvent(event.id)}>

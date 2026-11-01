@@ -1244,8 +1244,7 @@ textarea:focus-visible {
 }
 
 .event-form,
-.profile-panel,
-.moderation-grid > section {
+.profile-panel {
   border: 1px solid var(--line);
   border-radius: 20px;
   background: var(--surface);
@@ -1347,23 +1346,6 @@ legend {
 
 .big-honor span {
   color: var(--muted);
-}
-
-.moderation-grid {
-  display: grid;
-  grid-template-columns: 1.35fr 0.65fr;
-  gap: 16px;
-}
-
-.moderation-grid > section {
-  display: grid;
-  align-content: start;
-  gap: 14px;
-  padding: 20px;
-}
-
-.moderation-grid h2 {
-  font-size: 1.2rem;
 }
 
 .stack-list,
@@ -1945,8 +1927,7 @@ legend {
     grid-column: 1 / -1;
   }
 
-  .profile-grid,
-  .moderation-grid {
+  .profile-grid {
     grid-template-columns: 1fr;
   }
 
