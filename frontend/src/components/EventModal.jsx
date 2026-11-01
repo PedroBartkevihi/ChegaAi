@@ -28,7 +28,10 @@ export default function EventModal({ event, detailState = "ready", reloadDetail,
   const onCloseRef = useRef(close);
   onCloseRef.current = close;
   const detailReady = detailState === "ready";
-  const canComment = detailReady && enrollmentsReady && (enrollment === "CONFIRMADO" || enrollment === "FILA");
+  // Como a API: depois de concluído o rolé aceita comentários; travado ou cancelado, não.
+  const closedReason = event.status === "TRAVADO" ? "Este rolé está travado pela moderação e não aceita comentários."
+    : event.status === "CANCELADO" ? "Este rolé foi cancelado e não aceita comentários." : null;
+  const canComment = detailReady && enrollmentsReady && !closedReason && (enrollment === "CONFIRMADO" || enrollment === "FILA");
   const isOrganizer = event.organizer.id === currentUser?.id;
   const activeRef = useRef(!inactive);
   activeRef.current = !inactive;
@@ -163,7 +166,7 @@ export default function EventModal({ event, detailState = "ready", reloadDetail,
                 </button>
               </form>
             ) : (
-              <div className="empty-state">Apenas participantes confirmados ou na lista de espera podem comentar.</div>
+              <div className="empty-state">{closedReason || "Apenas participantes confirmados ou na lista de espera podem comentar."}</div>
             )}
           </section>
         </div>

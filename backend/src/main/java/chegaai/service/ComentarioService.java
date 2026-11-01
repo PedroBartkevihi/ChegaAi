@@ -1,4 +1,5 @@
 package chegaai.service;
+import chegaai.domain.enums.StatusEvento;
 import chegaai.domain.enums.StatusInscricao;
 import chegaai.domain.model.Comentario;
 import chegaai.domain.model.Evento;
@@ -30,6 +31,13 @@ public class ComentarioService {
         }
         Evento evento = eventoRepository.findByIdForUpdate(eventoId)
             .orElseThrow(() -> new NoSuchElementException("Evento não encontrado: " + eventoId));
+        // Depois de concluído, o rolé continua aceitando comentários; cancelado ou travado, não.
+        if (evento.getStatusEvento() == StatusEvento.CANCELADO) {
+            throw new IllegalStateException("Este rolé foi cancelado e não aceita comentários.");
+        }
+        if (Boolean.TRUE.equals(evento.getTravado())) {
+            throw new IllegalStateException("Este rolé está travado pela moderação e não aceita comentários.");
+        }
         Usuario autor = contaService.travarAtivo(usuarioId);
         Inscricao inscricao = inscricaoRepository.findByUsuarioIdAndEventoId(usuarioId, eventoId)
             .orElseThrow(() -> new IllegalStateException(
