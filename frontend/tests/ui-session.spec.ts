@@ -12,10 +12,10 @@ const evento = {
   id: "role-de-sessao", title: "Rolé para conferir sessão", category: "Futebol",
   date: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10), time: "18:00", cep: "", place: "Praça de teste",
   capacity: 10, status: "ABERTO", organizer: { id: "organizador", name: "Organizador", honor: 3, isAmbassador: false },
-  confirmed: ["Organizador", "Ana", "Bruna"], waitlist: [], comments: [], reports: 0, description: "Evento fictício para isolar respostas de sessões."
+  confirmed: ["Organizador", "Ana", "Bruna"], waitlist: [], comments: [], description: "Evento fictício para isolar respostas de sessões."
 };
 // O feed e as inscrições trazem só as contagens; o detalhe (GET /eventos/{id}) traz nomes e comentários.
-const resumo = ({ confirmed, waitlist, comments, reports, cep, ...dados }) => ({ ...dados, confirmedCount: confirmed.length, waitlistCount: waitlist.length });
+const resumo = ({ confirmed, waitlist, comments, cep, ...dados }) => ({ ...dados, confirmedCount: confirmed.length, waitlistCount: waitlist.length });
 async function preparar(page, { profileGate = null, profileStatus = 200, comments = null, feedGate = null, eventData = evento, pendingRatings = { podeAvaliar: true, eventos: [] } } = {}) {
   await page.addInitScript(({ user }) => {
     localStorage.setItem("chegaai.token", "token-a");

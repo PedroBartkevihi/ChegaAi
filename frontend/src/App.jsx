@@ -9,7 +9,6 @@ import ThemeToggle from "./components/ThemeToggle";
 import FeedView from "./components/FeedView";
 import CreateView from "./components/CreateView";
 import ProfileView from "./components/ProfileView";
-import ModerationView from "./components/ModerationView";
 import EventModal from "./components/EventModal";
 import ConfirmDialog from "./components/ConfirmDialog";
 import { api, cleanErrorMessage, TOKEN_KEY, USER_KEY, SESSION_EXPIRED_EVENT } from "./lib/api";
@@ -47,7 +46,6 @@ export default function App() {
   const [accountLoading, setAccountLoading] = useState(false);
   const [accountError, setAccountError] = useState(false);
   const [management, setManagement] = useState({});
-  const [reports, setReports] = useState([]);
   const [view, setView] = useState("feed");
   const [filters, setFilters] = useState(initialFilters);
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -167,7 +165,6 @@ export default function App() {
     setEnrollmentsReady(false);
     setRatings(EMPTY_RATINGS);
     setManagement({});
-    setReports([]);
     selectEvent(null);
     setRatingsEventId(null);
     setAccountLoading(false);
@@ -615,15 +612,6 @@ export default function App() {
       return true;
     });
   }
-  function reportEvent(eventId) {
-    const event = findEvent(eventId);
-    if (!event || !userRef.current) return;
-    setReports((current) => [{ id: createId(), target: event.title, author: userRef.current.name, reason: "Denúncia registrada pelo protótipo para análise manual.", status: "PENDENTE" }, ...current]);
-    showNotice("Denúncia enviada à moderação para análise.", "success");
-  }
-  function resolveReport(reportId, shouldLockEvent) {
-    setReports((current) => current.map((item) => item.id === reportId ? { ...item, status: shouldLockEvent ? "PROCEDENTE" : "IMPROCEDENTE" } : item));
-  }
   if (!currentUser) return <LoginScreen key={sessionVersion} onLogin={handleLogin} onRegister={handleRegister} notice={alert} onCloseNotice={() => setAlert(null)} />;
   return (
     <div className="app-shell">
@@ -642,14 +630,13 @@ export default function App() {
           {view === "profile" && <ProfileView key={sessionVersion} registrations={registrations} enrollments={enrollments} currentUser={currentUser} openEvent={selectEvent} onLogout={handleLogout}
             ratings={ratings} ratingsEventId={ratingsEventId} pending={pending} sendRating={sendRating} accountLoading={accountLoading} accountError={accountError}
             refreshAccount={() => refreshAccount(guard.capture(), { reportError: true })} />}
-          {view === "moderation" && currentUser.isModerator && <ModerationView reports={reports} resolveReport={resolveReport} />}
         </main>
       </div>
       {alert && !selectedEvent && <div className="toast-region"><Notice key={alert.id} alert={alert} onClose={() => setAlert(null)} /></div>}
       {selectedEvent && <EventModal key={`${sessionVersion}:${selectedEvent.id}`} event={selectedEvent} detailState={detail?.id === selectedEvent.id ? detail.state : "loading"}
         reloadDetail={() => loadDetail(selectedEvent.id)} enrollment={enrollments[selectedEvent.id]} enrollmentsReady={enrollmentsReady}
         pending={pending} close={() => selectEvent(null)} notice={alert} onCloseNotice={() => setAlert(null)} toggleEnrollment={toggleEnrollment}
-        addComment={addComment} deleteEvent={deleteEvent} reportEvent={reportEvent} currentUser={currentUser} inactive={Boolean(confirmState)}
+        addComment={addComment} deleteEvent={deleteEvent} currentUser={currentUser} inactive={Boolean(confirmState)}
         management={management[selectedEvent.id]} reloadManagement={() => loadManagement(selectedEvent.id)} changePresence={changePresence} concludeEvent={concludeEvent}
         hasPendingRatings={ratings.eventos.some((item) => item.eventoId === selectedEvent.id)} openRatings={openRatings} />}
       {confirmState && <ConfirmDialog title={confirmState.title} message={confirmState.message} confirmLabel={confirmState.confirmLabel}

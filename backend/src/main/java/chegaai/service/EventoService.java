@@ -352,7 +352,6 @@ public class EventoService {
             confirmedNames,
             waitlistNames,
             commentDTOs,
-            0,
             evento.getDescricao()
         );
     }
