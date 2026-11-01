@@ -145,6 +145,26 @@ class SegurancaIT extends IntegracaoBase {
             .andExpect(jsonPath("$.message", containsString("e-mail")));
     }
     @Test
+    @DisplayName("senha acima de 72 bytes, mesmo com 72 caracteres ou menos, recebe mensagem em português")
+    void senhaAcimaDe72Bytes() throws Exception {
+        // 37 letras com acento = 74 bytes; o DTO aceita (até 72 caracteres), o BCrypt não.
+        mockMvc.perform(post("/auth/cadastro")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of(
+                    "name", "Ana Acentos", "email", "ana.acentos@teste.chegaai.dev",
+                    "birthDate", "1999-03-03", "password", "ç".repeat(37)))))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value(chegaai.service.AuthService.SENHA_LONGA));
+        // 36 letras com acento = 72 bytes: no limite, o cadastro passa e o login funciona.
+        mockMvc.perform(post("/auth/cadastro")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of(
+                    "name", "Ana Acentos", "email", "ana.acentos@teste.chegaai.dev",
+                    "birthDate", "1999-03-03", "password", "ç".repeat(36)))))
+            .andExpect(status().isCreated());
+        login("ana.acentos@teste.chegaai.dev", "ç".repeat(36));
+    }
+    @Test
     @DisplayName("cadastro sem CPF funciona, e CPF repetido recebe mensagem genérica")
     void cadastroComCpfOpcional() throws Exception {
         mockMvc.perform(post("/auth/cadastro")

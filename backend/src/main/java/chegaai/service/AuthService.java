@@ -15,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import chegaai.limite.IdentidadeCliente;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -24,6 +25,10 @@ public class AuthService {
     public static final String EMAIL_EM_USO = "Já existe uma conta com este e-mail.";
     public static final String CADASTRO_RECUSADO =
         "Não foi possível concluir o cadastro com esses dados. Se você já tem conta, entre com seu e-mail.";
+    public static final String SENHA_LONGA =
+        "A senha pode ter no máximo 72 bytes; letras com acento contam como dois.";
+    /** Limite do BCrypt, em bytes: o DTO conta caracteres, e uma letra com acento ocupa dois. */
+    private static final int MAX_BYTES_SENHA = 72;
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
@@ -43,6 +48,10 @@ public class AuthService {
     @Transactional
     public AuthResponseDTO cadastrar(CadastroRequestDTO dto) {
         String email = normalizarEmail(dto.email());
+        // Sem isso, o BCrypt recusaria com uma mensagem técnica em inglês.
+        if (dto.password().getBytes(StandardCharsets.UTF_8).length > MAX_BYTES_SENHA) {
+            throw new IllegalArgumentException(SENHA_LONGA);
+        }
         // CPF opcional (o DTO já transforma o vazio em nulo); se vier, é validado e precisa ser único.
         String cpf = dto.cpf();
         if (cpf != null && !Cpf.valido(cpf)) {

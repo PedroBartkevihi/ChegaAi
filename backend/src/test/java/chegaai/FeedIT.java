@@ -134,6 +134,33 @@ class FeedIT extends IntegracaoBase {
     }
 
     @Test
+    @DisplayName("o detalhe custa as mesmas consultas com 1 ou com 9 inscritos, fila incluída")
+    void detalheNaoCresceComOsInscritos() throws Exception {
+        var org = cadastrar("DetalheConsultas");
+        UUID pequeno = criar(org, "Detalhe pequeno " + marca(), "Futebol", LocalDate.now().plusDays(3), 10);
+        UUID cheio = criar(org, "Detalhe cheio " + marca(), "Futebol", LocalDate.now().plusDays(3), 3);
+        for (int i = 0; i < 8; i++) {
+            alternarInscricao(cadastrar("DetalheVaga"), cheio).andExpect(status().isOk());
+        }
+        Statistics estatisticas = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+        boolean ligadas = estatisticas.isStatisticsEnabled();
+        estatisticas.setStatisticsEnabled(true);
+        try {
+            estatisticas.clear();
+            assertThat(buscarEvento(pequeno).get("confirmed").size()).isEqualTo(1);
+            long comUm = estatisticas.getPrepareStatementCount();
+            estatisticas.clear();
+            JsonNode detalhe = buscarEvento(cheio);
+            assertThat(detalhe.get("confirmed").size()).isEqualTo(3);
+            assertThat(detalhe.get("waitlist").size()).isEqualTo(6);
+            // Antes, cada nome de confirmado ou da fila custava uma consulta.
+            assertThat(estatisticas.getPrepareStatementCount()).isPositive().isEqualTo(comUm);
+        } finally {
+            estatisticas.setStatisticsEnabled(ligadas);
+        }
+    }
+
+    @Test
     @DisplayName("uma página faz no máximo três consultas, qualquer que seja o número de rolés")
     void consultasPorPagina() throws Exception {
         String marca = marca();

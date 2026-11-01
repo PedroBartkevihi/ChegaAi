@@ -43,6 +43,11 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
   function handleRegister(e) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
+    // O limite do BCrypt é em bytes: uma letra com acento ocupa dois. A API confere de novo.
+    if (new TextEncoder().encode(form.get("password")).length > 72) {
+      setError("A senha pode ter no máximo 72 bytes; letras com acento contam como dois.");
+      return;
+    }
     submit(() => onRegister({
       name: form.get("name").trim(),
       email: form.get("email").trim().toLowerCase(),

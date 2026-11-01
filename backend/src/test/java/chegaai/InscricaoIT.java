@@ -305,6 +305,25 @@ class InscricaoIT extends IntegracaoBase {
             .isEqualTo(Endereco.CEP_NAO_INFORMADO);
     }
     @Test
+    @DisplayName("comentário continua aceito depois de concluído, mas não em rolé travado ou cancelado")
+    void comentarioRespeitaOEstadoDoRole() throws Exception {
+        UsuarioTeste organizador = cadastrar("Org");
+        UUID concluido = criarEventoValido(organizador, 10);
+        moverParaOPassado(concluido);
+        concluir(organizador, concluido).andExpect(status().isOk());
+        comentar(organizador, concluido, "Obrigado a todos pelo rolé!").andExpect(status().isCreated());
+        UUID travado = criarEventoValido(organizador, 10);
+        jdbcTemplate.update("UPDATE evento SET travado = true WHERE id_evento = ?", travado);
+        comentar(organizador, travado, "Alguém aí?")
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.message", containsString("travado pela moderação")));
+        UUID cancelado = criarEventoValido(organizador, 10);
+        jdbcTemplate.update("UPDATE evento SET status_evento = 'CANCELADO' WHERE id_evento = ?", cancelado);
+        comentar(organizador, cancelado, "Alguém aí?")
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.message", containsString("foi cancelado")));
+    }
+    @Test
     @DisplayName("a distância saiu da API, e o site publicado antes dessa mudança, que ainda a envia, continua criando rolés")
     void distanciaSaiuEOSiteAntigoContinuaCriando() throws Exception {
         UsuarioTeste organizador = cadastrar("Org");
