@@ -63,7 +63,7 @@ Limites do SLA usados nas medições (thresholds do k6):
 ## Como repetir
 
 ```bash
-tests/load/medir.sh --versao 7d75aea --roteiro lista --base maior
+tests/load/medir.sh --versao 7d75aea --roteiro lista --base maior --aceitar-reprovado
 tests/load/medir.sh --versao b1d9b9b --base maior
 tests/load/medir.sh --script comentarios-write --versao b1d9b9b
 node tests/load/tools/relatorio.mjs medicao tests/load/resultados/<pasta> docs/sla/medicoes/<data>/<nome>

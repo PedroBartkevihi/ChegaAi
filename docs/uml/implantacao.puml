@@ -11,12 +11,12 @@ node "Render\n(site estático)" as Render {
 }
 node "Google Cloud Run\nsouthamerica-east1" as CloudRun {
   node "Contêiner\n(JRE 17, 512 MiB, 0–1 instância)" as Conteiner {
-    artifact "chegaai-backend.jar\n(Spring Boot 3.3)" as Api
+    artifact "chegaai-backend.jar\n(Spring Boot 4.1)" as Api
   }
 }
 database "Neon\nPostgreSQL (aws-sa-east-1)" as Neon
 cloud "GitHub" as GitHub {
-  artifact "Repositório + GitHub Actions\n(testes a cada push)" as Repo
+  artifact "Repositório + GitHub Actions\n(testes e CodeQL a cada push e PR)" as Repo
 }
 node "Google Cloud Build" as CloudBuild
 

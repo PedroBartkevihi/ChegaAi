@@ -1,6 +1,6 @@
 # Diagramas UML
 
-Modelagem do ChegaAí em [PlantUML](https://plantuml.com), gerada a partir do código atual.
+Modelagem do ChegaAí em [PlantUML](https://plantuml.com), conferida com o código em 01/11/2026.
 Cada diagrama tem o fonte (`.puml`) e a imagem renderizada (`.svg`).
 
 | Diagrama | O que mostra |
@@ -8,7 +8,7 @@ Cada diagrama tem o fonte (`.puml`) e a imagem renderizada (`.svg`).
 | [Casos de uso](casos-de-uso.svg) | Atores (visitante, participante, organizador, Embaixador, moderador) e o que cada um faz |
 | [Classes do domínio](classes.svg) | Entidades JPA, herança de usuários, relações com multiplicidade e enums |
 | [Sequência: autenticação](sequencia-autenticacao.svg) | Login com BCrypt e JWT e uma requisição autenticada |
-| [Sequência: inscrição e fila](sequencia-inscricao.svg) | Regras de inscrição, fila de espera e promoção por ordem de chegada |
+| [Sequência: inscrição e fila](sequencia-inscricao.svg) | Regras de inscrição, fila de espera, cancelamento tardio e promoção pela ordem de entrada |
 | [Implantação](implantacao.svg) | Versão online: Render, Google Cloud Run, Neon e o fluxo de deploy |
 
 ## Como regenerar as imagens
