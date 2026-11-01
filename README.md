@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/PedroBartkevihi/ChegaAi/actions/workflows/ci.yml/badge.svg)](https://github.com/PedroBartkevihi/ChegaAi/actions/workflows/ci.yml)
 
-Plataforma web para **criar, descobrir e participar de eventos presenciais** ("rolés") com segurança:
+Plataforma web para **criar, descobrir e participar de rolés ao ar livre** (eventos presenciais):
 organizadores bem avaliados ganham destaque, vagas e fila de espera são controladas pelo sistema
 e quem participa avalia os outros participantes, formando um índice de reputação (honra).
 
@@ -26,11 +26,16 @@ Pedro Farias continuou o projeto neste repositório:
 
 - front-end migrado de Vite para **Next.js** e dividido em componentes;
 - **autenticação real** com senhas em BCrypt, token **JWT** e cadastro de usuários (antes o login só conferia o e-mail);
+- **proteção** do login e do cadastro com limite de tentativas, com o proxy do Cloud Run verificado;
 - **presença, conclusão e avaliações na interface**, com resumo de ausências antes de concluir e pendências no perfil;
+- regras de **honra e fila** revisadas e testadas: penalidades que não somem, ordem da fila preservada e histórico de rolés concluídos protegido;
 - correção de horários exibidos 3 horas adiantados (UTC) e de erros de validação que viravam erro 500;
+- **feed paginado**: com 203 rolés, abrir o feed caiu de 2,8 s para 14 ms (p95), conforme as [medições de SLA](docs/sla/README.md);
+- **privacidade**: exclusão da própria conta pelo perfil, com os dados pessoais apagados e o histórico preservado, e cadastro a partir de 18 anos;
 - **testes unitários e de integração** com PostgreSQL real (Testcontainers) e integração contínua no GitHub Actions;
-- **Docker**, Docker Compose e deploy da versão online;
-- **diagramas UML** gerados a partir do código;
+- **Docker** e Docker Compose; versão online com **deploy contínuo** (API no Google Cloud Run, banco no Neon e site no Render);
+- dependências atualizadas pelo **Dependabot**, com alertas de segurança e as versões fixadas (Actions por SHA, imagens por digest e checksum do Maven Wrapper), e varredura de código pelo **CodeQL**;
+- **diagramas UML** conferidos com o código;
 - **novo visual** pensado para rolés ao ar livre: paleta de areia e verde, ilustração da orla, cores por categoria, modo escuro e navegação lateral (abas no celular), com foco visível e diálogos operáveis pelo teclado.
 
 ## Funcionalidades
