@@ -9,17 +9,22 @@ abstract class Usuario {
   - id : UUID
   - nome : String
   - email : String
-  - cpf : String
+  - cpf : String [0..1]
   - senhaHash : String
   - dataNascimento : LocalDate
   - honraMedia : BigDecimal
+  - honraInicial : BigDecimal
+  - descontoHonraAcumulado : BigDecimal
   - statusUsuario : StatusUsuario
+  - suspensoAte : OffsetDateTime [0..1]
   - qtdDenunciasValidadas : int
   + {abstract} getPapelSistema() : PapelSistema
+  + estaAtivo(agora) : boolean
+  + contaEncerrada() : boolean
+  + exigirContaAtiva(agora)
   + podeCriarEvento(honraMinima) : boolean
-  + podeSeInscrever() : boolean
   + qualificaEmbaixador(limite) : boolean
-  + deveSerBanidoAutomaticamente(honra, denuncias) : boolean
+  + primeiroNome() : String
 }
 class Participante
 class Embaixador
@@ -40,32 +45,40 @@ class Evento {
   - limiteParticipantes : int
   - statusEvento : StatusEvento
   - travado : boolean
+  + contarConfirmados() : long
   + possuiVaga() : boolean
-  + concluir()
+  + concluir(agora)
   + cancelar()
   + travar()
+  + destravar()
 }
 class Inscricao {
   - id : UUID
   - dataHoraSolicitacao : OffsetDateTime
+  - ordemEntrada : long
   - statusInscricao : StatusInscricao
   - compareceu : boolean
+  - descontoHonraAplicado : BigDecimal
   + confirmar()
   + cancelar()
   + registrarPresenca()
+  + registrarAusencia()
   + marcarAusente()
+  + estaConfirmada() : boolean
   + estaEmFilaDeEspera() : boolean
 }
 class Comentario {
   - id : UUID
   - texto : String
   - dataHoraComentario : OffsetDateTime
+  + pertenceAo(idUsuario) : boolean
 }
 class Avaliacao {
   - id : UUID
   - nota : int {1..5}
   - comentarioOpcional : String
   - dataHoraAvaliacao : OffsetDateTime
+  + validar()
   + ehAutoAvaliacao() : boolean
 }
 class Categoria {
@@ -73,11 +86,15 @@ class Categoria {
   - nome : String
   - descricao : String
   - ativa : boolean
+  + ativar()
+  + inativar()
 }
 class Endereco {
   - id : UUID
   - cep : String
   - logradouro : String
+  - numero : String
+  - complemento : String
   - bairro : String
   - cidade : String
   - estado : String
@@ -87,9 +104,13 @@ class Denuncia {
   - id : UUID
   - motivo : String
   - detalhes : String
+  - dataHoraDenuncia : OffsetDateTime
   - statusDenuncia : StatusDenuncia
+  + iniciarAnalise()
   + classificarComoProcedente()
   + classificarComoImprocedente()
+  + encerrar()
+  + estaPendente() : boolean
 }
 class Penalidade {
   - id : UUID
@@ -97,8 +118,15 @@ class Penalidade {
   - motivo : String
   - dataInicio : LocalDate
   - dataFim : LocalDate
+  - ativa : boolean
+  + encerrar()
   + estaAtiva() : boolean
+  + ehBanimentoPermanente() : boolean
 }
+note bottom of Denuncia
+  Denúncia e Penalidade estão no modelo
+  e no banco, mas ainda não têm rotas na API.
+end note
 
 Usuario "1 organizador" -- "0..*" Evento : organiza >
 Evento "0..*" --> "1" Categoria
@@ -114,7 +142,7 @@ Denuncia "0..*" --> "1 denunciante" Usuario
 Denuncia "0..*" --> "1 denunciado" Usuario
 Denuncia "0..*" --> "0..1" Evento
 Penalidade "0..*" --> "1 penalizado" Usuario
-Penalidade "0..*" --> "1 aplicador" Administrador
+Penalidade "0..*" --> "1 adminAplicador" Usuario
 
 enum PapelSistema {
   PARTICIPANTE
@@ -125,6 +153,7 @@ enum StatusUsuario {
   ATIVO
   SUSPENSO
   BANIDO
+  EXCLUIDO
 }
 enum StatusEvento {
   ATIVO
@@ -150,6 +179,14 @@ enum TipoPenalidade {
   BANIMENTO
 }
 note bottom of StatusInscricao
-  SOLICITADA = na fila de espera
+  SOLICITADA = na fila de espera,
+  atendida pela ordem de entrada
+end note
+note bottom of StatusUsuario
+  SUSPENSO com suspensoAte vence sozinho
+  (3 cancelamentos tardios em 30 dias
+  suspendem por 7). EXCLUIDO = a pessoa
+  excluiu a conta e os dados pessoais
+  foram apagados.
 end note
 @enduml

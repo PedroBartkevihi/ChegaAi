@@ -11,13 +11,14 @@ database Banco as "PostgreSQL"
 == Inscrever-se ==
 Participante -> Ctrl : POST /api/eventos/{id}/inscricao (JWT)
 Ctrl -> Serv : toggleInscricao(eventoId, usuarioId)
-Serv -> Banco : buscar evento e usuário
-alt evento concluído, cancelado ou travado
-  Serv --> Ctrl : 409 "não está aberto para inscrições"
-else evento aberto
-  Serv -> Banco : eventos concluídos em que compareceu
-  Serv -> Serv : verificarAvaliacoesPendentes()
-  alt ainda há participantes para avaliar
+Serv -> Banco : travar o evento e depois a conta
+note right : pedidos no mesmo rolé passam um por vez
+alt rolé já começou, concluído, cancelado ou travado
+  Serv --> Ctrl : 409 com o motivo
+else rolé aberto
+  alt conta suspensa
+    Serv --> Ctrl : 403 "Esta conta está suspensa."
+  else ainda há participantes para avaliar
     Serv --> Ctrl : 409 "avaliações pendentes"
   else honra abaixo de 3.0
     Serv --> Ctrl : 409 "abaixo do mínimo"
@@ -27,7 +28,7 @@ else evento aberto
       Serv -> Banco : salvar inscrição CONFIRMADA
       Serv --> Ctrl : 200 { status: "CONFIRMADO" }
     else evento lotado
-      Serv -> Banco : salvar inscrição SOLICITADA
+      Serv -> Banco : salvar inscrição SOLICITADA\ncom a próxima ordem de entrada
       Serv --> Ctrl : 200 { status: "FILA" }
     end
   end
@@ -37,11 +38,15 @@ Ctrl --> Participante : resposta
 == Cancelar (mesma rota, segunda chamada) ==
 Participante -> Ctrl : POST /api/eventos/{id}/inscricao (JWT)
 Ctrl -> Serv : toggleInscricao(eventoId, usuarioId)
+opt vaga confirmada a menos de 24 h do início
+  Serv -> Banco : registrar cancelamento tardio
+  note right : 3 em 30 dias suspendem a conta por 7 dias
+end
 Serv -> Banco : marcar inscrição como CANCELADA
 opt quem saiu estava confirmado
-  Serv -> Banco : primeira SOLICITADA por data de solicitação
+  Serv -> Banco : primeiras SOLICITADA pela ordem de entrada
   Serv -> Banco : promover para CONFIRMADA
-  note right : a fila é atendida por ordem de chegada (FIFO)
+  note right : contas suspensas ou banidas\nficam na fila sem perder a posição
 end
 Serv --> Ctrl : 200 { status: "CANCELADO" }
 Ctrl --> Participante : resposta

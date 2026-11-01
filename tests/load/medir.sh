@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Mede a API com o k6 num ambiente descartável parecido com o Cloud Run: a imagem do backend/Dockerfile
 # num contêiner com 1 CPU, 512 MiB e pool de 5 conexões, contra um PostgreSQL 15. Tudo roda no Docker e
-# é removido no fim; só a pasta de resultados fica. Uso e opções em tests/load/README.md.
+# é removido no fim; só a pasta de resultados fica. Sai com o código do k6 (0 só se ele passou), ou 1 se a API
+# morreu por falta de memória. Uso e opções em tests/load/README.md.
 set -euo pipefail
 export MSYS_NO_PATHCONV=1 # Git Bash no Windows: não converter caminhos de dentro dos contêineres.
 
@@ -12,9 +13,11 @@ ROTEIRO=site
 VERSAO=HEAD
 SAIDA=""
 PORTA=18095
+ACEITAR_REPROVADO=0
 K6_IMAGEM=grafana/k6:2.2.0
 while [ $# -gt 0 ]; do
   case "$1" in
+    --aceitar-reprovado) ACEITAR_REPROVADO=1; shift ;;
     --script) SCRIPT="$2"; shift 2 ;;
     --perfil) PERFIL="$2"; shift 2 ;;
     --base) BASE="$2"; shift 2 ;;
@@ -138,4 +141,11 @@ const metadados = {
 fs.writeFileSync(`${e.SAIDA}/metadados.json`, JSON.stringify(metadados, null, 2) + "\n");
 '
 echo "Resultado em $SAIDA (k6 saiu com $K6_SAIDA; OOM: $OOM)."
-[ "$OOM" = false ]
+[ "$OOM" = false ] || exit 1
+# 99 é a reprovação nos limites (thresholds). Medir de propósito uma versão que reprova, como a lista antiga,
+# pede --aceitar-reprovado; uma falha de preparo ou de script do k6 continua sendo falha.
+if [ "$K6_SAIDA" = 99 ] && [ "$ACEITAR_REPROVADO" = 1 ]; then
+  echo "Reprovação nos limites aceita (--aceitar-reprovado)."
+  exit 0
+fi
+exit "$K6_SAIDA"

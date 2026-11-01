@@ -15,7 +15,7 @@ Participante <|-- Embaixador
 
 rectangle "ChegaAí" {
   usecase "Ver e filtrar o feed de rolés" as UC_Feed
-  usecase "Cadastrar-se" as UC_Cadastro
+  usecase "Cadastrar-se\n(18 anos ou mais)" as UC_Cadastro
   usecase "Entrar (login com JWT)" as UC_Login
 
   usecase "Criar rolé\n(honra ≥ 2.0)" as UC_Criar
@@ -28,6 +28,7 @@ rectangle "ChegaAí" {
   usecase "Comentar no rolé" as UC_Comentar
   usecase "Avaliar participantes" as UC_Avaliar
   usecase "Ver perfil e reputação" as UC_Perfil
+  usecase "Excluir a própria conta" as UC_ExcluirConta
 
   usecase "Registrar presença" as UC_Presenca
   usecase "Concluir rolé" as UC_Concluir
@@ -45,6 +46,7 @@ Participante --> UC_Cancelar
 Participante --> UC_Comentar
 Participante --> UC_Avaliar
 Participante --> UC_Perfil
+Participante --> UC_ExcluirConta
 
 Embaixador --> UC_CriarGrande
 UC_CriarGrande .> UC_Criar : <<extend>>

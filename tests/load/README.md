@@ -32,6 +32,9 @@ Opções:
 - `--versao`: o commit a medir (padrão `HEAD`).
 - `--saida`: a pasta do resultado.
 - `--porta`: a porta local da API (padrão `18095`).
+- `--aceitar-reprovado`: termina com sucesso quando o k6 reprova nos limites (código 99), para medir de propósito uma versão que não cumpre o SLA, como a lista antiga.
+
+O roteiro termina com o código de saída do k6: 0 só quando todos os limites passam. Sem `--aceitar-reprovado`, a reprovação também é falha, e uma falha de preparo ou de script do k6 é sempre falha. Se a API morrer por falta de memória, a saída é 1. O resultado é gravado em todos esses casos.
 
 Passo a passo:
 
