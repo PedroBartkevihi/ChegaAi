@@ -180,12 +180,12 @@ public class EventoService {
 
         if (!participouDoEvento(avaliadorId, eventoId)) {
             throw new IllegalStateException(
-                "Apenas participantes confirmados podem avaliar.");
+                "Apenas quem esteve presente no rolé pode avaliar.");
         }
 
         if (!participouDoEvento(dto.avaliadoId(), eventoId)) {
             throw new IllegalStateException(
-                "Só é possível avaliar quem participou do evento.");
+                "Só é possível avaliar quem esteve presente no rolé.");
         }
 
         if (avaliacaoRepository.existsByAvaliador_IdAndAvaliado_IdAndEvento_Id(
@@ -205,8 +205,9 @@ public class EventoService {
 
         honraService.recalcular(avaliado);
 
+        // Só ids: nome e título são dados de quem usa o app e não precisam ir para o log.
         log.info("RF004: Avaliação registrada — avaliador={} avaliado={} nota={} evento={}",
-            avaliador.getNome(), avaliado.getNome(), dto.nota(), evento.getTitulo());
+            avaliadorId, dto.avaliadoId(), dto.nota(), eventoId);
 
         return new AvaliacaoResponseDTO(
             avaliacao.getId(),
@@ -243,9 +244,10 @@ public class EventoService {
         return categoriaRepository.findByNome(nome)
             .orElseThrow(() -> new NoSuchElementException("Categoria não encontrada: " + nome));
     }
+    // O mesmo critério das avaliações pendentes (findCompareceuEmEventosConcluidos): confirmado e presente.
     private boolean participouDoEvento(UUID usuarioId, UUID eventoId) {
         return inscricaoRepository.findByUsuarioIdAndEventoId(usuarioId, eventoId)
-            .map(i -> i.getStatusInscricao() == StatusInscricao.CONFIRMADA)
+            .map(i -> i.getStatusInscricao() == StatusInscricao.CONFIRMADA && Boolean.TRUE.equals(i.getCompareceu()))
             .orElse(false);
     }
 
@@ -313,10 +315,13 @@ public class EventoService {
     }
     public EventoResponseDTO toResponseDTO(Evento evento) {
         UUID eventoId = evento.getId();
-        List<Inscricao> confirmadas = inscricaoRepository
-            .findByEventoIdAndStatusInscricao(eventoId, StatusInscricao.CONFIRMADA);
-        List<Inscricao> fila = inscricaoRepository
-            .findByEventoIdAndStatusInscricao(eventoId, StatusInscricao.SOLICITADA);
+        // Confirmados e fila numa consulta só, já com o usuário: os nomes não custam uma consulta por pessoa.
+        List<Inscricao> inscricoes = inscricaoRepository.listarParticipantes(eventoId,
+            List.of(StatusInscricao.CONFIRMADA, StatusInscricao.SOLICITADA));
+        List<Inscricao> confirmadas = inscricoes.stream()
+            .filter(i -> i.getStatusInscricao() == StatusInscricao.CONFIRMADA).toList();
+        List<Inscricao> fila = inscricoes.stream()
+            .filter(i -> i.getStatusInscricao() == StatusInscricao.SOLICITADA).toList();
         List<Comentario> comentarios = comentarioRepository.findByEventoIdWithAutor(eventoId);
         List<String> confirmedNames = confirmadas.stream()
             .map(i -> i.getUsuario().getNome().split(" ")[0])

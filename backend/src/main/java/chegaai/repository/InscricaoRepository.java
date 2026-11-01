@@ -44,4 +44,8 @@ public interface InscricaoRepository extends JpaRepository<Inscricao, UUID> {
            "AND i.compareceu = true " +
            "AND e.statusEvento = 'CONCLUIDO'")
     List<Inscricao> findCompareceuEmEventosConcluidos(@Param("usuarioId") UUID usuarioId);
+    /** Quem esteve presente em cada um dos rolés, com o usuário, numa consulta só. */
+    @Query("SELECT i FROM Inscricao i JOIN FETCH i.usuario WHERE i.evento.id IN :eventoIds " +
+           "AND i.statusInscricao = 'CONFIRMADA' AND i.compareceu = true ORDER BY i.ordemEntrada ASC")
+    List<Inscricao> listarPresentes(@Param("eventoIds") Collection<UUID> eventoIds);
 }

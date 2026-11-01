@@ -183,8 +183,14 @@ public class DataSeederService implements CommandLineRunner {
         inscPendente.setStatusInscricao(StatusInscricao.CONFIRMADA);
         inscPendente.setCompareceu(true);
         inscricaoRepository.save(inscPendente);
-        // Rafael também participou, então o tester.pendente tem alguém para avaliar.
-        inscrever(rafael, evtPassadoSemAvaliacao, StatusInscricao.CONFIRMADA);
+        // Rafael também esteve presente, então o tester.pendente tem alguém para avaliar. Avaliar e ter
+        // avaliação pendente exigem presença; sem ela, o Rafael avaliaria sem ver pendência nenhuma.
+        Inscricao inscRafael = new Inscricao();
+        inscRafael.setUsuario(rafael);
+        inscRafael.setEvento(evtPassadoSemAvaliacao);
+        inscRafael.setStatusInscricao(StatusInscricao.CONFIRMADA);
+        inscRafael.setCompareceu(true);
+        inscricaoRepository.save(inscRafael);
         // Nenhuma avaliação é adicionada na tabela 'avaliacao' para este usuário neste evento.
 
         // --- FIM: CENÁRIOS E2E ---
