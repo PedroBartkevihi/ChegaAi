@@ -49,6 +49,13 @@ export function sortByDate(events) {
 function dayKey(date) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
 }
+// Última data de nascimento aceita no cadastro: 18 anos completos hoje, no horário de Brasília, como na API.
+// Num 29/02, a data de 18 anos antes vira 28/02 se aquele ano não for bissexto (como o minusYears da API).
+export function latestBirthDate(now = new Date()) {
+  const [year, month, day] = dayKey(now).split("-").map(Number);
+  const lastDayOfMonth = new Date(Date.UTC(year - 18, month, 0)).getUTCDate();
+  return `${year - 18}-${String(month).padStart(2, "0")}-${String(Math.min(day, lastDayOfMonth)).padStart(2, "0")}`;
+}
 export function formatEventDay(date, now = new Date()) {
   if (date === dayKey(now)) return "Hoje";
   if (date === dayKey(new Date(now.getTime() + 24 * 60 * 60 * 1000))) return "Amanhã";

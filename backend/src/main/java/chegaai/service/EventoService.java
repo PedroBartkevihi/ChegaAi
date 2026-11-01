@@ -129,8 +129,8 @@ public class EventoService {
             .findByEventoIdAndStatusInscricao(eventoId, StatusInscricao.CONFIRMADA);
         var usuarios = honraService.travarUsuarios(java.util.stream.Stream.concat(
             confirmadas.stream().map(i -> i.getUsuario().getId()), java.util.stream.Stream.of(usuarioId)).toList());
-        if (usuarios.get(usuarioId).getStatusUsuario() == chegaai.domain.enums.StatusUsuario.BANIDO) {
-            throw new AccessDeniedException("Esta conta foi banida pela moderação.");
+        if (usuarios.get(usuarioId).contaEncerrada()) {
+            throw new AccessDeniedException(usuarios.get(usuarioId).motivoDoBloqueio());
         }
         evento.concluir(OffsetDateTime.now());
         eventoRepository.save(evento);
@@ -324,14 +324,14 @@ public class EventoService {
             .filter(i -> i.getStatusInscricao() == StatusInscricao.SOLICITADA).toList();
         List<Comentario> comentarios = comentarioRepository.findByEventoIdWithAutor(eventoId);
         List<String> confirmedNames = confirmadas.stream()
-            .map(i -> i.getUsuario().getNome().split(" ")[0])
+            .map(i -> i.getUsuario().primeiroNome())
             .collect(Collectors.toList());
         List<String> waitlistNames = fila.stream()
-            .map(i -> i.getUsuario().getNome().split(" ")[0])
+            .map(i -> i.getUsuario().primeiroNome())
             .collect(Collectors.toList());
         List<EventoResponseDTO.CommentDTO> commentDTOs = comentarios.stream()
             .map(c -> new EventoResponseDTO.CommentDTO(
-                c.getAutor().getNome().split(" ")[0],
+                c.getAutor().primeiroNome(),
                 c.getTexto(),
                 c.getDataHoraComentario() != null
                     ? fusoHorario.hora(c.getDataHoraComentario())

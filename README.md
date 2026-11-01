@@ -35,13 +35,14 @@ Pedro Farias continuou o projeto neste repositório:
 
 ## Funcionalidades
 
-- Cadastro e login com JWT; contas de demonstração prontas para testar.
+- Cadastro (a partir de 18 anos) e login com JWT; contas de demonstração prontas para testar.
 - Feed de rolés com busca e filtros por categoria e honra do organizador, 12 por vez ("Carregar mais"), com filtros e ordem aplicados pela API.
 - Criação de rolés com limite de vagas, CEP (consultado no ViaCEP) e descrição.
 - Inscrição com **fila de espera automática**: quando alguém confirmado sai, o primeiro da fila é promovido.
 - Comentários restritos a confirmados e a quem está na fila.
 - Presença corrigível pelo organizador após o início, conclusão com confirmação das ausências e **avaliação entre participantes** (notas de 1 a 5) pelo perfil.
 - Perfil com reputação atualizada, inscrições identificadas por UUID e avaliações pendentes. Respostas atrasadas de uma sessão anterior são descartadas.
+- Exclusão da própria conta pelo perfil, com a senha: nome, e-mail, CPF e data de nascimento são apagados; os rolés futuros que a pessoa organiza saem e as inscrições futuras são canceladas, sem penalidade e com a fila promovida. Presenças, avaliações e comentários ficam no histórico como "Conta excluída". As contas de demonstração não podem ser excluídas.
 - Moderação: o moderador pode excluir rolés ainda não concluídos; o moderador de demonstração, só os das contas de demonstração.
 
 | Detalhes de um rolé | Tela de entrada |
@@ -193,6 +194,7 @@ documenta: cada rota mantém as regras de acesso da tabela abaixo. Principais ro
 |---|---|---|
 | `POST` | `/api/auth/cadastro`, `/api/auth/login` | Público |
 | `GET` | `/api/auth/me`, `/api/auth/me/inscricoes`, `/api/auth/me/avaliacoes-pendentes` | Autenticado; somente dados da própria conta |
+| `POST` | `/api/auth/me/exclusao` | Autenticado; corpo `{ "password": "..." }`; exclui a própria conta (204) |
 | `GET` | `/api/eventos/feed` | Público; página de resumos com `secao` (`proximos` ou `anteriores`), `categoria`, `honraMinima`, `embaixador`, `busca`, `pagina` e `tamanho` (até 50) |
 | `GET` | `/api/eventos/resumo` | Público; total de rolés, abertos, pessoas na fila e rolés de Embaixadores |
 | `GET` | `/api/eventos/{id}` | Público; detalhe do rolé, com os nomes de confirmados e da fila e os comentários |

@@ -1,9 +1,11 @@
-import { Award, LogOut } from "lucide-react";
+import { Award, LogOut, Trash2 } from "lucide-react";
+import { useState } from "react";
 import StackItem from "./StackItem";
 import PendingRatings from "./PendingRatings";
+import PasswordField from "./PasswordField";
 import { formatEventDay, eventTimestamp, sortByDate } from "../lib/eventos";
 const STATUS_LABELS = { CONFIRMADO: "Confirmado", FILA: "Lista de espera", AUSENTE: "Ausente" };
-export default function ProfileView({ registrations, enrollments, currentUser, openEvent, onLogout, ratings, ratingsEventId, pending, sendRating, accountLoading, accountError, refreshAccount }) {
+export default function ProfileView({ registrations, enrollments, currentUser, openEvent, onLogout, ratings, ratingsEventId, pending, sendRating, accountLoading, accountError, refreshAccount, deleteAccount }) {
   const now = Date.now();
   // Cada inscrição traz o resumo do rolé; uma saída recente some antes de a lista voltar da API.
   const myEnrollments = sortByDate(
@@ -52,7 +54,30 @@ export default function ProfileView({ registrations, enrollments, currentUser, o
         </article>
       </div>
       <PendingRatings ratings={ratings} focusEventId={ratingsEventId} pending={pending} sendRating={sendRating} loading={accountLoading} error={accountError} retry={refreshAccount} />
+      <DeleteAccount deleteAccount={deleteAccount} deleting={Boolean(pending.exclusaoConta)} />
     </section>
+  );
+}
+// A senha confirma o pedido na API; antes, o App pede a confirmação final.
+function DeleteAccount({ deleteAccount, deleting }) {
+  const [password, setPassword] = useState("");
+  return (
+    <article className="profile-panel delete-account" aria-labelledby="excluir-conta">
+      <h2 id="excluir-conta">Excluir minha conta</h2>
+      <p>
+        Seu nome, e-mail, CPF e data de nascimento são apagados, e a sessão termina. Os rolés futuros que você organiza
+        são excluídos, e suas inscrições em rolés futuros são canceladas, sem penalidade. Presenças, avaliações e
+        comentários continuam no histórico, com o nome "Conta excluída". Não dá para desfazer.
+      </p>
+      <form className="delete-account-form" onSubmit={(event) => { event.preventDefault(); if (!deleting) deleteAccount(password); }}>
+        <PasswordField label="Sua senha" data-testid="input-senha-exclusao" autoComplete="current-password" value={password}
+          onChange={(event) => setPassword(event.target.value)} required maxLength="72" />
+        <button data-testid="btn-excluir-conta" className="danger-action" type="submit" aria-disabled={deleting || undefined}>
+          <Trash2 size={16} aria-hidden="true" />
+          {deleting ? "Excluindo..." : "Excluir minha conta"}
+        </button>
+      </form>
+    </article>
   );
 }
 function EnrollmentList({ title, events, enrollments, openEvent, empty }) {

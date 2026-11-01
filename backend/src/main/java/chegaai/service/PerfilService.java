@@ -2,7 +2,6 @@ package chegaai.service;
 import chegaai.controller.dto.AvaliacoesPendentesResponseDTO;
 import chegaai.controller.dto.EventoResumoDTO;
 import chegaai.controller.dto.MinhaInscricaoResponseDTO;
-import chegaai.domain.enums.StatusUsuario;
 import chegaai.domain.model.Inscricao;
 import chegaai.domain.model.Usuario;
 import chegaai.repository.InscricaoRepository;
@@ -50,8 +49,8 @@ public class PerfilService {
     private Usuario buscarConta(UUID id) {
         Usuario usuario = usuarioRepository.findById(id)
             .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + id));
-        if (usuario.getStatusUsuario() == StatusUsuario.BANIDO) {
-            throw new AccessDeniedException("Esta conta foi banida pela moderação.");
+        if (usuario.contaEncerrada()) {
+            throw new AccessDeniedException(usuario.motivoDoBloqueio());
         }
         return usuario;
     }

@@ -580,6 +580,18 @@ export default function App() {
       await Promise.all([...reloads, loadSummary(scope), refreshAccount(scope, { reportError: true })]);
     }, scope);
   }
+  // Depois da exclusão o token não vale mais: a sessão termina aqui, com o aviso na tela de entrada.
+  async function deleteAccount(password) {
+    const scope = guard.capture();
+    if (pendingRef.current.has("exclusaoConta")) return;
+    const confirmed = await askConfirm({ title: "Excluir sua conta?", message: "Seus dados pessoais serão apagados, os rolés futuros que você organiza serão excluídos e suas inscrições futuras, canceladas. Essa ação não pode ser desfeita.", confirmLabel: "Excluir conta", tone: "danger" }, scope);
+    if (!confirmed || !guard.isCurrent(scope)) return;
+    await runOnce("exclusaoConta", async () => {
+      await sessionApi(scope, "/auth/me/exclusao", { method: "POST", body: JSON.stringify({ password }) });
+      loginRequestRef.current += 1;
+      showNotice("Sua conta foi excluída.", "success", replaceSession(null, null));
+    }, scope);
+  }
   async function changePresence(eventId, participantId, present) {
     return runOnce(`presenca:${eventId}:${participantId}`, async (scope) => {
       await sessionApi(scope, `/eventos/${eventId}/presencas/${participantId}`, { method: "PUT", body: JSON.stringify({ presente: present }) });
@@ -629,7 +641,7 @@ export default function App() {
           {view === "create" && <CreateView key={currentUser.capacityLimit} categoryOptions={categories} capacityLimit={currentUser.capacityLimit} onSubmit={createEvent} submitting={Boolean(pending.criacao)} />}
           {view === "profile" && <ProfileView key={sessionVersion} registrations={registrations} enrollments={enrollments} currentUser={currentUser} openEvent={selectEvent} onLogout={handleLogout}
             ratings={ratings} ratingsEventId={ratingsEventId} pending={pending} sendRating={sendRating} accountLoading={accountLoading} accountError={accountError}
-            refreshAccount={() => refreshAccount(guard.capture(), { reportError: true })} />}
+            refreshAccount={() => refreshAccount(guard.capture(), { reportError: true })} deleteAccount={deleteAccount} />}
         </main>
       </div>
       {alert && !selectedEvent && <div className="toast-region"><Notice key={alert.id} alert={alert} onClose={() => setAlert(null)} /></div>}

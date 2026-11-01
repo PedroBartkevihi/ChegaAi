@@ -26,4 +26,7 @@ public class FusoHorario {
     public String hora(OffsetDateTime instante) {
         return instante.atZoneSameInstant(zona).format(HORA);
     }
+    public LocalDate hoje() {
+        return LocalDate.now(zona);
+    }
 }

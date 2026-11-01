@@ -107,12 +107,25 @@ public abstract class Usuario {
             || (statusUsuario == StatusUsuario.SUSPENSO && suspensoAte != null
                 && !agora.isBefore(suspensoAte));
     }
+    /** Nome curto mostrado no app; o de uma conta excluída ("Conta excluída") não é nome de ninguém e vai inteiro. */
+    public String primeiroNome() {
+        return statusUsuario == StatusUsuario.EXCLUIDO ? nome : nome.split(" ")[0];
+    }
+    /** Banida pela moderação ou excluída pela própria pessoa: em nenhum dos dois casos a conta volta a ser usada. */
+    public boolean contaEncerrada() {
+        return statusUsuario == StatusUsuario.BANIDO || statusUsuario == StatusUsuario.EXCLUIDO;
+    }
     public void exigirContaAtiva(OffsetDateTime agora) {
         if (!estaAtivo(agora)) {
-            throw new org.springframework.security.access.AccessDeniedException(
-                statusUsuario == StatusUsuario.BANIDO ? "Esta conta foi banida pela moderação."
-                    : "Esta conta está suspensa." + (suspensoAte == null ? "" : " Tente novamente após " + suspensoAte + "."));
+            throw new org.springframework.security.access.AccessDeniedException(motivoDoBloqueio());
         }
+    }
+    public String motivoDoBloqueio() {
+        return switch (statusUsuario) {
+            case BANIDO -> "Esta conta foi banida pela moderação.";
+            case EXCLUIDO -> "Esta conta foi excluída.";
+            default -> "Esta conta está suspensa." + (suspensoAte == null ? "" : " Tente novamente após " + suspensoAte + ".");
+        };
     }
     public boolean podeCriarEvento(BigDecimal honraMinimaParaCriacao) {
         return estaAtivo(OffsetDateTime.now())
