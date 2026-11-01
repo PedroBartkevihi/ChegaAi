@@ -165,6 +165,24 @@ class SegurancaIT extends IntegracaoBase {
         login("ana.acentos@teste.chegaai.dev", "ç".repeat(36));
     }
     @Test
+    @DisplayName("o cadastro exige 18 anos completos, contados no horário de Brasília")
+    void idadeMinima() throws Exception {
+        java.time.LocalDate dezoitoAnosHoje = java.time.LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")).minusYears(18);
+        mockMvc.perform(post("/auth/cadastro")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of(
+                    "name", "Bia Jovem", "email", "bia.jovem@teste.chegaai.dev",
+                    "birthDate", dezoitoAnosHoje.plusDays(1).toString(), "password", SENHA))))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value(chegaai.service.AuthService.MENOR_DE_IDADE));
+        mockMvc.perform(post("/auth/cadastro")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Map.of(
+                    "name", "Bia Jovem", "email", "bia.jovem@teste.chegaai.dev",
+                    "birthDate", dezoitoAnosHoje.toString(), "password", SENHA))))
+            .andExpect(status().isCreated());
+    }
+    @Test
     @DisplayName("cadastro sem CPF funciona, e CPF repetido recebe mensagem genérica")
     void cadastroComCpfOpcional() throws Exception {
         mockMvc.perform(post("/auth/cadastro")

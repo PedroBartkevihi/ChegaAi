@@ -1,10 +1,12 @@
-import { AlertTriangle, Eye, EyeOff, LogIn, Mail, UserPlus } from "lucide-react";
-import { useId, useState } from "react";
+import { AlertTriangle, LogIn, Mail, UserPlus } from "lucide-react";
+import { useState } from "react";
 import Notice from "./Notice";
 import Brand from "./Brand";
 import Landscape from "./Landscape";
 import ThemeToggle from "./ThemeToggle";
+import PasswordField from "./PasswordField";
 import { cleanErrorMessage } from "../lib/api";
+import { latestBirthDate } from "../lib/eventos";
 import { useDemora, AVISO_SERVIDOR_ACORDANDO } from "../lib/useDemora";
 const DEMO_PASSWORD = "admin123";
 const DEMO_ACCOUNTS = [
@@ -141,10 +143,12 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
               CPF (opcional)
               <input data-testid="input-cpf" name="cpf" inputMode="numeric" pattern="[0-9.\-]{11,14}" maxLength="14" placeholder="000.000.000-00" />
             </label>
-            <label>
-              Data de nascimento
-              <input data-testid="input-nascimento" name="birthDate" type="date" autoComplete="bday" required />
-            </label>
+            <div className="field">
+              <label htmlFor="cadastro-nascimento">Data de nascimento</label>
+              <input id="cadastro-nascimento" data-testid="input-nascimento" name="birthDate" type="date" autoComplete="bday" required
+                max={latestBirthDate()} aria-describedby="cadastro-nascimento-dica" />
+              <small id="cadastro-nascimento-dica" className="field-hint">É preciso ter 18 anos ou mais.</small>
+            </div>
             <PasswordField
               label="Senha"
               hint="Entre 8 e 72 caracteres."
@@ -199,25 +203,6 @@ export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice
         )}
       </section>
     </main>
-  );
-}
-// Campo de senha com botão de mostrar/ocultar. O botão fica fora do <label>, para não entrar no nome do campo.
-function PasswordField({ label, hint, ...inputProps }) {
-  const [visible, setVisible] = useState(false);
-  const id = useId();
-  const hintId = useId();
-  return (
-    <div className="field">
-      <label htmlFor={id}>{label}</label>
-      <span className="input-with-action">
-        <input id={id} type={visible ? "text" : "password"} aria-describedby={hint ? hintId : undefined} {...inputProps} />
-        <button type="button" className="input-action" aria-pressed={visible} onClick={() => setVisible((current) => !current)}>
-          {visible ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
-          Mostrar<span className="sr-only"> senha</span>
-        </button>
-      </span>
-      {hint && <small id={hintId} className="field-hint">{hint}</small>}
-    </div>
   );
 }
 function LoginError({ message }) {

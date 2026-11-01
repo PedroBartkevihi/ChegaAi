@@ -111,13 +111,13 @@ public class SecurityConfig {
     }
     /**
      * Além do emissor e da validade, confere o estado atual da conta em cada pedido.
-     * Banimento bloqueia tokens anteriores. Suspensos podem consultar e encerrar compromissos;
-     * as operações que exigem conta ativa devolvem 403 com o motivo.
+     * Banimento e exclusão da conta bloqueiam tokens anteriores. Suspensos podem consultar e encerrar
+     * compromissos; as operações que exigem conta ativa devolvem 403 com o motivo.
      */
     static OAuth2TokenValidator<Jwt> validadorDeToken(UsuarioRepository usuarioRepository) {
         OAuth2TokenValidator<Jwt> padrao = JwtValidators.createDefaultWithIssuer(TokenService.EMISSOR);
         OAuth2Error contaInexistente = new OAuth2Error(OAuth2ErrorCodes.INVALID_TOKEN,
-            "A conta deste token não existe ou foi banida.", null);
+            "A conta deste token não existe, foi banida ou foi excluída.", null);
         return jwt -> {
             OAuth2TokenValidatorResult resultado = padrao.validate(jwt);
             if (resultado.hasErrors()) {
@@ -131,7 +131,7 @@ public class SecurityConfig {
     private static boolean contaExiste(UsuarioRepository usuarioRepository, String subject) {
         try {
             return subject != null && usuarioRepository.findById(UUID.fromString(subject))
-                .map(usuario -> usuario.getStatusUsuario() != chegaai.domain.enums.StatusUsuario.BANIDO).orElse(false);
+                .map(usuario -> !usuario.contaEncerrada()).orElse(false);
         } catch (IllegalArgumentException e) {
             return false;
         }

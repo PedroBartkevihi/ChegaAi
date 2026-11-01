@@ -16,7 +16,7 @@ public record UsuarioResponseDTO(
     public static UsuarioResponseDTO de(Usuario usuario, boolean isAmbassador, int capacityLimit, boolean canCreateEvents) {
         return new UsuarioResponseDTO(
             usuario.getId(),
-            usuario.getNome().split(" ")[0],
+            usuario.primeiroNome(),
             usuario.getNome(),
             usuario.getEmail(),
             usuario.getHonraMedia().doubleValue(),

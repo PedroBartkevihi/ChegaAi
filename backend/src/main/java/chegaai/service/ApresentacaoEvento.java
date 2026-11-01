@@ -43,7 +43,7 @@ public class ApresentacaoEvento {
         Usuario org = evento.getOrganizador();
         return new EventoResponseDTO.OrganizerDTO(
             org.getId(),
-            org.getNome().split(" ")[0],
+            org.primeiroNome(),
             org.getHonraMedia().doubleValue(),
             regrasEventoService.ehEmbaixador(org)
         );

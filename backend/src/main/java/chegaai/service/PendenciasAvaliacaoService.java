@@ -2,6 +2,7 @@ package chegaai.service;
 import chegaai.config.FusoHorario;
 import chegaai.controller.dto.AvaliacoesPendentesResponseDTO.EventoPendenteDTO;
 import chegaai.controller.dto.AvaliacoesPendentesResponseDTO.ParticipantePendenteDTO;
+import chegaai.domain.enums.StatusUsuario;
 import chegaai.domain.model.Usuario;
 import chegaai.repository.AvaliacaoRepository;
 import chegaai.repository.InscricaoRepository;
@@ -46,8 +47,10 @@ public class PendenciasAvaliacaoService {
         for (var inscricao : participacoes) {
             var evento = inscricao.getEvento();
             var jaAvaliados = avaliados.getOrDefault(evento.getId(), Set.of());
+            // Quem excluiu a conta continua no histórico, mas ninguém precisa avaliá-la para seguir se inscrevendo.
             var participantes = presentes.getOrDefault(evento.getId(), List.of()).stream()
-                .filter(u -> !u.getId().equals(usuarioId) && !jaAvaliados.contains(u.getId()))
+                .filter(u -> !u.getId().equals(usuarioId) && !jaAvaliados.contains(u.getId())
+                    && u.getStatusUsuario() != StatusUsuario.EXCLUIDO)
                 .map(u -> new ParticipantePendenteDTO(u.getId(), u.getNome())).toList();
             if (!participantes.isEmpty()) {
                 eventos.add(new EventoPendenteDTO(evento.getId(), evento.getTitulo(),

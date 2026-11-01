@@ -122,7 +122,7 @@ public class EventoController {
             Comentario comentario = comentarioService.adicionarComentario(id, usuarioId, dto.text());
             ComentarioResponseDTO response = new ComentarioResponseDTO(
                 comentario.getId(),
-                comentario.getAutor().getNome().split(" ")[0],
+                comentario.getAutor().primeiroNome(),
                 comentario.getTexto(),
                 comentario.getDataHoraComentario() != null
                     ? fusoHorario.hora(comentario.getDataHoraComentario())

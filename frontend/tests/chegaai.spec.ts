@@ -226,4 +226,48 @@ test.describe('ChegaAí — fluxos com dados próprios', () => {
       expect(response.headers()['access-control-allow-origin']).toBe(new URL(page.url()).origin);
     }
   });
+
+  test('CT12 — excluir a conta pelo perfil pede a senha, encerra a sessão e libera a vaga', async ({ page, cenario, request }) => {
+    const anfitriao = await cenario.criarConta('anfitriao');
+    const conta = await cenario.criarConta('saida');
+    const evento = await cenario.criarEvento(anfitriao);
+    await cenario.inscrever(evento, conta);
+    await loginPelaUI(page, conta);
+    await page.getByRole('button', { name: 'Meu perfil' }).click();
+    const excluir = async (senha: string) => {
+      await page.getByTestId('input-senha-exclusao').fill(senha);
+      await page.getByTestId('btn-excluir-conta').click();
+      const resposta = page.waitForResponse((r) => r.url().endsWith('/api/auth/me/exclusao'));
+      await page.getByRole('alertdialog').getByRole('button', { name: 'Excluir conta' }).click();
+      return (await resposta).status();
+    };
+    expect(await excluir('SenhaErrada2026!')).toBe(400);
+    await expect(page.locator('.toast-region')).toContainText('Senha incorreta.');
+    expect(await excluir(conta.senha)).toBe(204);
+    await expect(page.getByTestId('input-email')).toBeVisible();
+    await expect(page.locator('.login-card .notice')).toContainText('Sua conta foi excluída.');
+    const login = await request.post(cenario.endpoint('/auth/login'), { data: { email: conta.email, password: conta.senha } });
+    expect(login.status()).toBe(401);
+    expect((await cenario.obterEvento(evento)).confirmed).toEqual([anfitriao.nome]);
+  });
+
+  test('CT13 — cadastro exige 18 anos: o campo limita a data e a API recusa', async ({ page, cenario, request }) => {
+    // Até 17 anos e meio, em qualquer dia do ano.
+    const dados = { ...cenario.dadosConta('menor'), birthDate: `${new Date().getFullYear() - 17}-06-15` };
+    let enviou = false;
+    page.on('request', (r) => { if (r.url().endsWith('/api/auth/cadastro')) enviou = true; });
+    await abrirPagina(page);
+    await page.getByTestId('link-cadastro').click();
+    await page.getByTestId('input-nome').fill(dados.name);
+    await page.getByTestId('input-email-cadastro').fill(dados.email);
+    await page.getByTestId('input-nascimento').fill(dados.birthDate);
+    await page.getByTestId('input-senha-cadastro').fill(dados.password);
+    await page.getByTestId('btn-cadastrar').click();
+    expect(await page.getByTestId('input-nascimento').evaluate((campo: HTMLInputElement) => campo.validity.rangeOverflow)).toBe(true);
+    await expect(page.getByTestId('btn-cadastrar')).toBeVisible();
+    expect(enviou).toBe(false);
+    const resposta = await request.post(cenario.endpoint('/auth/cadastro'), { data: dados });
+    expect(resposta.status()).toBe(400);
+    expect((await resposta.json()).message).toBe('É preciso ter 18 anos ou mais para se cadastrar.');
+  });
 });

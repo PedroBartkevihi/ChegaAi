@@ -2228,6 +2228,18 @@ legend {
 .ratings-panel {
   margin-top: 16px;
 }
+.delete-account {
+  margin-top: 16px;
+  border-color: var(--danger);
+}
+.delete-account-form {
+  display: grid;
+  gap: 12px;
+  max-width: 420px;
+}
+.delete-account-form .danger-action {
+  justify-self: start;
+}
 .rating-event + .rating-event {
   padding-top: 18px;
   border-top: 1px solid var(--line);

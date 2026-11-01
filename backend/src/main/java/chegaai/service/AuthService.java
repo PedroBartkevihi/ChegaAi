@@ -3,8 +3,8 @@ import chegaai.controller.dto.AuthResponseDTO;
 import chegaai.controller.dto.CadastroRequestDTO;
 import chegaai.controller.dto.LoginRequestDTO;
 import chegaai.controller.dto.UsuarioResponseDTO;
+import chegaai.config.FusoHorario;
 import chegaai.domain.Cpf;
-import chegaai.domain.enums.StatusUsuario;
 import chegaai.domain.model.Participante;
 import chegaai.domain.model.Usuario;
 import chegaai.repository.UsuarioRepository;
@@ -27,12 +27,15 @@ public class AuthService {
         "Não foi possível concluir o cadastro com esses dados. Se você já tem conta, entre com seu e-mail.";
     public static final String SENHA_LONGA =
         "A senha pode ter no máximo 72 bytes; letras com acento contam como dois.";
+    public static final String MENOR_DE_IDADE = "É preciso ter 18 anos ou mais para se cadastrar.";
     /** Limite do BCrypt, em bytes: o DTO conta caracteres, e uma letra com acento ocupa dois. */
     private static final int MAX_BYTES_SENHA = 72;
+    private static final int IDADE_MINIMA = 18;
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
     private final RegrasEventoService regrasEventoService;
+    private final FusoHorario fusoHorario;
     @Value("${chegaai.regras.honra-inicial:3.0}")
     private double honraInicial;
     @Transactional(readOnly = true)
@@ -40,8 +43,8 @@ public class AuthService {
         Usuario usuario = usuarioRepository.findByEmail(normalizarEmail(dto.email()))
             .filter(encontrado -> passwordEncoder.matches(dto.password(), encontrado.getSenhaHash()))
             .orElseThrow(() -> new BadCredentialsException("E-mail ou senha inválidos."));
-        if (usuario.getStatusUsuario() == StatusUsuario.BANIDO) {
-            throw new IllegalStateException("Esta conta foi banida pela moderação.");
+        if (usuario.contaEncerrada()) {
+            throw new IllegalStateException(usuario.motivoDoBloqueio());
         }
         return gerarResposta(usuario);
     }
@@ -51,6 +54,10 @@ public class AuthService {
         // Sem isso, o BCrypt recusaria com uma mensagem técnica em inglês.
         if (dto.password().getBytes(StandardCharsets.UTF_8).length > MAX_BYTES_SENHA) {
             throw new IllegalArgumentException(SENHA_LONGA);
+        }
+        // A idade conta no fuso dos rolés: quem faz 18 anos hoje já pode se cadastrar.
+        if (dto.birthDate().isAfter(fusoHorario.hoje().minusYears(IDADE_MINIMA))) {
+            throw new IllegalArgumentException(MENOR_DE_IDADE);
         }
         // CPF opcional (o DTO já transforma o vazio em nulo); se vier, é validado e precisa ser único.
         String cpf = dto.cpf();

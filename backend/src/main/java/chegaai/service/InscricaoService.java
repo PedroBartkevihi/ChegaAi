@@ -190,7 +190,7 @@ public class InscricaoService {
         exigirOrganizador(evento, organizadorId);
         Usuario usuario = usuarioRepository.findById(organizadorId)
             .orElseThrow(() -> new NoSuchElementException("Usuário não encontrado: " + organizadorId));
-        if (usuario.getStatusUsuario() == StatusUsuario.BANIDO) usuario.exigirContaAtiva(OffsetDateTime.now());
+        if (usuario.contaEncerrada()) usuario.exigirContaAtiva(OffsetDateTime.now());
         OffsetDateTime agora = OffsetDateTime.now();
         boolean podeGerir = evento.getStatusEvento() == StatusEvento.ATIVO && !agora.isBefore(evento.getDataHoraRealizacao());
         var participantes = inscricaoRepository.listarParticipantes(eventoId,

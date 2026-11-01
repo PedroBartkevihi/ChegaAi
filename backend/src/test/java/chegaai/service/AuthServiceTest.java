@@ -1,4 +1,5 @@
 package chegaai.service;
+import chegaai.config.FusoHorario;
 import chegaai.controller.dto.AuthResponseDTO;
 import chegaai.controller.dto.CadastroRequestDTO;
 import chegaai.controller.dto.LoginRequestDTO;
@@ -31,6 +32,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
     private static final PasswordEncoder ENCODER = new BCryptPasswordEncoder(4);
+    private static final FusoHorario FUSO = new FusoHorario("America/Sao_Paulo");
     @Mock
     private UsuarioRepository usuarioRepository;
     @Mock
@@ -39,7 +41,7 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         authService = new AuthService(usuarioRepository, ENCODER, tokenService,
-            new RegrasEventoService(new BigDecimal("4.8"), new BigDecimal("2.0"), 20, 50));
+            new RegrasEventoService(new BigDecimal("4.8"), new BigDecimal("2.0"), 20, 50), FUSO);
         ReflectionTestUtils.setField(authService, "honraInicial", 3.0);
     }
     @Test
@@ -150,6 +152,20 @@ class AuthServiceTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessage("CPF inválido.");
         verify(usuarioRepository, never()).save(any());
+    }
+    @Test
+    @DisplayName("cadastro de quem ainda não fez 18 anos é recusado; quem faz 18 hoje já pode")
+    void idadeMinima() {
+        LocalDate dezoitoAnosHoje = FUSO.hoje().minusYears(18);
+        assertThatThrownBy(() -> authService.cadastrar(new CadastroRequestDTO("Ana Souza", "ana@exemplo.com", null,
+                dezoitoAnosHoje.plusDays(1), "senhaSegura123")))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage(AuthService.MENOR_DE_IDADE);
+        verify(usuarioRepository, never()).save(any());
+        when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocacao -> invocacao.getArgument(0));
+        when(tokenService.gerar(any())).thenReturn(new TokenService.TokenGerado("token-jwt", Instant.now()));
+        authService.cadastrar(new CadastroRequestDTO("Ana Souza", "ana@exemplo.com", null, dezoitoAnosHoje, "senhaSegura123"));
+        verify(usuarioRepository).save(any());
     }
     private static Participante participante(String email, String senha) {
         Participante participante = new Participante("Pedro Farias", email, "52998224725",

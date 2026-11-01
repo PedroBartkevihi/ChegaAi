@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -12,6 +13,11 @@ import java.util.UUID;
 @Repository
 public interface InscricaoRepository extends JpaRepository<Inscricao, UUID> {
     Optional<Inscricao> findByUsuarioIdAndEventoId(UUID usuarioId, UUID eventoId);
+    /** Rolés de outras pessoas, ainda por começar, em que a pessoa tem vaga ou lugar na fila. */
+    @Query("SELECT i.evento.id FROM Inscricao i WHERE i.usuario.id = :usuarioId " +
+           "AND i.statusInscricao IN ('CONFIRMADA', 'SOLICITADA') AND i.evento.statusEvento = 'ATIVO' " +
+           "AND i.evento.dataHoraRealizacao > :agora AND i.evento.organizador.id <> :usuarioId")
+    List<UUID> idsDosRolesFuturosInscritos(@Param("usuarioId") UUID usuarioId, @Param("agora") OffsetDateTime agora);
     @Query("SELECT i FROM Inscricao i WHERE i.evento.id = :eventoId " +
            "AND i.statusInscricao = :status ORDER BY i.ordemEntrada ASC")
     List<Inscricao> findByEventoIdAndStatusInscricao(@Param("eventoId") UUID eventoId,

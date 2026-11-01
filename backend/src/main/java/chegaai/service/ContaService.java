@@ -32,7 +32,7 @@ public class ContaService {
         Usuario usuario = entityManager.find(Usuario.class, id);
         // A primeira leitura da conta ocorre depois da trava. Refresh em Usuario cascata para
         // eventosOrganizados e pode recolocar no contexto um evento que está sendo excluído.
-        if (usuario.getStatusUsuario() == chegaai.domain.enums.StatusUsuario.BANIDO) {
+        if (usuario.contaEncerrada()) {
             usuario.exigirContaAtiva(OffsetDateTime.now());
         }
         return usuario;
