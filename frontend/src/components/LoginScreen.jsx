@@ -13,9 +13,9 @@ const DEMO_ACCOUNTS = [
   { email: "pedro@chegaai.dev", label: "Pedro", detail: "Embaixador · Reputação 4.9" },
   { email: "caio@chegaai.dev", label: "Caio", detail: "Embaixador · Reputação 4.9" },
   { email: "marcos@chegaai.dev", label: "Marcos", detail: "Embaixador · Reputação 5.0" },
-  { email: "baixa@chegaai.dev", label: "Baixa", detail: "Reputação baixa · 1.5" },
+  { email: "baixa@chegaai.dev", label: "Davi", detail: "Reputação baixa · 1.5" },
   { email: "moderador@chegaai.dev", label: "Moderador", detail: "Modera os rolés da demonstração" },
-  { email: "tester.pendente@chegaai.dev", label: "Tester", detail: "Avaliações pendentes" },
+  { email: "tester.pendente@chegaai.dev", label: "Júlia", detail: "Avaliações pendentes" },
 ];
 export default function LoginScreen({ onLogin, onRegister, notice, onCloseNotice }) {
   const [mode, setMode] = useState("login");

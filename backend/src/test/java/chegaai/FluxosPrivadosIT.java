@@ -302,9 +302,9 @@ class FluxosPrivadosIT extends IntegracaoBase {
     @Test
     @DisplayName("cenario de demonstracao concluido de avaliacao pendente tem data passada")
     void demonstracaoPendenteJaAconteceu() {
-        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM evento WHERE titulo LIKE 'Encontro Passado%' " +
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM evento WHERE titulo LIKE 'Troca de livros%' " +
             "AND status_evento='CONCLUIDO' AND data_hora_realizacao < now()", Long.class)).isGreaterThanOrEqualTo(1);
-        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM evento WHERE titulo LIKE 'Encontro Passado%' " +
+        assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM evento WHERE titulo LIKE 'Troca de livros%' " +
             "AND status_evento='CONCLUIDO' AND data_hora_realizacao >= now()", Long.class)).isZero();
     }
 
