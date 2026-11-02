@@ -95,7 +95,7 @@ public class DataSeederService implements CommandLineRunner {
             "90123456789", "1998-11-30", BigDecimal.valueOf(4.20));
         Participante bruno = salvarParticipante("Bruno Silva", "bruno@chegaai.dev",
             "01234567890", "2000-08-14", BigDecimal.valueOf(4.10));
-        Participante userBaixa = salvarParticipante("Tester Baixa Honra", "baixa@chegaai.dev",
+        Participante userBaixa = salvarParticipante("Davi Rocha", "baixa@chegaai.dev",
             "11223344556", "2002-02-02", BigDecimal.valueOf(1.50));
         Administrador admin = salvarAdmin("Moderador ChegaAí", "moderador@chegaai.dev",
             "99988877766", "1990-01-01");
@@ -138,7 +138,7 @@ public class DataSeederService implements CommandLineRunner {
         comentar(lia, evtPatinacao, "Posso ir mesmo sabendo frear só um pouco?");
         Evento evtLazer = salvarEvento(marcos, catLazer, endTijuca,
             "Café e jogo de tabuleiro",
-            "Encontro em local público. Evento temporariamente travado por análise de moderação.",
+            "Tarde de jogos de tabuleiro num café da Tijuca. Traga seu jogo favorito.",
             LocalDate.now().plusDays(6).toString(), "15:00", 6);
         evtLazer.setTravado(true);
         eventoRepository.save(evtLazer);
@@ -150,8 +150,8 @@ public class DataSeederService implements CommandLineRunner {
         
         // 1. Evento Lotado para Marcos testar FIFO (Capacidade 3 - mínimo permitido)
         Evento evtLotadoFifo = salvarEvento(caio, catFutebol, endAterro,
-            "Futebol de Domingo (Lotado)",
-            "Evento criado especificamente para testar limite de vagas e transição para fila de espera.",
+            "Roda de altinha no Flamengo",
+            "Roda pequena para manter a bola no ar, com 3 vagas. Quem chegar depois entra na fila de espera e é chamado na ordem.",
             LocalDate.now().plusDays(7).toString(), "10:00", 3);
         inscrever(caio, evtLotadoFifo, StatusInscricao.CONFIRMADA); 
         inscrever(lia, evtLotadoFifo, StatusInscricao.CONFIRMADA);
@@ -160,19 +160,19 @@ public class DataSeederService implements CommandLineRunner {
 
         // 2. Evento Ativo onde Caio NÃO está inscrito (Testar bloqueio de comentários RN006)
         Evento evtComentarioBloqueado = salvarEvento(nina, catPasseio, endBotafogo,
-            "Passeio Fechado (Sem Caio)",
-            "Apenas confirmados e fila de espera podem comentar. Caio tentará comentar e falhará.",
+            "Caminhada de Botafogo à Urca",
+            "Caminhada leve pela orla até a Mureta da Urca. Quem confirmou ou está na fila combina os detalhes nos comentários.",
             LocalDate.now().plusDays(2).toString(), "15:00", 10);
         inscrever(nina, evtComentarioBloqueado, StatusInscricao.CONFIRMADA);
         // Caio (caio@chegaai.dev) NÃO está inscrito neste evento.
 
         // 3. Usuário tester.pendente com participação concluída e compareceu=true, mas sem avaliação (RN007)
-        Participante testerPendente = salvarParticipante("Tester Pendente", "tester.pendente@chegaai.dev",
+        Participante testerPendente = salvarParticipante("Júlia Ramos", "tester.pendente@chegaai.dev",
             "12312312312", "1995-05-05", BigDecimal.valueOf(5.0));
         
         Evento evtPassadoSemAvaliacao = salvarEvento(pedro, catLazer, endTijuca,
-            "Encontro Passado (Avaliação Pendente)",
-            "Evento concluído no passado que requer avaliação mútua dos participantes.",
+            "Troca de livros na Tijuca",
+            "Cada pessoa leva até três livros para trocar e uma indicação de leitura.",
             LocalDate.now().minusDays(1).toString(), "10:00", 10);
         evtPassadoSemAvaliacao.setStatusEvento(StatusEvento.CONCLUIDO);
         eventoRepository.save(evtPassadoSemAvaliacao);
